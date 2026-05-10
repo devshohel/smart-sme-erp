@@ -1,12 +1,49 @@
+<!--
+  MAIN LAYOUT COMPONENT - Enhanced Template
 
-<div class="d-flex">
+  Enhancements:
+  - LayoutService integration
+  - Dynamic CSS classes based on state
+  - Mobile overlay support
+  - Responsive container behavior
+
+  Backward Compatibility:
+  - Existing layout structure unchanged
+  - All child components preserved
+  - Router outlet maintained
+-->
+
+<!-- MAIN LAYOUT CONTAINER (ENHANCED) -->
+<div class="d-flex main-layout" [ngClass]="getContainerClasses()">
+
+  <!-- SIDEBAR COMPONENT (UNCHANGED) -->
   <app-sidebar></app-sidebar>
 
-  <div class="main-body-container w-100">
+  <!-- MOBILE OVERLAY (NEW) -->
+  <div class="sidebar-overlay"
+       *ngIf="showMobileOverlay()"
+       [class.active]="mobileSidebarOpen"
+       (click)="closeOverlay()">
+  </div>
+
+  <!-- MAIN BODY CONTAINER (ENHANCED) -->
+  <div class="main-body-container w-100" [ngClass]="getBodyClasses()">
+
+    <!-- NAVBAR COMPONENT (UNCHANGED) -->
     <app-navbar></app-navbar>
-    
+
+    <!-- CONTENT AREA (UNCHANGED) -->
     <div class="p-4">
       <router-outlet></router-outlet>
     </div>
+
   </div>
+
+</div>
+
+<!-- ACCESSIBILITY: Live region for layout changes -->
+<div class="sr-only" aria-live="polite">
+  <span *ngIf="sidebarExpanded">Sidebar expanded</span>
+  <span *ngIf="sidebarCollapsed">Sidebar collapsed</span>
+  <span *ngIf="mobileSidebarOpen">Mobile menu open</span>
 </div>
