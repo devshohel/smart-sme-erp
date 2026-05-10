@@ -24,8 +24,8 @@
 
 import { Component, OnInit, OnDestroy, HostListener, HostBinding, ElementRef } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, Subject, fromEvent } from 'rxjs';
-import { takeUntil, filter } from 'rxjs/operators';
+import { Observable, Subject, fromEvent, timer } from 'rxjs';
+import { takeUntil, filter, debounce } from 'rxjs/operators';
 
 // Layout Service Import
 import { LayoutService } from '../../core/services/layout.service';
@@ -74,6 +74,19 @@ export class NavbarComponent implements OnInit, OnDestroy {
   userName: string = 'Shohel';
   userRole: string = 'Admin';
   userAvatar: string = '/assets/images/profile-user.png';
+
+  /**
+   * Toggle debounce subject (prevents rapid clicking)
+   * @private
+   */
+  private toggleDebounce$ = new Subject<void>();
+
+  /**
+   * Toggle in progress flag (prevents toggle spam)
+   * @type {boolean}
+   * @private
+   */
+  private toggleInProgress: boolean = false;
 
   // ========== NEW PROPERTIES (LAYOUT SERVICE INTEGRATION) ==========
 
@@ -197,12 +210,24 @@ export class NavbarComponent implements OnInit, OnDestroy {
    * @description
    * Main sidebar toggle functionality. Delegates to LayoutService
    * which handles the logic based on current device type.
+   * Includes debouncing to prevent rapid clicking issues.
    *
    * @example
    * <button (click)="onSidebarToggle()">Toggle</button>
    */
   onSidebarToggle(): void {
+    // Prevent toggle spam during animations
+    if (this.toggleInProgress) {
+      return;
+    }
+
+    this.toggleInProgress = true;
     this.layoutService.toggleSidebar();
+
+    // Reset flag after animation completes
+    timer(350).pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.toggleInProgress = false;
+    });
   }
 
   /**
@@ -308,17 +333,18 @@ export class NavbarComponent implements OnInit, OnDestroy {
    * @description
    * Toggles user profile dropdown menu.
    * Closes other dropdowns when opening.
+   * Ensures mutual exclusion between dropdowns.
    *
    * @example
    * <div (click)="toggleUserMenu()">User Profile</div>
    */
   toggleUserMenu(): void {
-    this.userMenuOpen = !this.userMenuOpen;
-
-    // Close notifications when user menu opens
-    if (this.userMenuOpen) {
-      this.notificationsOpen = false;
+    // Ensure mutual exclusion - close notifications first
+    if (this.notificationsOpen && !this.userMenuOpen) {
+      this.closeNotifications();
     }
+
+    this.userMenuOpen = !this.userMenuOpen;
   }
 
   /**

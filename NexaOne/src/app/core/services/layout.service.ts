@@ -82,6 +82,12 @@ export class LayoutService implements OnDestroy {
   private readonly eventEmitter = new Subject<LayoutEvent>();
 
   /**
+   * Resize in progress flag (prevents conflicting resize operations)
+   * @private
+   */
+  private resizeInProgress: boolean = false;
+
+  /**
    * Sidebar state BehaviorSubject
    * @private
    */
@@ -255,6 +261,7 @@ export class LayoutService implements OnDestroy {
     this.initializeWindowSize();
     this.setupWindowResizeListener();
     this.loadUserPreferences();
+    this.validateStateAfterInit();
     this.emitEvent('resize', { message: 'Layout service initialized' });
   }
 
@@ -567,11 +574,19 @@ export class LayoutService implements OnDestroy {
    * @description
    * Automatically adjusts sidebar when breakpoint changes.
    * Ensures consistent behavior across devices.
+   * Prevents concurrent resize operations.
    *
    * @param screenSize - New screen size
    * @private
    */
   private adjustSidebarForBreakpoint(screenSize: ScreenSize): void {
+    // Prevent concurrent resize operations
+    if (this.resizeInProgress) {
+      return;
+    }
+
+    this.resizeInProgress = true;
+
     if (screenSize.isMobile) {
       // On mobile, ensure overlay is closed
       this.updateSidebarState({
@@ -600,6 +615,11 @@ export class LayoutService implements OnDestroy {
         currentWidth: expanded ? this.config.sidebar.expandedWidth : this.config.sidebar.collapsedWidth
       });
     }
+
+    // Reset flag after short delay to prevent rapid resize issues
+    setTimeout(() => {
+      this.resizeInProgress = false;
+    }, 200);
   }
 
   /**
@@ -677,11 +697,64 @@ export class LayoutService implements OnDestroy {
   }
 
   /**
+   * Validate state after initialization
+   *
+   * @description
+   * Ensures layout state is consistent after service initialization.
+   * Fixes any inconsistencies that might occur from localStorage corruption
+   * or page refresh during state changes.
+   *
+   * @private
+   */
+  private validateStateAfterInit(): void {
+    const currentSize = this.screenSizeSubject$.value;
+    const currentSidebar = this.sidebarState$.value;
+
+    // Ensure mobile sidebar is closed on initialization
+    if (currentSize.isMobile && currentSidebar.mobileOpen) {
+      this.closeMobileSidebar();
+    }
+
+    // Ensure sidebar state matches current breakpoint
+    if (currentSize.isMobile && currentSidebar.expanded) {
+      this.updateSidebarState({
+        ...currentSidebar,
+        expanded: false,
+        collapsed: false,
+        mobileOpen: false,
+        currentWidth: this.config.sidebar.mobileWidth
+      });
+    }
+
+    // Validate localStorage data integrity
+    try {
+      const stored = window.localStorage.getItem('layout-preferences');
+      if (stored) {
+        const prefs = JSON.parse(stored);
+        // Ensure sidebarExpanded is boolean
+        if (typeof prefs.sidebarExpanded !== 'boolean') {
+          console.warn('Invalid sidebarExpanded in localStorage, resetting');
+          this.saveUserPreferences(); // Reset to defaults
+        }
+      }
+    } catch (error) {
+      // Clear corrupted localStorage data
+      console.warn('localStorage corrupted, clearing preferences');
+      try {
+        window.localStorage.removeItem('layout-preferences');
+      } catch (e) {
+        // Ignore localStorage errors
+      }
+    }
+  }
+
+  /**
    * Load user preferences from localStorage
    *
    * @description
    * Loads user preferences from browser localStorage.
-   * Uses defaults if no preferences are stored.
+   * Uses defaults if no preferences are stored or if loading fails.
+   * Handles corrupted data gracefully.
    *
    * @private
    */
@@ -691,7 +764,13 @@ export class LayoutService implements OnDestroy {
         const stored = window.localStorage.getItem('layout-preferences');
         if (stored) {
           const preferences = JSON.parse(stored) as UserPreferences;
-          this.userPreferencesSubject$.next(preferences);
+          // Validate loaded preferences before applying
+          if (preferences && typeof preferences === 'object' && 'sidebarExpanded' in preferences) {
+            this.userPreferencesSubject$.next(preferences);
+          } else {
+            // Use defaults if data is corrupted
+            console.warn('Invalid preferences format, using defaults');
+          }
         }
       } catch (error) {
         console.warn('Failed to load user preferences:', error);

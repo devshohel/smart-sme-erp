@@ -70,6 +70,12 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   /**
+   * Navigation timer reference (for cleanup)
+   * @private
+   */
+  private navigationTimer: any;
+
+  /**
    * Sidebar expanded state (desktop)
    * @type {boolean}
    */
@@ -169,10 +175,17 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.router.events.pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.currentRoute = this.router.url;
 
-      // Close mobile sidebar after navigation
+      // Close mobile sidebar after navigation (with proper cleanup)
       if (this.mobileSidebarOpen) {
-        setTimeout(() => {
+        // Clear any existing timer
+        if (this.navigationTimer) {
+          clearTimeout(this.navigationTimer);
+        }
+
+        // Set new timer with proper reference
+        this.navigationTimer = setTimeout(() => {
           this.layoutService.closeMobileSidebar();
+          this.navigationTimer = null;
         }, 150); // Small delay for smooth transition
       }
     });
@@ -341,6 +354,12 @@ export class SidebarComponent implements OnInit, OnDestroy {
    * Prevents memory leaks by completing all subscriptions.
    */
   ngOnDestroy(): void {
+    // Clear navigation timer if exists
+    if (this.navigationTimer) {
+      clearTimeout(this.navigationTimer);
+      this.navigationTimer = null;
+    }
+
     this.destroy$.next();
     this.destroy$.complete();
   }
