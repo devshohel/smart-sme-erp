@@ -1,0 +1,70 @@
+/* =========================
+   Action Buttons
+========================= */
+.btn-action {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.btn-view { background-color: #e3f2fd; color: #2196f3; }
+.btn-edit { background-color: #f1f8e9; color: #4caf50; }
+.btn-delete { background-color: #ffebee; color: #f44336; }
+
+.btn-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Icon size fix */
+.btn-action i {
+    font-size: 1.1rem;
+    line-height: 1;
+    display: flex;
+}
+
+/* =========================
+   Status Badge
+========================= */
+.bg-light-success {
+    background-color: #e8fadf !important;
+}
+
+.bg-light-danger {
+    background-color: #fce7e7 !important;
+}
+
+/* small circle icon */
+.bi-circle-fill {
+    font-size: 6px !important;
+    vertical-align: middle;
+}
+
+/* =========================
+   Table Styling
+========================= */
+.table th {
+    font-size: 11px;
+    color: #6c757d;
+    letter-spacing: 0.5px;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+    transition: 0.3s;
+}
+
+/* =========================
+   Form Focus Style
+========================= */
+.form-control:focus,
+.form-select:focus {
+    box-shadow: none;
+    border-color: #2196f3;
+}

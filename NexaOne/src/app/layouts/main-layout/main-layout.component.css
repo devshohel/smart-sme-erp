@@ -1,0 +1,12 @@
+
+.main-body-container {
+  margin-left: 260px; /* সাইডবারের উইডথ অনুযায়ী জায়গা ছেড়ে দেওয়া */
+  min-height: 100vh;
+  background-color: #f4f7f6;
+}
+
+@media (max-width: 768px) {
+  .main-body-container {
+    margin-left: 0;
+  }
+}
