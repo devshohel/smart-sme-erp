@@ -1,26 +1,3 @@
-/**
- * SIDEBAR COMPONENT - Enhanced Styles
- *
- * @description
- * Enhanced CSS with responsive behavior, animations,
- * and support for new layout states while maintaining
- * full backward compatibility with existing styles.
- *
- * @phase 2
- * - Mobile overlay support
- * - Sidebar collapse/expand states
- * - Responsive adjustments
- * - Smooth animations
- * - Enhanced active states
- *
- * @backwardCompatibility
- * - All existing CSS classes preserved
- * - All existing styles remain functional
- * - New styles added incrementally
- */
-
-/* ==================== EXISTING STYLES - PRESERVED ==================== */
-
 .sidebar {
   width: 260px;
   background: white;
@@ -60,8 +37,6 @@
   font-size: 1.2rem;
   margin-right: 15px;
   width: 25px;
-  text-align: center;
-  flex-shrink: 0;
 }
 
 .side-link:hover, .side-link.active {
@@ -80,10 +55,6 @@
   padding: 10px;
   border-radius: 8px;
   transition: 0.3s;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .btn-logout:hover {
@@ -91,14 +62,18 @@
   color: white;
 }
 
-/* Existing dropdown styles */
+
+/* --- New Dropdown Styles --- */
+
+/* সাব-মেনু লিংকগুলোর স্টাইল */
 .side-link.small {
   font-size: 0.88rem;
-  padding: 10px 18px 10px 45px;
+  padding: 10px 18px 10px 45px; /* বাম পাশে বেশি প্যাডিং দিয়ে ডানে সরানো হয়েছে */
   margin-bottom: 2px;
   color: #666;
 }
 
+/* ড্রপডাউন অ্যারো (Arrow) আইকন */
 .dropdown-toggle::after {
   display: inline-block;
   margin-left: auto;
@@ -107,377 +82,21 @@
   border-right: 0.3em solid transparent;
   border-bottom: 0;
   border-left: 0.3em solid transparent;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease; /* অ্যারো ঘোরার জন্য অ্যানিমেশন */
 }
 
+/* যখন মেনু ওপেন হবে তখন অ্যারো ঘুরে যাবে */
 .side-link[aria-expanded="true"]::after {
   transform: rotate(180deg);
 }
 
+/* ড্রপডাউন সেকশনের ভেতর লিংকের হোভার কালার */
 .side-link.small:hover {
   background: #f8fbf9;
   color: #27ae60;
 }
 
+/* কোলাপস হওয়া সাব-মেনুর জন্য একটু স্পেসিং */
 .collapse {
   transition: all 0.3s ease;
-}
-
-/* ==================== NEW STYLES - ENHANCEMENTS ==================== */
-
-/* MENU TEXT (for collapse state) */
-.menu-text {
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  flex-grow: 1;
-}
-
-/* DROPDOWN ARROW ENHANCEMENT */
-.dropdown-arrow {
-  transition: transform 0.3s ease;
-  margin-left: auto;
-}
-
-.dropdown-arrow.rotate {
-  transform: rotate(180deg);
-}
-
-/* ==================== MOBILE OVERLAY ==================== */
-
-.sidebar-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 99;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-.sidebar-overlay.active {
-  opacity: 1;
-  visibility: visible;
-}
-
-/* ==================== SIDEBAR STATES ==================== */
-
-/* EXPANDED STATE (Desktop default) */
-.sidebar.expanded {
-  width: 280px;
-  transition: width 0.3s ease;
-}
-
-/* COLLAPSED STATE (Desktop - icons only) */
-.sidebar.collapsed {
-  width: 70px;
-  transition: width 0.3s ease;
-}
-
-.sidebar.collapsed .menu-text {
-  opacity: 0;
-  width: 0;
-  overflow: hidden;
-  transform: translateX(-20px);
-}
-
-.sidebar.collapsed .dropdown-arrow {
-  display: none;
-}
-
-.sidebar.collapsed .submenu {
-  display: none !important;
-  max-height: 0;
-}
-
-.sidebar.collapsed .inventory-dropdown {
-  pointer-events: none;
-}
-
-.sidebar.collapsed .side-link {
-  justify-content: center;
-  padding: 12px;
-}
-
-.sidebar.collapsed .icon {
-  margin-right: 0;
-}
-
-.sidebar.collapsed .brand-section {
-  font-size: 0;
-  padding: 15px 0;
-}
-
-.sidebar.collapsed .brand-section::before {
-  content: 'N';
-  font-size: 24px;
-  font-weight: bold;
-  color: #27ae60;
-}
-
-/* MOBILE STATE */
-.sidebar.is-mobile {
-  transform: translateX(-100%);
-  transition: transform 0.3s ease;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-}
-
-.sidebar.is-mobile.mobile-open {
-  transform: translateX(0);
-}
-
-.sidebar.is-mobile .nav-links-wrapper {
-  overflow-y: auto;
-  max-height: calc(100vh - 120px);
-}
-
-/* ==================== COLLAPSE TOGGLE BUTTON ==================== */
-
-.sidebar-toggle-btn {
-  padding: 10px 15px;
-  text-align: right;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.btn-toggle {
-  background: transparent;
-  border: none;
-  color: #555;
-  cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-toggle:hover {
-  background: #f0f0f0;
-  color: #27ae60;
-}
-
-.btn-toggle:focus {
-  outline: 2px solid #27ae60;
-  outline-offset: 2px;
-}
-
-/* ==================== ENHANCED ACTIVE STATES ==================== */
-
-/* Active route indicator */
-.side-link.active {
-  position: relative;
-  font-weight: 600;
-}
-
-.side-link.active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 70%;
-  background: #27ae60;
-  border-radius: 0 4px 4px 0;
-}
-
-/* Active state in collapsed mode */
-.sidebar.collapsed .side-link.active-in-collapsed {
-  background: #27ae60;
-  color: white;
-  border-radius: 12px;
-}
-
-.sidebar.collapsed .side-link.active-in-collapsed::before {
-  display: none;
-}
-
-.sidebar.collapsed .side-link.active-in-collapsed .icon {
-  color: white;
-}
-
-/* ==================== RESPONSIVE BREAKPOINTS ==================== */
-
-/* TABLET (768px - 991px) */
-@media (min-width: 768px) and (max-width: 991px) {
-  .sidebar.expanded {
-    width: 240px;
-  }
-
-  .sidebar.collapsed {
-    width: 60px;
-  }
-
-  .side-link {
-    padding: 10px 14px;
-  }
-
-  .icon {
-    font-size: 1.1rem;
-    margin-right: 12px;
-  }
-
-  .brand-section {
-    padding: 20px;
-    font-size: 20px;
-  }
-}
-
-/* MOBILE (less than 768px) */
-@media (max-width: 767px) {
-  .sidebar {
-    width: 280px;
-  }
-
-  .sidebar-toggle-btn {
-    display: none;
-  }
-
-  .side-link {
-    padding: 14px 18px;
-  }
-
-  .nav-links-wrapper {
-    padding: 15px 12px;
-  }
-
-  .brand-section {
-    padding: 20px;
-    font-size: 22px;
-  }
-
-  /* Hide collapse button on mobile */
-  .sidebar-toggle-btn {
-    display: none;
-  }
-}
-
-/* DESKTOP (992px and above) */
-@media (min-width: 992px) {
-  .sidebar {
-    /* Ensure sidebar is visible by default on desktop */
-    transform: translateX(0);
-  }
-
-  .sidebar-overlay {
-    display: none;
-  }
-}
-
-/* ==================== ANIMATIONS & TRANSITIONS ==================== */
-
-/* Smooth width transitions */
-.sidebar,
-.sidebar.expanded,
-.sidebar.collapsed {
-  transition: width 0.3s ease, transform 0.3s ease;
-}
-
-/* Smooth menu text fade */
-.menu-text {
-  transition: opacity 0.3s ease, transform 0.3s ease, width 0.3s ease;
-}
-
-/* Smooth dropdown arrow rotation */
-.dropdown-arrow {
-  transition: transform 0.3s ease;
-}
-
-/* ==================== ACCESSIBILITY ==================== */
-
-/* Screen reader only text */
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-/* Focus visible for keyboard navigation */
-.side-link:focus-visible,
-.btn-toggle:focus-visible {
-  outline: 2px solid #27ae60;
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-/* ==================== SCROLLBAR STYLING ==================== */
-
-/* Custom scrollbar for nav links wrapper on mobile */
-.nav-links-wrapper::-webkit-scrollbar {
-  width: 6px;
-}
-
-.nav-links-wrapper::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-.nav-links-wrapper::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 3px;
-}
-
-.nav-links-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #999;
-}
-
-/* ==================== PERFORMANCE OPTIMIZATIONS ==================== */
-
-/* Hardware acceleration for smooth animations */
-.sidebar,
-.sidebar-overlay,
-.menu-text {
-  will-change: transform, opacity;
-}
-
-.sidebar:not(.expanded):not(.collapsed):not(.mobile-open),
-.sidebar-overlay:not(.active) {
-  will-change: auto;
-}
-
-/* ==================== UTILITY CLASSES ==================== */
-
-/* Hidden in collapsed mode */
-.sidebar.collapsed .hide-in-collapsed {
-  display: none;
-}
-
-/* Visible only in collapsed mode */
-.show-only-in-collapsed {
-  display: none;
-}
-
-.sidebar.collapsed .show-only-in-collapsed {
-  display: block;
-}
-
-/* Tooltip for collapsed mode (future enhancement) */
-.collapsed-tooltip {
-  position: absolute;
-  left: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  background: #333;
-  color: white;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  white-space: nowrap;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s ease;
-  pointer-events: none;
-  z-index: 1000;
-}
-
-.sidebar.collapsed .side-link:hover .collapsed-tooltip {
-  opacity: 1;
-  visibility: visible;
 }

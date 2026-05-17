@@ -1,24 +1,24 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
-import { ProductListComponent } from './product-list/product-list.component';
-import { CategoryListComponent } from './category-list/category-list.component';
-import { UomSettingComponent } from './uom-setting/uom-setting.component';
 import { StockLevelComponent } from './stock-level/stock-level.component';
 import { WarehouseComponent } from './warehouse/warehouse.component';
 
 const routes: Routes = [
   {
-    path: '', // main inventory path
+    path: '',
     children: [
-      { path: 'products', component: ProductListComponent },
-      { path: 'categories', component: CategoryListComponent },
-      { path: 'brands', component: ProductListComponent }, // ব্র্যান্ড তৈরি হলে পরে পাল্টে দেবেন
-      { path: 'uom-settings', component: UomSettingComponent },
-      { path: 'warehouse', component: WarehouseComponent },
+      { path: 'products', redirectTo: '/products/products', pathMatch: 'full' },
+      { path: 'categories', redirectTo: '/products/categories', pathMatch: 'full' },
+      { path: 'brands', redirectTo: '/products/brands', pathMatch: 'full' },
+      { path: 'uom', redirectTo: '/products/uom', pathMatch: 'full' },
+      { path: 'uom-settings', redirectTo: '/products/uom', pathMatch: 'full' },
+      { path: 'warehouse', redirectTo: 'warehouses', pathMatch: 'full' },
+      { path: 'warehouses', component: WarehouseComponent },
       { path: 'stocks', component: StockLevelComponent },
       { path: 'adjustments', component: StockLevelComponent },
-      { path: '', redirectTo: 'products', pathMatch: 'full' } // ডিফল্টভাবে প্রোডাক্টে নিয়ে যাবে
+      { path: 'movements', component: StockLevelComponent },
+      { path: '', redirectTo: 'stocks', pathMatch: 'full' }
     ]
   }
 ];
