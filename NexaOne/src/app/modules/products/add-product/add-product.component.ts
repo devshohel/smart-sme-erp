@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { Router } from '@angular/router';
 import { Product } from '../../../models/product.model';
 import { ProductService } from '../../../services/product.service';
+import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
 @Component({
   selector: 'app-add-product',
@@ -28,9 +29,10 @@ export class AddProductComponent {
         this.isSubmitting = false;
         this.submitSuccess = 'Product created successfully.';
       },
-      error: () => {
+      error: (error) => {
         this.isSubmitting = false;
-        this.submitError = 'Product could not be saved right now. Please check the API/server and try again.';
+        this.submitError = extractApiErrorMessage(error, 'Product could not be saved right now.');
+        debugApiError('AddProductComponent.saveProduct', error);
       }
     });
   }

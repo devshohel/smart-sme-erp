@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Product } from '../../../models/product.model';
 import { ProductService } from '../../../services/product.service';
+import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
 @Component({
   selector: 'app-product-details',
@@ -31,9 +32,10 @@ export class ProductDetailsComponent implements OnInit {
         this.product = data;
         this.loading = false;
       },
-      error: () => {
-        this.errorMessage = 'Product details could not be loaded.';
+      error: (error) => {
+        this.errorMessage = extractApiErrorMessage(error, 'Product details could not be loaded.');
         this.loading = false;
+        debugApiError('ProductDetailsComponent.loadProduct', error);
       }
     });
   }

@@ -1,0 +1,53 @@
+<div class="container-fluid p-4">
+  <app-page-header
+    title="Stock Adjustments"
+    subtitle="Create manual stock corrections for damage, loss, or inventory reconciliation.">
+  </app-page-header>
+
+  <app-card title="Adjustment Form" subtitle="Positive quantity increases stock. Negative quantity decreases stock.">
+    <form [formGroup]="adjustmentForm" (ngSubmit)="submit()" novalidate>
+      <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
+      <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Product *</label>
+          <select class="form-select" formControlName="productId">
+            <option [ngValue]="null">Select Product</option>
+            <option *ngFor="let product of products" [ngValue]="product.id">{{ product.productName }}</option>
+          </select>
+          <div class="invalid-feedback d-block" *ngIf="hasError('productId', 'required')">Product is required.</div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Warehouse *</label>
+          <select class="form-select" formControlName="warehouseId">
+            <option [ngValue]="null">Select Warehouse</option>
+            <option *ngFor="let warehouse of warehouses" [ngValue]="warehouse.id">{{ warehouse.name }}</option>
+          </select>
+          <div class="invalid-feedback d-block" *ngIf="hasError('warehouseId', 'required')">Warehouse is required.</div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Quantity *</label>
+          <input type="number" class="form-control" formControlName="quantity" step="0.01">
+          <div class="invalid-feedback d-block" *ngIf="hasError('quantity', 'required')">Quantity is required.</div>
+          <div class="invalid-feedback d-block" *ngIf="hasError('quantity', 'nonZero')">Quantity must not be zero.</div>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Reason / Note *</label>
+          <textarea class="form-control" rows="4" formControlName="reason" placeholder="Enter adjustment reason"></textarea>
+          <div class="invalid-feedback d-block" *ngIf="hasError('reason', 'required')">Reason is required.</div>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">
+        <button type="button" class="btn btn-outline-secondary" (click)="reset()" [disabled]="isSubmitting">Reset</button>
+        <button type="submit" class="btn btn-success px-4" [disabled]="isSubmitting">
+          {{ isSubmitting ? 'Submitting...' : 'Submit Adjustment' }}
+        </button>
+      </div>
+    </form>
+  </app-card>
+</div>

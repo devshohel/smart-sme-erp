@@ -5,6 +5,7 @@ import com.sme.erp.inventory.dto.StockDTO;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import com.sme.erp.inventory.service.StockService;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +13,7 @@ import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/v1/adjustments")
+@CrossOrigin(origins = "*")
 @Validated
 public class AdjustmentController {
 
@@ -22,11 +24,11 @@ public class AdjustmentController {
     }
 
     @PostMapping
-    public StockDTO adjustStock(@RequestParam @NotNull @Positive Long productId,
-                               @RequestParam @NotNull @Positive Long warehouseId,
-                               @RequestParam @NotNull BigDecimal qty,
-                               @RequestParam @NotBlank String reason) {
+    public ResponseEntity<StockDTO> adjustStock(@RequestParam @NotNull @Positive Long productId,
+                                                @RequestParam @NotNull @Positive Long warehouseId,
+                                                @RequestParam @NotNull BigDecimal qty,
+                                                @RequestParam @NotBlank String reason) {
 
-        return service.adjustStock(productId, warehouseId, qty, reason);
+        return ResponseEntity.ok(service.adjustStock(productId, warehouseId, qty, reason));
     }
 }

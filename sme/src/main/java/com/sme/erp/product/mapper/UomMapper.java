@@ -1,6 +1,7 @@
 package com.sme.erp.product.mapper;
 
 import com.sme.erp.product.dto.UomDTO;
+import com.sme.erp.enums.Status;
 import com.sme.erp.product.entity.Uom;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,7 @@ public class UomMapper {
         dto.setName(uom.getName());
         dto.setType(uom.getType());
         dto.setConversionFactor(uom.getConversionFactor());
+        dto.setStatus(uom.getStatus() != null ? uom.getStatus() : Status.ACTIVE);
         return dto;
     }
 
@@ -42,6 +44,9 @@ public class UomMapper {
         }
         if (dto.getConversionFactor() != null) {
             uom.setConversionFactor(dto.getConversionFactor());
+        }
+        if (dto.getStatus() != null) {
+            uom.setStatus(dto.getStatus());
         }
         return uom;
     }

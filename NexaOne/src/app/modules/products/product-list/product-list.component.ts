@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { Product } from '../../../models/product.model';
 import { ProductService } from '../../../services/product.service';
+import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
 @Component({
   selector: 'app-product-list',
@@ -29,9 +30,11 @@ export class ProductListComponent implements OnInit {
         this.products = data;
         this.loading = false;
       },
-      error: () => {
+      error: (error) => {
         this.products = [];
         this.loading = false;
+        this.submitError = extractApiErrorMessage(error, 'Products could not be loaded.');
+        debugApiError('ProductListComponent.loadProducts', error);
       }
     });
   }
@@ -56,7 +59,10 @@ export class ProductListComponent implements OnInit {
     if (confirm('Are you sure you want to delete this product?')) {
       this.productService.deleteProduct(id).subscribe({
         next: () => this.loadProducts(),
-        error: () => this.submitError = 'Delete request failed.'
+        error: (error) => {
+          this.submitError = extractApiErrorMessage(error, 'Delete request failed.');
+          debugApiError('ProductListComponent.deleteProduct', error);
+        }
       });
     }
   }

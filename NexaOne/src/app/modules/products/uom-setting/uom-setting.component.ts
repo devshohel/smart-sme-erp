@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Status } from '../../../models/product.model';
 import { Uom } from '../../../models/uom.model';
 import { UomService } from '../../../services/uom.service';
+import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
 declare var bootstrap: any;
 
@@ -45,9 +46,10 @@ export class UomSettingComponent implements OnInit {
         this.uoms = data;
         this.loading = false;
       },
-      error: () => {
+      error: (error) => {
         this.uoms = [];
         this.loading = false;
+        debugApiError('UomSettingComponent.loadUoms', error);
       }
     });
   }
@@ -95,9 +97,10 @@ export class UomSettingComponent implements OnInit {
         this.closeModal();
         this.loadUoms();
       },
-      error: () => {
+      error: (error) => {
         this.loading = false;
-        this.submitError = 'UOM could not be saved.';
+        this.submitError = extractApiErrorMessage(error, 'UOM could not be saved.');
+        debugApiError('UomSettingComponent.onSubmit', error);
       }
     });
   }

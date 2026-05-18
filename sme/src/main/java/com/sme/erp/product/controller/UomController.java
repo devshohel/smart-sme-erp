@@ -28,18 +28,19 @@ public class UomController {
 
     // Get All UOMs
     @GetMapping
-    public List<UomDTO> getAll() {
-        return service.getAll();
+    public ResponseEntity<List<UomDTO>> getAll() {
+        return ResponseEntity.ok(service.getAll());
     }
     
     @GetMapping("/{id}")
-    public UomDTO getById(@PathVariable Long id) {
-        return service.getById(id);
+    public ResponseEntity<UomDTO> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getById(id));
     }
 
     // Delete UOM
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

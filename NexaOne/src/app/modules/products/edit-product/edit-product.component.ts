@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Product } from '../../../models/product.model';
 import { ProductService } from '../../../services/product.service';
+import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
 @Component({
   selector: 'app-edit-product',
@@ -36,9 +37,10 @@ export class EditProductComponent implements OnInit {
         this.product = data;
         this.loading = false;
       },
-      error: () => {
-        this.errorMessage = 'Product could not be loaded.';
+      error: (error) => {
+        this.errorMessage = extractApiErrorMessage(error, 'Product could not be loaded.');
         this.loading = false;
+        debugApiError('EditProductComponent.loadProduct', error);
       }
     });
   }
@@ -51,9 +53,10 @@ export class EditProductComponent implements OnInit {
         this.submitting = false;
         this.router.navigate(['/products/products']);
       },
-      error: () => {
+      error: (error) => {
         this.submitting = false;
-        this.errorMessage = 'Product could not be saved.';
+        this.errorMessage = extractApiErrorMessage(error, 'Product could not be saved.');
+        debugApiError('EditProductComponent.saveProduct', error);
       }
     });
   }

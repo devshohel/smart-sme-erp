@@ -4,12 +4,17 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+
 import com.sme.erp.enums.Status;
 
 @Entity
 @Table(name = "product_brands", indexes = {
         @Index(name = "idx_brand_code", columnList = "code")
 })
+@SQLDelete(sql = "UPDATE product_brands SET is_deleted = true WHERE id=?")
+@SQLRestriction("(is_deleted = false or is_deleted is null)")
 public class ProductBrand {
 
     @Id
@@ -25,6 +30,9 @@ public class ProductBrand {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status = Status.ACTIVE;
+
+    @Column(name = "is_deleted")
+    private Boolean deleted = false;
 
     // 🕒 Audit Fields
     @Column(name = "created_at", updatable = false)
@@ -60,6 +68,9 @@ public class ProductBrand {
 
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
+
+    public Boolean getDeleted() { return deleted; }
+    public void setDeleted(Boolean deleted) { this.deleted = deleted; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

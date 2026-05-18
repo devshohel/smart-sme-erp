@@ -1,5 +1,7 @@
 package com.sme.erp.product.dto;
 
+import com.sme.erp.enums.ProductType;
+import com.sme.erp.enums.Status;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -21,11 +23,25 @@ public class ProductDTO {
     @Size(max = 100, message = "SKU must be at most 100 characters")
     private String sku;
 
+    @Size(max = 100, message = "Barcode must be at most 100 characters")
+    private String barcode;
+
+    private ProductType type;
+
     @NotNull(message = "Purchase price required")
     private BigDecimal purchasePrice;
 
     @NotNull(message = "Sale price required")
     private BigDecimal salePrice;
+
+    private BigDecimal taxPercentage;
+
+    private Integer reorderLevel;
+
+    @Size(max = 500, message = "Image URL must be at most 500 characters")
+    private String imageUrl;
+
+    private Status status;
 
     @Positive(message = "Category id must be positive")
     private Long categoryId;
@@ -53,11 +69,29 @@ public class ProductDTO {
     public String getSku() { return sku; }
     public void setSku(String sku) { this.sku = sku; }
 
+    public String getBarcode() { return barcode; }
+    public void setBarcode(String barcode) { this.barcode = barcode; }
+
+    public ProductType getType() { return type; }
+    public void setType(ProductType type) { this.type = type; }
+
     public BigDecimal getPurchasePrice() { return purchasePrice; }
     public void setPurchasePrice(BigDecimal purchasePrice) { this.purchasePrice = purchasePrice; }
 
     public BigDecimal getSalePrice() { return salePrice; }
     public void setSalePrice(BigDecimal salePrice) { this.salePrice = salePrice; }
+
+    public BigDecimal getTaxPercentage() { return taxPercentage; }
+    public void setTaxPercentage(BigDecimal taxPercentage) { this.taxPercentage = taxPercentage; }
+
+    public Integer getReorderLevel() { return reorderLevel; }
+    public void setReorderLevel(Integer reorderLevel) { this.reorderLevel = reorderLevel; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public Status getStatus() { return status; }
+    public void setStatus(Status status) { this.status = status; }
 
     public Long getCategoryId() { return categoryId; }
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }

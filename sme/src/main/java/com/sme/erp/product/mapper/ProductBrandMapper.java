@@ -1,6 +1,7 @@
 package com.sme.erp.product.mapper;
 
 import com.sme.erp.product.dto.ProductBrandDTO;
+import com.sme.erp.enums.Status;
 import com.sme.erp.product.entity.ProductBrand;
 import org.springframework.stereotype.Component;
 
@@ -14,6 +15,7 @@ public class ProductBrandMapper {
         dto.setId(brand.getId());
         dto.setCode(brand.getCode());
         dto.setBrandName(brand.getBrandName());
+        dto.setStatus(brand.getStatus() != null ? brand.getStatus() : Status.ACTIVE);
         return dto;
     }
 
@@ -34,6 +36,9 @@ public class ProductBrandMapper {
         }
         if (dto.getBrandName() != null) {
             brand.setBrandName(dto.getBrandName());
+        }
+        if (dto.getStatus() != null) {
+            brand.setStatus(dto.getStatus());
         }
         return brand;
     }

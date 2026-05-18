@@ -1,8 +1,8 @@
 package com.sme.erp.product.service.impl;
 
-import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
+import com.sme.erp.common.util.RequestValueUtils;
 import com.sme.erp.product.dto.ProductBrandDTO;
 import com.sme.erp.product.entity.ProductBrand;
 import com.sme.erp.product.mapper.ProductBrandMapper;
@@ -30,8 +30,8 @@ public class ProductBrandServiceImpl implements ProductBrandService {
     @Override
     @Transactional
     public ProductBrandDTO save(ProductBrandDTO dto) {
-        dto.setCode(normalizeRequired(dto.getCode(), "Brand code"));
-        dto.setBrandName(normalizeRequired(dto.getBrandName(), "Brand name"));
+        dto.setCode(RequestValueUtils.normalizeRequired(dto.getCode(), "Brand code"));
+        dto.setBrandName(RequestValueUtils.normalizeRequired(dto.getBrandName(), "Brand name"));
         validateCodeUnique(dto.getCode(), dto.getId());
 
         ProductBrand brand = getBrandForSave(dto.getId());
@@ -77,21 +77,5 @@ public class ProductBrandServiceImpl implements ProductBrandService {
     private ProductBrand findBrandById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Brand not found with id: " + id));
-    }
-
-    private String normalizeRequired(String value, String fieldName) {
-        String normalized = normalize(value);
-        if (normalized == null) {
-            throw new BadRequestException(fieldName + " is required");
-        }
-        return normalized;
-    }
-
-    private String normalize(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
     }
 }

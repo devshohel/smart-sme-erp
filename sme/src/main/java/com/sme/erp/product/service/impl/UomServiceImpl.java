@@ -3,6 +3,7 @@ package com.sme.erp.product.service.impl;
 import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
+import com.sme.erp.common.util.RequestValueUtils;
 import com.sme.erp.product.dto.UomDTO;
 import com.sme.erp.product.entity.Uom;
 import com.sme.erp.product.mapper.UomMapper;
@@ -29,9 +30,9 @@ public class UomServiceImpl implements UomService {
     @Override
     @Transactional
     public UomDTO save(UomDTO dto) {
-        dto.setCode(normalizeRequired(dto.getCode(), "UOM code"));
-        dto.setName(normalizeRequired(dto.getName(), "UOM name"));
-        dto.setType(normalize(dto.getType()));
+        dto.setCode(RequestValueUtils.normalizeRequired(dto.getCode(), "UOM code"));
+        dto.setName(RequestValueUtils.normalizeRequired(dto.getName(), "UOM name"));
+        dto.setType(RequestValueUtils.normalize(dto.getType()));
         validateBusinessRules(dto);
         validateCodeUnique(dto.getCode(), dto.getId());
         Uom uom = getUomForSave(dto.getId());
@@ -82,21 +83,5 @@ public class UomServiceImpl implements UomService {
         if (dto.getConversionFactor() != null && dto.getConversionFactor().signum() <= 0) {
             throw new BadRequestException("Conversion factor must be positive");
         }
-    }
-
-    private String normalizeRequired(String value, String fieldName) {
-        String normalized = normalize(value);
-        if (normalized == null) {
-            throw new BadRequestException(fieldName + " is required");
-        }
-        return normalized;
-    }
-
-    private String normalize(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
     }
 }

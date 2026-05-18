@@ -20,6 +20,11 @@ public class StockMapper {
             dto.setProductName(stock.getProduct().getProductName());
         }
 
+        if (stock.getWarehouse() != null) {
+            dto.setWarehouseId(stock.getWarehouse().getId());
+            dto.setWarehouseName(stock.getWarehouse().getName());
+        }
+
         return dto;
     }
 }

@@ -1,9 +1,11 @@
 package com.sme.erp.inventory.service;
 
+import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.inventory.dto.StockDTO;
 import com.sme.erp.inventory.entity.Stock;
 import com.sme.erp.inventory.entity.StockMovement;
 import com.sme.erp.inventory.entity.Warehouse;
+import com.sme.erp.inventory.mapper.StockMapper;
 import com.sme.erp.inventory.mapper.StockMovementMapper;
 import com.sme.erp.inventory.repository.StockAdjustmentRepository;
 import com.sme.erp.inventory.repository.StockMovementRepository;
@@ -15,6 +17,7 @@ import com.sme.erp.product.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -23,6 +26,7 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,6 +55,7 @@ class StockServiceImplTest {
                 warehouseRepository,
                 movementRepository,
                 adjustmentRepository,
+                new StockMapper(),
                 new StockMovementMapper());
     }
 
@@ -70,8 +75,8 @@ class StockServiceImplTest {
         stock.setWarehouse(warehouse);
         stock.setQuantity(new BigDecimal("5.00"));
 
-        when(stockRepository.findByProductIdAndWarehouseId(1L, 2L)).thenReturn(Optional.of(stock));
-        when(stockRepository.save(any(Stock.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(stockRepository.findWithLockByProductIdAndWarehouseId(1L, 2L)).thenReturn(Optional.of(stock));
+        when(stockRepository.saveAndFlush(any(Stock.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(movementRepository.save(any(StockMovement.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         StockDTO result = service.stockIn(1L, 2L, new BigDecimal("3.00"), new BigDecimal("4.50"));
@@ -87,5 +92,32 @@ class StockServiceImplTest {
         assertThat(savedMovement.getQuantity()).isEqualByComparingTo("3.00");
         assertThat(savedMovement.getUnitCost()).isEqualByComparingTo("4.50");
         assertThat(savedMovement.getMovementType().name()).isEqualTo("IN");
+        assertThat(savedMovement.getReferenceType()).isEqualTo("PURCHASE");
+        assertThat(savedMovement.getReferenceNo()).isNull();
+    }
+
+    @Test
+    void stockOut_translatesOptimisticLockConflict() {
+        Product product = new Product();
+        product.setId(1L);
+        product.setProductName("Product A");
+
+        Warehouse warehouse = new Warehouse();
+        warehouse.setId(2L);
+        warehouse.setWarehouseCode("WH-01");
+        warehouse.setName("Main Warehouse");
+
+        Stock stock = new Stock();
+        stock.setProduct(product);
+        stock.setWarehouse(warehouse);
+        stock.setQuantity(new BigDecimal("5.00"));
+
+        when(stockRepository.findWithLockByProductIdAndWarehouseId(1L, 2L)).thenReturn(Optional.of(stock));
+        when(stockRepository.saveAndFlush(any(Stock.class)))
+                .thenThrow(new ObjectOptimisticLockingFailureException(Stock.class, 1L));
+
+        assertThatThrownBy(() -> service.stockOut(1L, 2L, new BigDecimal("2.00")))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Stock was modified by another transaction. Please retry.");
     }
 }

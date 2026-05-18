@@ -1,5 +1,6 @@
 package com.sme.erp.product.dto;
 
+import com.sme.erp.enums.Status;
 import java.math.BigDecimal;
 
 import jakarta.validation.constraints.NotBlank;
@@ -24,6 +25,8 @@ public class UomDTO {
     @Positive(message = "Conversion factor must be positive")
     private BigDecimal conversionFactor;
 
+    private Status status;
+
     // Getters & Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -39,4 +42,7 @@ public class UomDTO {
 
     public BigDecimal getConversionFactor() { return conversionFactor; }
     public void setConversionFactor(BigDecimal conversionFactor) { this.conversionFactor = conversionFactor; }
+
+    public Status getStatus() { return status; }
+    public void setStatus(Status status) { this.status = status; }
 }

@@ -4,10 +4,16 @@ import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import com.sme.erp.enums.Status;
 
 @Entity
 @Table(name = "product_categories")
+@SQLDelete(sql = "UPDATE product_categories SET is_deleted = true WHERE id=?")
+@SQLRestriction("(is_deleted = false or is_deleted is null)")
 public class ProductCategory {
 
     @Id
@@ -26,9 +32,13 @@ public class ProductCategory {
     @Column(nullable = false)
     private Status status = Status.ACTIVE;
 
+    @Column(name = "is_deleted")
+    private Boolean deleted = false;
+
     // Parent
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
+    @NotFound(action = NotFoundAction.IGNORE)
     private ProductCategory parentCategory;
 
     @OneToMany(mappedBy = "parentCategory")
@@ -64,6 +74,9 @@ public class ProductCategory {
 
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
+
+    public Boolean getDeleted() { return deleted; }
+    public void setDeleted(Boolean deleted) { this.deleted = deleted; }
 
     public ProductCategory getParentCategory() { return parentCategory; }
     public void setParentCategory(ProductCategory parentCategory) { this.parentCategory = parentCategory; }

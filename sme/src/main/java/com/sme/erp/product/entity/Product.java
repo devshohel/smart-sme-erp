@@ -3,6 +3,8 @@ package com.sme.erp.product.entity;
 import jakarta.persistence.*;
 
 
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
@@ -19,7 +21,7 @@ import java.time.LocalDateTime;
         @Index(name = "idx_product_barcode", columnList = "barcode")
 })
 @SQLDelete(sql = "UPDATE products SET is_deleted = true WHERE id=?")
-@SQLRestriction("is_deleted = false")
+@SQLRestriction("(is_deleted = false or is_deleted is null)")
 public class Product {
 
     @Id
@@ -65,14 +67,17 @@ public class Product {
     // 🔗 Relationships
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
+    @NotFound(action = NotFoundAction.IGNORE)
     private ProductCategory category;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "brand_id")
+    @NotFound(action = NotFoundAction.IGNORE)
     private ProductBrand brand;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "uom_id")
+    @NotFound(action = NotFoundAction.IGNORE)
     private Uom uom;
 
     // 🕒 Audit Fields

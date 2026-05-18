@@ -13,8 +13,10 @@ public class StockMovementDTO {
     private ProductRefDTO product;
     private WarehouseRefDTO warehouse;
     private Long productId;
+    private String productCode;
     private String productName;
     private Long warehouseId;
+    private String warehouseCode;
     private String warehouseName;
     private MovementType movementType;
     private BigDecimal quantity;
@@ -41,11 +43,17 @@ public class StockMovementDTO {
     public Long getProductId() { return productId; }
     public void setProductId(Long productId) { this.productId = productId; }
 
+    public String getProductCode() { return productCode; }
+    public void setProductCode(String productCode) { this.productCode = productCode; }
+
     public String getProductName() { return productName; }
     public void setProductName(String productName) { this.productName = productName; }
 
     public Long getWarehouseId() { return warehouseId; }
     public void setWarehouseId(Long warehouseId) { this.warehouseId = warehouseId; }
+
+    public String getWarehouseCode() { return warehouseCode; }
+    public void setWarehouseCode(String warehouseCode) { this.warehouseCode = warehouseCode; }
 
     public String getWarehouseName() { return warehouseName; }
     public void setWarehouseName(String warehouseName) { this.warehouseName = warehouseName; }

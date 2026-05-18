@@ -1,8 +1,8 @@
 package com.sme.erp.inventory.service.impl;
 
-import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
+import com.sme.erp.common.util.RequestValueUtils;
 import com.sme.erp.inventory.dto.WarehouseDTO;
 import com.sme.erp.inventory.entity.Warehouse;
 import com.sme.erp.inventory.mapper.WarehouseMapper;
@@ -29,10 +29,10 @@ public class WarehouseServiceImpl implements WarehouseService {
     @Override
     @Transactional
     public WarehouseDTO save(WarehouseDTO dto) {
-        dto.setCode(normalizeRequired(dto.getCode(), "Warehouse code"));
-        dto.setName(normalizeRequired(dto.getName(), "Warehouse name"));
-        dto.setLocation(normalize(dto.getLocation()));
-        dto.setDescription(normalize(dto.getDescription()));
+        dto.setCode(RequestValueUtils.normalizeRequired(dto.getCode(), "Warehouse code"));
+        dto.setName(RequestValueUtils.normalizeRequired(dto.getName(), "Warehouse name"));
+        dto.setLocation(RequestValueUtils.normalize(dto.getLocation()));
+        dto.setDescription(RequestValueUtils.normalize(dto.getDescription()));
         validateCodeUnique(dto.getCode(), dto.getId());
 
         Warehouse entity = getWarehouseForSave(dto.getId());
@@ -78,21 +78,5 @@ public class WarehouseServiceImpl implements WarehouseService {
     private Warehouse findWarehouseById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found with id: " + id));
-    }
-
-    private String normalizeRequired(String value, String fieldName) {
-        String normalized = normalize(value);
-        if (normalized == null) {
-            throw new BadRequestException(fieldName + " is required");
-        }
-        return normalized;
-    }
-
-    private String normalize(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
     }
 }

@@ -27,6 +27,7 @@ public class StockMovementMapper {
 
         if (movement.getProduct() != null) {
             dto.setProductId(movement.getProduct().getId());
+            dto.setProductCode(movement.getProduct().getProductCode());
             dto.setProductName(movement.getProduct().getProductName());
 
             StockMovementDTO.ProductRefDTO productRef = new StockMovementDTO.ProductRefDTO();
@@ -37,6 +38,7 @@ public class StockMovementMapper {
 
         if (movement.getWarehouse() != null) {
             dto.setWarehouseId(movement.getWarehouse().getId());
+            dto.setWarehouseCode(movement.getWarehouse().getWarehouseCode());
             dto.setWarehouseName(movement.getWarehouse().getName());
 
             StockMovementDTO.WarehouseRefDTO warehouseRef = new StockMovementDTO.WarehouseRefDTO();

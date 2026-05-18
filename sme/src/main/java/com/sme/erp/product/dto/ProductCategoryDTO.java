@@ -1,5 +1,6 @@
 package com.sme.erp.product.dto;
 
+import com.sme.erp.enums.Status;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -19,8 +20,12 @@ public class ProductCategoryDTO {
     @Size(max = 1000, message = "Description must be at most 1000 characters")
     private String description;
 
+    private Status status;
+
     @Positive(message = "Parent category id must be positive")
     private Long parentCategoryId;
+
+    private String parentCategoryName;
 
     // ===== Getter Setter =====
     public Long getId() { return id; }
@@ -35,6 +40,12 @@ public class ProductCategoryDTO {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
+    public Status getStatus() { return status; }
+    public void setStatus(Status status) { this.status = status; }
+
     public Long getParentCategoryId() { return parentCategoryId; }
     public void setParentCategoryId(Long parentCategoryId) { this.parentCategoryId = parentCategoryId; }
+
+    public String getParentCategoryName() { return parentCategoryName; }
+    public void setParentCategoryName(String parentCategoryName) { this.parentCategoryName = parentCategoryName; }
 }

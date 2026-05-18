@@ -2,6 +2,9 @@ package com.sme.erp.product.mapper;
 
 import com.sme.erp.product.dto.ProductDTO;
 import com.sme.erp.product.entity.*;
+import com.sme.erp.enums.Status;
+import jakarta.persistence.EntityNotFoundException;
+import org.hibernate.ObjectNotFoundException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,23 +18,18 @@ public class ProductMapper {
         dto.setProductCode(product.getProductCode());
         dto.setProductName(product.getProductName());
         dto.setSku(product.getSku());
+        dto.setBarcode(product.getBarcode());
+        dto.setType(product.getType());
         dto.setPurchasePrice(product.getPurchasePrice());
         dto.setSalePrice(product.getSalePrice());
+        dto.setTaxPercentage(product.getTaxPercentage());
+        dto.setReorderLevel(product.getReorderLevel());
+        dto.setImageUrl(product.getImageUrl());
+        dto.setStatus(product.getStatus() != null ? product.getStatus() : Status.ACTIVE);
 
-        if (product.getCategory() != null) {
-            dto.setCategoryId(product.getCategory().getId());
-            dto.setCategoryName(product.getCategory().getCategoryName());
-        }
-
-        if (product.getBrand() != null) {
-            dto.setBrandId(product.getBrand().getId());
-            dto.setBrandName(product.getBrand().getBrandName());
-        }
-
-        if (product.getUom() != null) {
-            dto.setUomId(product.getUom().getId());
-            dto.setUomName(product.getUom().getName());
-        }
+        mapCategory(product, dto);
+        mapBrand(product, dto);
+        mapUom(product, dto);
 
         return dto;
     }
@@ -57,13 +55,67 @@ public class ProductMapper {
         if (dto.getSku() != null) {
             product.setSku(dto.getSku());
         }
+        if (dto.getBarcode() != null) {
+            product.setBarcode(dto.getBarcode());
+        }
+        if (dto.getType() != null) {
+            product.setType(dto.getType());
+        }
         if (dto.getPurchasePrice() != null) {
             product.setPurchasePrice(dto.getPurchasePrice());
         }
         if (dto.getSalePrice() != null) {
             product.setSalePrice(dto.getSalePrice());
         }
+        if (dto.getTaxPercentage() != null) {
+            product.setTaxPercentage(dto.getTaxPercentage());
+        }
+        if (dto.getReorderLevel() != null) {
+            product.setReorderLevel(dto.getReorderLevel());
+        }
+        if (dto.getImageUrl() != null) {
+            product.setImageUrl(dto.getImageUrl());
+        }
+        if (dto.getStatus() != null) {
+            product.setStatus(dto.getStatus());
+        }
 
         return product;
+    }
+
+    private void mapCategory(Product product, ProductDTO dto) {
+        try {
+            if (product.getCategory() != null) {
+                dto.setCategoryId(product.getCategory().getId());
+                dto.setCategoryName(product.getCategory().getCategoryName());
+            }
+        } catch (EntityNotFoundException | ObjectNotFoundException ignored) {
+            dto.setCategoryId(null);
+            dto.setCategoryName(null);
+        }
+    }
+
+    private void mapBrand(Product product, ProductDTO dto) {
+        try {
+            if (product.getBrand() != null) {
+                dto.setBrandId(product.getBrand().getId());
+                dto.setBrandName(product.getBrand().getBrandName());
+            }
+        } catch (EntityNotFoundException | ObjectNotFoundException ignored) {
+            dto.setBrandId(null);
+            dto.setBrandName(null);
+        }
+    }
+
+    private void mapUom(Product product, ProductDTO dto) {
+        try {
+            if (product.getUom() != null) {
+                dto.setUomId(product.getUom().getId());
+                dto.setUomName(product.getUom().getName());
+            }
+        } catch (EntityNotFoundException | ObjectNotFoundException ignored) {
+            dto.setUomId(null);
+            dto.setUomName(null);
+        }
     }
 }

@@ -16,7 +16,7 @@ public class WarehouseMapper {
         dto.setName(entity.getName());
         dto.setLocation(entity.getLocation());
         dto.setDescription(entity.getDescription());
-        dto.setActive(entity.getActive());
+        dto.setActive(entity.getActive() != null ? entity.getActive() : Boolean.TRUE);
 
         return dto;
     }

@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ProductCategory } from '../../../models/category.model';
 import { Status } from '../../../models/product.model';
 import { ProductCategoryService } from '../../../services/product-category.service';
+import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
 declare var bootstrap: any;
 
@@ -45,11 +46,17 @@ export class CategoryListComponent implements OnInit {
         this.categories = data;
         this.loading = false;
       },
-      error: () => {
+      error: (error) => {
         this.categories = [];
         this.loading = false;
+        debugApiError('CategoryListComponent.loadCategories', error);
       }
     });
+  }
+
+  get availableParentCategories(): ProductCategory[] {
+    const currentId = this.categoryForm.get('id')?.value;
+    return this.categories.filter(category => category.id !== currentId);
   }
 
   addCategory(): void {
@@ -95,9 +102,10 @@ export class CategoryListComponent implements OnInit {
         this.closeModal();
         this.loadCategories();
       },
-      error: () => {
+      error: (error) => {
         this.loading = false;
-        this.submitError = 'Category could not be saved.';
+        this.submitError = extractApiErrorMessage(error, 'Category could not be saved.');
+        debugApiError('CategoryListComponent.onSubmit', error);
       }
     });
   }

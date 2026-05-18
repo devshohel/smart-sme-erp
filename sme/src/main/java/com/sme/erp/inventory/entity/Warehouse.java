@@ -2,9 +2,13 @@ package com.sme.erp.inventory.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "warehouses")
+@SQLDelete(sql = "UPDATE warehouses SET is_deleted = true WHERE id=?")
+@SQLRestriction("(is_deleted = false or is_deleted is null)")
 public class Warehouse {
 
     @Id
@@ -22,6 +26,9 @@ public class Warehouse {
     private String description;
 
     private Boolean active = true;
+
+    @Column(name = "is_deleted")
+    private Boolean deleted = false;
 
     // Audit
     private LocalDateTime createdAt;
@@ -56,6 +63,9 @@ public class Warehouse {
 
     public Boolean getActive() { return active; }
     public void setActive(Boolean active) { this.active = active; }
+
+    public Boolean getDeleted() { return deleted; }
+    public void setDeleted(Boolean deleted) { this.deleted = deleted; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

@@ -6,12 +6,15 @@ import com.sme.erp.inventory.dto.StockDTO;
 import com.sme.erp.inventory.dto.StockMovementDTO;
 import com.sme.erp.inventory.entity.*;
 import com.sme.erp.enums.MovementType;
+import com.sme.erp.inventory.mapper.StockMapper;
 import com.sme.erp.inventory.mapper.StockMovementMapper;
 import com.sme.erp.inventory.repository.*;
 import com.sme.erp.inventory.service.StockService;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.repository.ProductRepository;
 
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +30,7 @@ public class StockServiceImpl implements StockService {
     private final WarehouseRepository warehouseRepository;
     private final StockMovementRepository movementRepository;
     private final StockAdjustmentRepository adjustmentRepository;
+    private final StockMapper stockMapper;
     private final StockMovementMapper stockMovementMapper;
 
     public StockServiceImpl(
@@ -35,6 +39,7 @@ public class StockServiceImpl implements StockService {
             WarehouseRepository warehouseRepository,
             StockMovementRepository movementRepository,
             StockAdjustmentRepository adjustmentRepository,
+            StockMapper stockMapper,
             StockMovementMapper stockMovementMapper) {
 
         this.stockRepository = stockRepository;
@@ -42,6 +47,7 @@ public class StockServiceImpl implements StockService {
         this.warehouseRepository = warehouseRepository;
         this.movementRepository = movementRepository;
         this.adjustmentRepository = adjustmentRepository;
+        this.stockMapper = stockMapper;
         this.stockMovementMapper = stockMovementMapper;
     }
 
@@ -57,11 +63,11 @@ public class StockServiceImpl implements StockService {
         Stock stock = getOrCreateStock(productId, warehouseId);
 
         stock.setQuantity(stock.getQuantity().add(qty));
-        stockRepository.save(stock);
+        saveStockOrThrowConflict(stock);
 
-        saveMovement(stock, qty, MovementType.IN, "PURCHASE", unitCost);
+        saveMovement(stock, qty, MovementType.IN, "PURCHASE", null, unitCost);
 
-        return toDTO(stock);
+        return stockMapper.toDTO(stock);
     }
 
     // STOCK OUT
@@ -72,18 +78,18 @@ public class StockServiceImpl implements StockService {
         validatePositiveId(warehouseId, "Warehouse id");
         validatePositiveAmount(qty, "Quantity");
 
-        Stock stock = getStockEntity(productId, warehouseId);
+        Stock stock = getStockEntityForUpdate(productId, warehouseId);
 
         if (stock.getQuantity().compareTo(qty) < 0) {
             throw new BadRequestException("Insufficient stock");
         }
 
         stock.setQuantity(stock.getQuantity().subtract(qty));
-        stockRepository.save(stock);
+        saveStockOrThrowConflict(stock);
 
-        saveMovement(stock, qty, MovementType.OUT, "SALE", null);
+        saveMovement(stock, qty, MovementType.OUT, "SALE", null, null);
 
-        return toDTO(stock);
+        return stockMapper.toDTO(stock);
     }
 
     // ADJUSTMENT
@@ -97,7 +103,7 @@ public class StockServiceImpl implements StockService {
         Stock stock = getOrCreateStock(productId, warehouseId);
 
         stock.setQuantity(stock.getQuantity().add(qty));
-        stockRepository.save(stock);
+        saveStockOrThrowConflict(stock);
 
         StockAdjustment adj = new StockAdjustment();
         adj.setProduct(stock.getProduct());
@@ -107,23 +113,23 @@ public class StockServiceImpl implements StockService {
 
         adjustmentRepository.save(adj);
 
-        saveMovement(stock, qty.abs(), MovementType.ADJUSTMENT, reason, null);
+        saveMovement(stock, qty, MovementType.ADJUSTMENT, "ADJUSTMENT", reason, null);
 
-        return toDTO(stock);
+        return stockMapper.toDTO(stock);
     }
 
     @Override
     public StockDTO getStock(Long productId, Long warehouseId) {
         validatePositiveId(productId, "Product id");
         validatePositiveId(warehouseId, "Warehouse id");
-        return toDTO(getStockEntity(productId, warehouseId));
+        return stockMapper.toDTO(getStockEntity(productId, warehouseId));
     }
 
     @Override
     public List<StockDTO> getAllStock() {
         return stockRepository.findAll()
                 .stream()
-                .map(this::toDTO)
+                .map(stockMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -137,20 +143,24 @@ public class StockServiceImpl implements StockService {
 
     // HELPER METHODS
 
-    private void saveMovement(Stock stock, BigDecimal qty, MovementType type, String ref, BigDecimal cost) {
+    private void saveMovement(
+            Stock stock,
+            BigDecimal qty,
+            MovementType type,
+            String referenceType,
+            String referenceNo,
+            BigDecimal cost) {
 
         StockMovement movement = new StockMovement();
         movement.setProduct(stock.getProduct());
         movement.setWarehouse(stock.getWarehouse());
         movement.setQuantity(qty);
         movement.setMovementType(type);
-        movement.setReferenceNo(ref);
+        movement.setReferenceType(referenceType);
+        movement.setReferenceNo(referenceNo);
         movement.setUnitCost(cost);
 
         movementRepository.save(movement);
-        
-        
-
     }
 
     private Stock getStockEntity(Long productId, Long warehouseId) {
@@ -160,38 +170,46 @@ public class StockServiceImpl implements StockService {
                         "Stock not found for product id: " + productId + " and warehouse id: " + warehouseId));
     }
 
-    private Stock getOrCreateStock(Long productId, Long warehouseId) {
+    private Stock getStockEntityForUpdate(Long productId, Long warehouseId) {
         return stockRepository
-                .findByProductIdAndWarehouseId(productId, warehouseId)
-                .orElseGet(() -> {
-
-                    Product product = productRepository.findById(productId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
-
-                    Warehouse warehouse = warehouseRepository.findById(warehouseId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found with id: " + warehouseId));
-
-                    Stock stock = new Stock();
-                    stock.setProduct(product);
-                    stock.setWarehouse(warehouse);
-                    stock.setQuantity(BigDecimal.ZERO);
-
-                    return stock;
-                });
+                .findWithLockByProductIdAndWarehouseId(productId, warehouseId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Stock not found for product id: " + productId + " and warehouse id: " + warehouseId));
     }
 
-    private StockDTO toDTO(Stock stock) {
-        StockDTO dto = new StockDTO();
+    private Stock getOrCreateStock(Long productId, Long warehouseId) {
+        return stockRepository
+                .findWithLockByProductIdAndWarehouseId(productId, warehouseId)
+                .orElseGet(() -> createStockSafely(productId, warehouseId));
+    }
 
-        dto.setId(stock.getId());
-        dto.setProductId(stock.getProduct().getId());
-        dto.setProductName(stock.getProduct().getProductName());
-        dto.setWarehouseId(stock.getWarehouse().getId());
-        dto.setWarehouseName(stock.getWarehouse().getName());
-        dto.setQuantity(stock.getQuantity());
-        dto.setReorderLevel(stock.getReorderLevel());
+    private Stock createStockSafely(Long productId, Long warehouseId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + productId));
 
-        return dto;
+        Warehouse warehouse = warehouseRepository.findById(warehouseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found with id: " + warehouseId));
+
+        Stock stock = new Stock();
+        stock.setProduct(product);
+        stock.setWarehouse(warehouse);
+        stock.setQuantity(BigDecimal.ZERO);
+
+        try {
+            return stockRepository.saveAndFlush(stock);
+        } catch (DataIntegrityViolationException ex) {
+            // Another transaction created the same stock row first.
+            return stockRepository.findWithLockByProductIdAndWarehouseId(productId, warehouseId)
+                    .orElseThrow(() -> ex);
+        }
+    }
+
+    private void saveStockOrThrowConflict(Stock stock) {
+        try {
+            stockRepository.saveAndFlush(stock);
+        } catch (ObjectOptimisticLockingFailureException ex) {
+            throw new BadRequestException("Stock was modified by another transaction. Please retry.");
+        }
     }
 
     private void validatePositiveId(Long id, String fieldName) {

@@ -17,6 +17,9 @@ public class Stock {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    private Long version;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
@@ -40,6 +43,8 @@ public class Stock {
 
     // getters setters
     public Long getId() { return id; }
+
+    public Long getVersion() { return version; }
 
     public Product getProduct() { return product; }
     public void setProduct(Product product) { this.product = product; }

@@ -95,7 +95,7 @@
               <label class="form-label">Parent Category</label>
               <select class="form-select" formControlName="parentCategoryId">
                 <option [ngValue]="null">Select Parent Category</option>
-                <option *ngFor="let category of categories" [ngValue]="category.id">{{ category.categoryName }}</option>
+                <option *ngFor="let category of availableParentCategories" [ngValue]="category.id">{{ category.categoryName }}</option>
               </select>
             </div>
           </div>

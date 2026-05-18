@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Brand } from '../../../models/brand.model';
 import { Status } from '../../../models/product.model';
 import { ProductBrandService } from '../../../services/product-brand.service';
+import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
 declare var bootstrap: any;
 
@@ -43,9 +44,10 @@ export class BrandListComponent implements OnInit {
         this.brands = data;
         this.loading = false;
       },
-      error: () => {
+      error: (error) => {
         this.brands = [];
         this.loading = false;
+        debugApiError('BrandListComponent.loadBrands', error);
       }
     });
   }
@@ -89,9 +91,10 @@ export class BrandListComponent implements OnInit {
         this.closeModal();
         this.loadBrands();
       },
-      error: () => {
+      error: (error) => {
         this.loading = false;
-        this.submitError = 'Brand could not be saved.';
+        this.submitError = extractApiErrorMessage(error, 'Brand could not be saved.');
+        debugApiError('BrandListComponent.onSubmit', error);
       }
     });
   }

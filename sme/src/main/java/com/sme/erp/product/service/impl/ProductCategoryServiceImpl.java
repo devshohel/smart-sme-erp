@@ -1,8 +1,8 @@
 package com.sme.erp.product.service.impl;
 
-import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
+import com.sme.erp.common.util.RequestValueUtils;
 import com.sme.erp.product.dto.ProductCategoryDTO;
 import com.sme.erp.product.entity.ProductCategory;
 import com.sme.erp.product.mapper.ProductCategoryMapper;
@@ -19,38 +19,44 @@ import java.util.stream.Collectors;
 public class ProductCategoryServiceImpl implements ProductCategoryService {
 
     private final ProductCategoryRepository repository;
+    private final ProductCategoryMapper mapper;
 
-    public ProductCategoryServiceImpl(ProductCategoryRepository repository) {
+    public ProductCategoryServiceImpl(ProductCategoryRepository repository,
+                                      ProductCategoryMapper mapper) {
         this.repository = repository;
+        this.mapper = mapper;
     }
 
     // ✅ SAVE
     @Override
     @Transactional
     public ProductCategoryDTO save(ProductCategoryDTO dto) {
-        dto.setCode(normalizeRequired(dto.getCode(), "Category code"));
-        dto.setCategoryName(normalizeRequired(dto.getCategoryName(), "Category name"));
-        dto.setDescription(normalize(dto.getDescription()));
+        dto.setCode(RequestValueUtils.normalizeRequired(dto.getCode(), "Category code"));
+        dto.setCategoryName(RequestValueUtils.normalizeRequired(dto.getCategoryName(), "Category name"));
+        dto.setDescription(RequestValueUtils.normalize(dto.getDescription()));
         validateCodeUnique(dto.getCode(), dto.getId());
 
         ProductCategory entity = getCategoryForSave(dto.getId());
-        ProductCategoryMapper.updateEntity(dto, entity);
+        mapper.updateEntity(dto, entity);
 
         if (dto.getParentCategoryId() != null) {
             entity.setParentCategory(findCategoryById(dto.getParentCategoryId(), "Parent category"));
+        } else {
+            entity.setParentCategory(null);
         }
 
         ProductCategory saved = repository.save(entity);
 
-        return ProductCategoryMapper.toDTO(saved);
+        return mapper.toDTO(saved);
     }
 
     // ✅ GET ALL
     @Override
+    @Transactional(readOnly = true)
     public List<ProductCategoryDTO> getAll() {
         return repository.findAll()
                 .stream()
-                .map(ProductCategoryMapper::toDTO)
+                .map(mapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -78,21 +84,5 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
     private ProductCategory findCategoryById(Long id, String label) {
         return repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(label + " not found with id: " + id));
-    }
-
-    private String normalizeRequired(String value, String fieldName) {
-        String normalized = normalize(value);
-        if (normalized == null) {
-            throw new BadRequestException(fieldName + " is required");
-        }
-        return normalized;
-    }
-
-    private String normalize(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
     }
 }

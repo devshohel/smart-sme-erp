@@ -3,6 +3,7 @@ package com.sme.erp.product.service.impl;
 import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
+import com.sme.erp.common.util.RequestValueUtils;
 import com.sme.erp.product.dto.ProductDTO;
 import com.sme.erp.product.entity.*;
 import com.sme.erp.product.mapper.ProductMapper;
@@ -41,10 +42,10 @@ public class ProductServiceImpl implements ProductService {
     public ProductDTO saveProduct(ProductDTO dto) {
 
         validateProductBusinessRules(dto);
-        String normalizedProductCode = normalize(dto.getProductCode());
+        String normalizedProductCode = RequestValueUtils.normalize(dto.getProductCode());
         dto.setProductCode(normalizedProductCode);
-        dto.setSku(normalizeRequired(dto.getSku(), "SKU"));
-        dto.setProductName(normalizeRequired(dto.getProductName(), "Product name"));
+        dto.setSku(RequestValueUtils.normalizeRequired(dto.getSku(), "SKU"));
+        dto.setProductName(RequestValueUtils.normalizeRequired(dto.getProductName(), "Product name"));
         Product product = getProductForSave(dto.getId());
         validateSkuUnique(dto.getSku(), dto.getId());
         if (dto.getId() == null) {
@@ -60,16 +61,22 @@ public class ProductServiceImpl implements ProductService {
         // ✅ Category
         if (dto.getCategoryId() != null) {
             product.setCategory(findCategoryById(dto.getCategoryId()));
+        } else {
+            product.setCategory(null);
         }
 
         // ✅ Brand
         if (dto.getBrandId() != null) {
             product.setBrand(findBrandById(dto.getBrandId()));
+        } else {
+            product.setBrand(null);
         }
 
         // ✅ UOM
         if (dto.getUomId() != null) {
             product.setUom(findUomById(dto.getUomId()));
+        } else {
+            product.setUom(null);
         }
 
         Product saved = repository.save(product);
@@ -77,6 +84,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProductDTO> getAllProducts() {
         return repository.findAll()
                 .stream()
@@ -85,6 +93,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ProductDTO getById(Long id) {
         return mapper.toDTO(findProductById(id));
     }
@@ -144,23 +153,6 @@ public class ProductServiceImpl implements ProductService {
         } while (repository.existsByProductCode(productCode));
         return productCode;
     }
-
-    private String normalize(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    private String normalizeRequired(String value, String fieldName) {
-        String normalized = normalize(value);
-        if (normalized == null) {
-            throw new BadRequestException(fieldName + " is required");
-        }
-        return normalized;
-    }
-
     private void validateSkuUnique(String sku, Long currentId) {
         boolean exists = currentId == null
                 ? repository.existsBySku(sku)
