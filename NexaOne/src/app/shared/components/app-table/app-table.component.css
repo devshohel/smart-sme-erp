@@ -1,0 +1,23 @@
+.app-table {
+  background: white;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #f0f0f0;
+}
+
+.table {
+  margin-bottom: 0;
+}
+
+thead {
+  background: #f9fafb;
+}
+
+th {
+  font-weight: 600;
+  padding: 16px;
+}
+
+td {
+  padding: 16px;
+}

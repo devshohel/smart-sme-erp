@@ -1,0 +1,13 @@
+<div class="search-wrapper">
+
+  <i class="bi bi-search"></i>
+
+  <input
+    type="text"
+    class="form-control"
+    placeholder="Search..."
+    #searchInput
+    (keyup)="onSearch(searchInput.value)"
+  />
+
+</div>

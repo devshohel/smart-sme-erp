@@ -1,0 +1,21 @@
+<div class="app-card">
+
+  <div class="card-header-area" *ngIf="title">
+
+    <div>
+      <h5 class="card-title">
+        {{ title }}
+      </h5>
+
+      <small class="card-subtitle" *ngIf="subtitle">
+        {{ subtitle }}
+      </small>
+    </div>
+
+  </div>
+
+  <div class="card-body-area">
+    <ng-content></ng-content>
+  </div>
+
+</div>

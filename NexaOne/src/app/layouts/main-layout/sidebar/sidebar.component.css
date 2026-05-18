@@ -1,0 +1,116 @@
+.sidebar {
+  --sidebar-width: 260px;
+  --navbar-height: 70px;
+  width: var(--sidebar-width);
+  background: #ffffff;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1030;
+  border-right: 1px solid #f0f0f0;
+  transition: transform 0.3s ease;
+  overflow: hidden;
+}
+
+.brand-section {
+  height: var(--navbar-height);
+  padding: 0 20px;
+  flex: 0 0 var(--navbar-height);
+  font-size: 22px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.nav-links-wrapper {
+  padding: 15px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.side-link {
+  display: flex;
+  align-items: center;
+  padding: 12px 15px;
+  color: #4b5563;
+  text-decoration: none;
+  border-radius: 10px;
+  margin-bottom: 4px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  font-size: 15px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.icon {
+  font-size: 1.25rem;
+  width: 24px;
+  min-width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.side-link:hover,
+.side-link.active {
+  background: #eafaf1;
+  color: #27ae60;
+}
+
+.submenu {
+  max-height: 0;
+  overflow: hidden;
+  padding-left: 14px;
+  transition: max-height 0.25s ease;
+}
+
+.submenu.show {
+  max-height: 240px;
+}
+
+.side-link.small {
+  font-size: 0.88rem;
+  padding: 10px 15px 10px 31px;
+  margin-bottom: 2px;
+  color: #6b7280;
+}
+
+.side-link.small:hover,
+.side-link.small.active {
+  background: #f3fbf7;
+  color: #27ae60;
+}
+
+.dropdown-toggle::after {
+  display: inline-block;
+  margin-left: auto;
+  content: "";
+  border-top: 0.3em solid;
+  border-right: 0.3em solid transparent;
+  border-bottom: 0;
+  border-left: 0.3em solid transparent;
+  transition: transform 0.3s ease;
+}
+
+.side-link[aria-expanded="true"]::after {
+  transform: rotate(180deg);
+}
+
+.sidebar-footer {
+  padding: 15px;
+  border-top: 1px solid #f0f0f0;
+  background: #ffffff;
+}
+
+@media (max-width: 991px) {
+  .sidebar {
+    transform: translateX(-100%);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+  }
+
+  .sidebar.sidebar-mobile-open {
+    transform: translateX(0);
+  }
+}

@@ -1,0 +1,26 @@
+.custom-modal-backdrop {
+  position: fixed;
+  inset: 0;
+
+  background: rgba(0,0,0,0.5);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 2000;
+}
+
+.custom-modal {
+  width: 100%;
+  max-width: 600px;
+
+  background: white;
+  border-radius: 16px;
+
+  padding: 20px;
+}
+
+.modal-header-area {
+  margin-bottom: 16px;
+}

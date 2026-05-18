@@ -1,12 +1,62 @@
-
-.main-body-container {
-  margin-left: 260px; /* সাইডবারের উইডথ অনুযায়ী জায়গা ছেড়ে দেওয়া */
+.layout-wrapper {
+  --sidebar-width: 260px;
+  --navbar-height: 70px;
+  display: flex;
   min-height: 100vh;
-  background-color: #f4f7f6;
+  background: #f5f7fb;
+  overflow-x: hidden;
+  position: relative;
 }
 
-@media (max-width: 768px) {
-  .main-body-container {
+.layout-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.42);
+  z-index: 1025;
+}
+
+.main-content {
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: margin-left 0.3s ease, width 0.3s ease;
+}
+
+.page-content {
+  min-height: 100vh;
+  padding: calc(var(--navbar-height) + 24px) 24px 24px;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  box-sizing: border-box;
+}
+
+.page-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.page-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.page-content::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 20px;
+}
+
+.page-content::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+@media (max-width: 991px) {
+  .main-content {
     margin-left: 0;
+    width: 100%;
+  }
+
+  .page-content {
+    padding: calc(var(--navbar-height) + 16px) 16px 20px;
   }
 }

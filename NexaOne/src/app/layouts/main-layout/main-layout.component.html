@@ -1,11 +1,22 @@
+<div class="layout-wrapper">
+  <div
+    class="layout-backdrop"
+    *ngIf="isSidebarMobileOpen"
+    (click)="closeSidebar()">
+  </div>
 
-<div class="d-flex">
-  <app-sidebar></app-sidebar>
+  <app-sidebar
+    [isMobileView]="isMobileView"
+    [isMobileOpen]="isSidebarMobileOpen"
+    (closeRequested)="closeSidebar()">
+  </app-sidebar>
 
-  <div class="main-body-container w-100">
-    <app-navbar></app-navbar>
-    
-    <div class="p-4">
+  <div class="main-content">
+    <app-navbar
+      (sidebarToggle)="toggleSidebar()">
+    </app-navbar>
+
+    <div class="page-content">
       <router-outlet></router-outlet>
     </div>
   </div>

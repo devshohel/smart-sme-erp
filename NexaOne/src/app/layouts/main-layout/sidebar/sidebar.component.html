@@ -1,0 +1,92 @@
+<aside
+  class="sidebar shadow-sm d-flex flex-column"
+  [class.sidebar-mobile-open]="isMobileOpen">
+  <div class="brand-section d-flex align-items-center py-3 px-3 border-bottom">
+    <i class="bi bi-intersect me-2 text-success fs-4"></i>
+    <span class="fw-bold fs-5 logo-text">Nexa<span class="text-success">One</span></span>
+  </div>
+
+  <div class="nav-links-wrapper flex-grow-1 overflow-y-auto py-3">
+    <a routerLink="/dashboard" routerLinkActive="active" class="side-link d-flex align-items-center px-3 py-2 my-1" (click)="closeSidebar()">
+      <i class="bi bi-grid-1x2-fill icon fs-5 me-3"></i>
+      <span>Dashboard</span>
+    </a>
+
+    <div class="menu-dropdown-item">
+      <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         (click)="toggleProducts()"
+         role="button"
+         [attr.aria-expanded]="isProductsOpen">
+        <i class="bi bi-box icon fs-5 me-3"></i>
+        <span>Products</span>
+      </a>
+
+      <div class="submenu" [class.show]="isProductsOpen">
+        <a routerLink="/products/products" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-list-ul me-2"></i> All Products
+        </a>
+        <a routerLink="/products/categories" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-tags me-2"></i> Categories
+        </a>
+        <a routerLink="/products/brands" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-bookmark me-2"></i> Brands
+        </a>
+        <a routerLink="/products/uom" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-rulers me-2"></i> UOM Settings
+        </a>
+      </div>
+    </div>
+
+    <div class="menu-dropdown-item">
+      <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         (click)="toggleInventory()"
+         role="button"
+         [attr.aria-expanded]="isInventoryOpen">
+        <i class="bi bi-box-seam icon fs-5 me-3"></i>
+        <span>Inventory</span>
+      </a>
+
+      <div class="submenu" [class.show]="isInventoryOpen">
+        <a routerLink="/inventory/stocks" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-graph-up-arrow me-2"></i> Stock Levels
+        </a>
+        <a routerLink="/inventory/adjustments" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-sliders me-2"></i> Stock Adjustments
+        </a>
+        <a routerLink="/inventory/movements" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-arrow-left-right me-2"></i> Stock Movements
+        </a>
+        <a routerLink="/inventory/warehouses" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-house me-2"></i> Warehouses
+        </a>
+      </div>
+    </div>
+
+    <a routerLink="/sales" routerLinkActive="active" class="side-link d-flex align-items-center px-3 py-2 my-1" (click)="closeSidebar()">
+      <i class="bi bi-cart-check icon fs-5 me-3"></i>
+      <span>Sales & Invoices</span>
+    </a>
+
+    <a routerLink="/customers" routerLinkActive="active" class="side-link d-flex align-items-center px-3 py-2 my-1" (click)="closeSidebar()">
+      <i class="bi bi-people icon fs-5 me-3"></i>
+      <span>Customers</span>
+    </a>
+
+    <a routerLink="/reports" routerLinkActive="active" class="side-link d-flex align-items-center px-3 py-2 my-1" (click)="closeSidebar()">
+      <i class="bi bi-bar-chart-line icon fs-5 me-3"></i>
+      <span>Reports</span>
+    </a>
+
+    <a routerLink="/settings" routerLinkActive="active" class="side-link d-flex align-items-center px-3 py-2 my-1" (click)="closeSidebar()">
+      <i class="bi bi-gear icon fs-5 me-3"></i>
+      <span>Settings</span>
+    </a>
+  </div>
+
+  <div class="sidebar-footer p-3 border-top">
+    <button class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center">
+      <i class="bi bi-box-arrow-left fs-5 me-2"></i>
+      <span>Logout</span>
+    </button>
+  </div>
+</aside>
