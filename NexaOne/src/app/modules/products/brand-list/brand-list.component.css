@@ -3,3 +3,7 @@
   box-shadow: none;
   border-color: #27ae60;
 }
+
+.card {
+  border-radius: 12px;
+}

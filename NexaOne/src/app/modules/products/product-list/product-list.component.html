@@ -1,18 +1,12 @@
 <div class="container-fluid p-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
     <div>
-      <h4 class="fw-bold mb-0">Products</h4>
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb mb-0">
-          <li class="breadcrumb-item"><a routerLink="/dashboard" class="text-decoration-none">Dashboard</a></li>
-          <li class="breadcrumb-item active">Inventory</li>
-          <li class="breadcrumb-item active">Products</li>
-        </ol>
-      </nav>
+      <h4 class="fw-bold mb-0">All Products</h4>
+      <p class="text-muted mb-0">Manage product records, pricing, status, and references.</p>
     </div>
     <div class="d-flex gap-2">
       <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i> Export</button>
-      <button class="btn btn-success btn-sm px-3" (click)="openAddModal()" data-bs-toggle="modal" data-bs-target="#productModal">
+      <button class="btn btn-success btn-sm px-3" routerLink="/products/add-product">
         <i class="bi bi-plus me-1"></i> New Product
       </button>
     </div>
@@ -24,9 +18,10 @@
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light text-uppercase small fw-bold">
             <tr>
-              <th class="ps-4">SKU</th>
-              <th>Product Name</th>
+              <th class="ps-4">Product</th>
+              <th>SKU / Barcode</th>
               <th>Category</th>
+              <th>Brand / UOM</th>
               <th class="text-end">Purchase</th>
               <th class="text-end">Sale</th>
               <th class="text-center">Status</th>
@@ -35,23 +30,33 @@
           </thead>
           <tbody>
             <tr *ngFor="let product of products">
-              <td class="ps-4 fw-medium text-primary">{{ product.sku }}</td>
-              <td>{{ product.productName }}</td>
-              <td><span class="text-muted">Electronics</span></td>
+              <td class="ps-4">
+                <div class="fw-semibold">{{ product.productName }}</div>
+                <div class="text-muted small">{{ product.productCode || 'No code' }}</div>
+              </td>
+              <td>
+                <div>{{ product.sku }}</div>
+                <div class="text-muted small">{{ product.barcode || 'No barcode' }}</div>
+              </td>
+              <td>{{ product.categoryName || 'Unassigned' }}</td>
+              <td>
+                <div>{{ product.brandName || 'No brand' }}</div>
+                <div class="text-muted small">{{ product.uomName || 'No UOM' }}</div>
+              </td>
               <td class="text-end">{{ product.purchasePrice | number:'1.2-2' }}</td>
               <td class="text-end fw-bold">{{ product.salePrice | number:'1.2-2' }}</td>
               <td class="text-center">
-                <span class="badge px-2 py-1 border-0" 
-                     [ngClass]="product.status === 'ACTIVE' ? 'bg-light-success text-success' : 'bg-light-danger text-danger'">
-                  <i class="bi bi-circle-fill me-1" style="font-size: 7px;"></i> {{ product.status }}
+                <span class="badge px-2 py-1 border-0"
+                  [ngClass]="product.status === 'ACTIVE' ? 'bg-light-success text-success' : product.status === 'DRAFT' ? 'bg-light-warning text-warning' : 'bg-light-danger text-danger'">
+                  {{ product.status || 'ACTIVE' }}
                 </span>
               </td>
               <td class="text-center pe-4">
                 <div class="d-flex justify-content-center gap-2">
-                  <button class="btn-action btn-view" (click)="viewProduct(product)" data-bs-toggle="modal" data-bs-target="#productModal">
+                  <button class="btn-action btn-view" (click)="viewProduct(product)">
                     <i class="bi bi-eye"></i>
                   </button>
-                  <button class="btn-action btn-edit" (click)="editProduct(product)" data-bs-toggle="modal" data-bs-target="#productModal">
+                  <button class="btn-action btn-edit" (click)="editProduct(product)">
                     <i class="bi bi-pencil-square"></i>
                   </button>
                   <button class="btn-action btn-delete" (click)="deleteProduct(product.id)">
@@ -60,50 +65,16 @@
                 </div>
               </td>
             </tr>
+
+            <tr *ngIf="!loading && products.length === 0">
+              <td colspan="8" class="text-center text-muted py-5">No products found.</td>
+            </tr>
+
+            <tr *ngIf="loading">
+              <td colspan="8" class="text-center text-muted py-5">Loading products...</td>
+            </tr>
           </tbody>
         </table>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content border-0 shadow">
-      <div class="modal-header border-bottom-0">
-        <h5 class="modal-title fw-bold text-dark">{{ modalTitle }}</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label small text-muted">Product Name</label>
-            <input type="text" class="form-control" [(ngModel)]="selectedProduct.productName" [disabled]="isReadOnly">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label small text-muted">SKU Code</label>
-            <input type="text" class="form-control" [(ngModel)]="selectedProduct.sku" [disabled]="isReadOnly">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label small text-muted">Purchase Price</label>
-            <input type="number" class="form-control" [(ngModel)]="selectedProduct.purchasePrice" [disabled]="isReadOnly">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label small text-muted">Sale Price</label>
-            <input type="number" class="form-control" [(ngModel)]="selectedProduct.salePrice" [disabled]="isReadOnly">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label small text-muted">Status</label>
-            <select class="form-select" [(ngModel)]="selectedProduct.status" [disabled]="isReadOnly">
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer border-top-0">
-        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Close</button>
-        <button *ngIf="!isReadOnly" type="button" class="btn btn-primary px-4" (click)="saveProduct()">Save Changes</button>
       </div>
     </div>
   </div>

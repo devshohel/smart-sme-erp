@@ -1,0 +1,18 @@
+<div class="container-fluid">
+  <app-page-header
+    title="Edit Product"
+    subtitle="Update an existing product record using the ERP product form.">
+  </app-page-header>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="text-muted py-4" *ngIf="loading">Loading product...</div>
+
+  <app-product-form
+    *ngIf="!loading && product"
+    [initialValue]="product"
+    [isSubmitting]="submitting"
+    submitLabel="Update Product"
+    (formSubmit)="saveProduct($event)"
+    (cancelClick)="cancel()">
+  </app-product-form>
+</div>

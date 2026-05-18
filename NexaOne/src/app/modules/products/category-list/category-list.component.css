@@ -1,6 +1,5 @@
 .card {
   border-radius: 12px;
-  border: none;
 }
 
 .table thead th {
@@ -16,7 +15,6 @@
   font-weight: 500;
 }
 
-/* Status colors */
 .badge-success {
   background-color: #d1e7dd;
   color: #0f5132;
@@ -32,13 +30,8 @@
   color: #842029;
 }
 
-/* Buttons */
-.btn-outline-primary {
-  color: #0d6efd;
-  border-color: #0d6efd;
-}
-
-.btn-outline-danger {
-  color: #dc3545;
-  border-color: #dc3545;
+.form-control:focus,
+.form-select:focus {
+  box-shadow: none;
+  border-color: #27ae60;
 }

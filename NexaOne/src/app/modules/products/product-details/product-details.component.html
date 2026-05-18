@@ -1,0 +1,63 @@
+<div class="container-fluid">
+  <app-page-header
+    title="Product Details"
+    subtitle="Read-only ERP product information view.">
+    <a routerLink="/products/products" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to Products
+    </a>
+  </app-page-header>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="text-muted py-4" *ngIf="loading">Loading product...</div>
+
+  <div class="row g-4" *ngIf="product && !loading">
+    <div class="col-12">
+      <app-card title="Basic Information">
+        <div class="row g-3">
+          <div class="col-md-6"><strong>Name:</strong> {{ product.productName }}</div>
+          <div class="col-md-6"><strong>SKU:</strong> {{ product.sku }}</div>
+          <div class="col-md-6"><strong>Barcode:</strong> {{ product.barcode || 'N/A' }}</div>
+          <div class="col-md-6"><strong>Type:</strong> {{ product.type || 'N/A' }}</div>
+        </div>
+      </app-card>
+    </div>
+
+    <div class="col-12">
+      <app-card title="Pricing Information">
+        <div class="row g-3">
+          <div class="col-md-4"><strong>Purchase Price:</strong> {{ product.purchasePrice | number:'1.2-2' }}</div>
+          <div class="col-md-4"><strong>Sale Price:</strong> {{ product.salePrice | number:'1.2-2' }}</div>
+          <div class="col-md-4"><strong>Tax %:</strong> {{ product.taxPercentage ?? 0 }}</div>
+        </div>
+      </app-card>
+    </div>
+
+    <div class="col-12">
+      <app-card title="Classification">
+        <div class="row g-3">
+          <div class="col-md-4"><strong>Category:</strong> {{ product.categoryName || 'N/A' }}</div>
+          <div class="col-md-4"><strong>Brand:</strong> {{ product.brandName || 'N/A' }}</div>
+          <div class="col-md-4"><strong>UOM:</strong> {{ product.uomName || 'N/A' }}</div>
+        </div>
+      </app-card>
+    </div>
+
+    <div class="col-12">
+      <app-card title="Stock Settings">
+        <div class="row g-3">
+          <div class="col-md-4"><strong>Reorder Level:</strong> {{ product.reorderLevel ?? 0 }}</div>
+        </div>
+      </app-card>
+    </div>
+
+    <div class="col-12">
+      <app-card title="Status & Image">
+        <div class="row g-3">
+          <div class="col-md-4"><strong>Status:</strong> {{ product.status || 'N/A' }}</div>
+          <div class="col-md-8"><strong>Image URL:</strong> {{ product.imageUrl || 'N/A' }}</div>
+        </div>
+      </app-card>
+    </div>
+  </div>
+</div>

@@ -17,6 +17,10 @@ export class UomService {
     return this.http.get<Uom[]>(this.baseUrl);
   }
 
+  getUomById(id: number): Observable<Uom> {
+    return this.http.get<Uom>(`${this.baseUrl}/${id}`);
+  }
+
   saveUom(uom: Uom): Observable<Uom> {
     return this.http.post<Uom>(this.baseUrl, uom);
   }

@@ -1,0 +1,88 @@
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div>
+      <h2 class="h4 mb-0">Brands</h2>
+      <p class="text-muted mb-0">Create and manage product brands.</p>
+    </div>
+    <button class="btn btn-success btn-sm shadow-sm" (click)="addBrand()">
+      <i class="bi bi-plus-lg me-1"></i> Add New Brand
+    </button>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Code</th>
+              <th>Brand Name</th>
+              <th>Status</th>
+              <th class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let brand of brands">
+              <td><strong>{{ brand.code }}</strong></td>
+              <td>{{ brand.brandName }}</td>
+              <td>{{ brand.status }}</td>
+              <td class="text-center">
+                <button class="btn btn-sm btn-outline-primary me-1" (click)="editBrand(brand)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" (click)="deleteBrand(brand.id)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+
+            <tr *ngIf="!loading && brands.length === 0">
+              <td colspan="4" class="text-center text-muted py-5">No brands found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="brandModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">{{ isEditMode ? 'Edit Brand' : 'Add New Brand' }}</h5>
+        <button type="button" class="btn-close" (click)="closeModal()" aria-label="Close"></button>
+      </div>
+      <form [formGroup]="brandForm" (ngSubmit)="onSubmit()">
+        <div class="modal-body">
+          <div class="alert alert-danger" *ngIf="submitError">{{ submitError }}</div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Brand Code *</label>
+              <input type="text" class="form-control" formControlName="code">
+              <div class="invalid-feedback d-block" *ngIf="hasError('code', 'required')">Brand code is required.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Brand Name *</label>
+              <input type="text" class="form-control" formControlName="brandName">
+              <div class="invalid-feedback d-block" *ngIf="hasError('brandName', 'required')">Brand name is required.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Status</label>
+              <select class="form-select" formControlName="status">
+                <option *ngFor="let status of statusList" [value]="status">{{ status }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-success" [disabled]="brandForm.invalid || loading">
+            {{ loading ? 'Saving...' : 'Save Brand' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

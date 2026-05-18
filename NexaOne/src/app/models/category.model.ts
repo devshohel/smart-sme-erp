@@ -1,8 +1,4 @@
-export enum Status {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  DRAFT = 'DRAFT'
-}
+import { Status } from './product.model';
 
 export interface ProductCategory {
   id?: number;
@@ -10,12 +6,8 @@ export interface ProductCategory {
   categoryName: string;
   description?: string;
   status: Status;
-
-  parentCategory?: {
-  id: number;
-  categoryName?: string;
-} | null;
-
+  parentCategoryId?: number | null;
+  parentCategoryName?: string;
   createdAt?: string;
   updatedAt?: string;
 }

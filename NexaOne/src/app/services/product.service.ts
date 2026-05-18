@@ -18,9 +18,16 @@ export class ProductService {
     return this.http.get<Product[]>(this.baseUrl);
   }
 
-  // Create
-  createProduct(product: Product): Observable<Product> {
+  getProductById(id: number): Observable<Product> {
+    return this.http.get<Product>(`${this.baseUrl}/${id}`);
+  }
+
+  saveProduct(product: Product): Observable<Product> {
     return this.http.post<Product>(this.baseUrl, product);
+  }
+
+  createProduct(product: Product): Observable<Product> {
+    return this.saveProduct(product);
   }
 
   // Delete (Soft Delete)

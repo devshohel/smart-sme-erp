@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { ProductService } from '../../../services/product.service';
+import { Router } from '@angular/router';
 import { Product } from '../../../models/product.model';
+import { ProductService } from '../../../services/product.service';
 
 @Component({
   selector: 'app-product-list',
@@ -8,149 +9,55 @@ import { Product } from '../../../models/product.model';
   styleUrls: ['./product-list.component.css']
 })
 export class ProductListComponent implements OnInit {
-  
   products: Product[] = [];
-  selectedProduct: Product = {} as Product; 
-  modalTitle: string = '';
-  isReadOnly: boolean = false;
+  loading = false;
+  submitError = '';
 
-  constructor(private productService: ProductService) { }
+  constructor(
+    private productService: ProductService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     this.loadProducts();
   }
 
   loadProducts(): void {
-    this.productService.getAllProducts().subscribe(data => {
-      this.products = data;
+    this.loading = true;
+    this.productService.getAllProducts().subscribe({
+      next: (data) => {
+        this.products = data;
+        this.loading = false;
+      },
+      error: () => {
+        this.products = [];
+        this.loading = false;
+      }
     });
   }
 
   viewProduct(product: Product): void {
-    this.modalTitle = 'Product Details';
-    this.isReadOnly = true;
-    this.selectedProduct = { ...product };
-  }
-
-  editProduct(product: Product): void {
-    this.modalTitle = 'Edit Product';
-    this.isReadOnly = false;
-    this.selectedProduct = { ...product };
-  }
-
-  openAddModal(): void {
-    this.modalTitle = 'Add New Product';
-    this.isReadOnly = false;
-    this.selectedProduct = {} as Product;
-  }
-
-  // ডিলিট এপিআই কল করার সঠিক নিয়ম
-  deleteProduct(id: number | undefined): void {
-    if (!id) return;
-    if (confirm('Are you sure you want to delete this product?')) {
-      this.productService.deleteProduct(id).subscribe(() => {
-        alert('Product deleted successfully');
-        this.loadProducts(); // ডিলিট হওয়ার পর লিস্ট আপডেট হবে
-      }, error => {
-        console.error('Delete error:', error); // আইডি ১ না থাকলে এখানে এরর আসবে
-      });
+    if (product.id) {
+      this.router.navigate(['/products/details', product.id]);
     }
   }
 
-  // সেভ বা আপডেটের জন্য এপিআই কল
-  saveProduct(): void {
-    if (this.selectedProduct.id) {
-      // এখানে ভবিষ্যতে আপডেট এপিআই কল হবে
-      console.log('Update logic goes here');
-    } else {
-      this.productService.createProduct(this.selectedProduct).subscribe(() => {
-        alert('Product saved successfully');
-        this.loadProducts(); // নতুন ডাটা আসার পর টেবিল রিফ্রেশ হবে
+  editProduct(product: Product): void {
+    if (product.id) {
+      this.router.navigate(['/products/edit-product', product.id]);
+    }
+  }
+
+  deleteProduct(id?: number): void {
+    if (!id) {
+      return;
+    }
+
+    if (confirm('Are you sure you want to delete this product?')) {
+      this.productService.deleteProduct(id).subscribe({
+        next: () => this.loadProducts(),
+        error: () => this.submitError = 'Delete request failed.'
       });
     }
   }
 }
-
-
-
-/*
-import { Component, OnInit } from '@angular/core';
-import { ProductService } from '../services/product.service';
-import { Product } from '../../../models/product.model';
-
-@Component({
-  selector: 'app-product-list',
-  templateUrl: './product-list.component.html',
-  styleUrls: ['./product-list.component.css']
-})
-export class ProductListComponent implements OnInit {
-  products: Product[] = [];
-  selectedProduct: Product = {} as Product;  // মোডাল ডাটা বাইন্ডিংয়ের জন্য
-  modalTitle: string = '';                  //[NB:] modal = popup/dialog box (Bootstrap modal) and model = data structure (MVC model)[]
-  isReadOnly: boolean = false;              // ভিউ মোডের জন্য
-
-  constructor(private productService: ProductService) { }
-
-  ngOnInit(): void {
-    this.loadProducts(); 
-  }
-
-  loadProducts(): void { 
-    this.productService.getAllProducts().subscribe(data => {
-      this.products = data; // ডাটাবেজ থেকে আসা ডাটা এখানে জমা হচ্ছে
-    });
-  }
-  // =========================
-  // VIEW FUNCTION (চোখের আইকন)
-  // =========================
-  viewProduct(product: Product): void{
-    this.modalTitle = 'Product Details';
-    this.isReadOnly = true;
-    this.selectedProduct = { ...product };
-  }
-
-  // =========================
-  // EDIT FUNCTION (পেন্সিল আইকন)
-  // =========================
-  editProduct(product: Product): void {
-    this.modalTitle = 'Edit Product';
-    this.isReadOnly = false;
-    this.selectedProduct = { ...product };
-  }
-
-  // =========================
-  // ADD FUNCTION (New Product বাটন)
-  // =========================
-  openAddModal(): void {
-    this.modalTitle = 'Add New Product';
-    this.isReadOnly = false;
-    this.selectedProduct = {};      // নতুন অবজেক্ট
-  }
-
-  // =========================
-  // DELETE FUNCTION (ট্র্যাশ আইকন)
-  // =========================
-  deleteProduct(id: number | undefined): void {
-    if (!id) return;
-
-    if (confirm('Are you sure you want to delete this product?')) {
-      console.log('Deleting product ID:', id);
-      // এখানে Service.delete API কল হবে
-      // Future: this.productService.deleteProduct(id).subscribe(...)
-    }
-  }
-
-  // =========================
-  // SAVE/UPDATE FUNCTION 
-  // =========================
-  saveProduct(): void {
-    if (this.selectedProduct.id) {
-      console.log('Updating Product:', this.selectedProduct);
-      // update API
-    } else {
-        console.log('Creating Product:', this.selectedProduct);
-      // create API
-    }
-  }
-}
-*/

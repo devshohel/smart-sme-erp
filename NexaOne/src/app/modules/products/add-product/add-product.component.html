@@ -1,0 +1,20 @@
+<div class="container-fluid">
+  <app-page-header
+    title="Add Product"
+    subtitle="Create a new product with ERP-standard section-based form layout.">
+    <button type="button" class="btn btn-outline-secondary" (click)="goToProductList()">
+      <i class="bi bi-arrow-left me-1"></i>
+      Back to Products
+    </button>
+  </app-page-header>
+
+  <div class="alert alert-success" *ngIf="submitSuccess">{{ submitSuccess }}</div>
+  <div class="alert alert-danger" *ngIf="submitError">{{ submitError }}</div>
+
+  <app-product-form
+    [isSubmitting]="isSubmitting"
+    submitLabel="Save Product"
+    (formSubmit)="saveProduct($event)"
+    (cancelClick)="goToProductList()">
+  </app-product-form>
+</div>

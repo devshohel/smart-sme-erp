@@ -1,0 +1,115 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="row g-4">
+    <div class="col-12">
+      <app-card title="Basic Information" subtitle="Core product identity fields.">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Product Name *</label>
+            <input type="text" class="form-control" formControlName="productName">
+            <div class="invalid-feedback d-block" *ngIf="hasError('productName', 'required')">Product name is required.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">SKU *</label>
+            <input type="text" class="form-control" formControlName="sku">
+            <div class="invalid-feedback d-block" *ngIf="hasError('sku', 'required')">SKU is required.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Barcode</label>
+            <input type="text" class="form-control" formControlName="barcode">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Product Type</label>
+            <select class="form-select" formControlName="type">
+              <option *ngFor="let type of productTypes" [value]="type">{{ type }}</option>
+            </select>
+          </div>
+        </div>
+      </app-card>
+    </div>
+
+    <div class="col-12">
+      <app-card title="Pricing Information" subtitle="Purchase, sale, and tax values.">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Purchase Price *</label>
+            <input type="number" class="form-control" formControlName="purchasePrice" min="0" step="0.01">
+            <div class="invalid-feedback d-block" *ngIf="hasError('purchasePrice', 'required')">Purchase price is required.</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Sale Price *</label>
+            <input type="number" class="form-control" formControlName="salePrice" min="0" step="0.01">
+            <div class="invalid-feedback d-block" *ngIf="hasError('salePrice', 'required')">Sale price is required.</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Tax Percentage</label>
+            <input type="number" class="form-control" formControlName="taxPercentage" min="0" step="0.01">
+          </div>
+        </div>
+      </app-card>
+    </div>
+
+    <div class="col-12">
+      <app-card title="Classification" subtitle="Link product to master data.">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Category</label>
+            <select class="form-select" formControlName="categoryId">
+              <option [ngValue]="null">Select Category</option>
+              <option *ngFor="let category of categories" [ngValue]="category.id">{{ category.categoryName }}</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Brand</label>
+            <select class="form-select" formControlName="brandId">
+              <option [ngValue]="null">Select Brand</option>
+              <option *ngFor="let brand of brands" [ngValue]="brand.id">{{ brand.brandName }}</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Unit of Measure</label>
+            <select class="form-select" formControlName="uomId">
+              <option [ngValue]="null">Select UOM</option>
+              <option *ngFor="let uom of uoms" [ngValue]="uom.id">{{ uom.name }}</option>
+            </select>
+          </div>
+        </div>
+      </app-card>
+    </div>
+
+    <div class="col-12">
+      <app-card title="Stock Settings" subtitle="Inventory-related product values.">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Reorder Level</label>
+            <input type="number" class="form-control" formControlName="reorderLevel" min="0" step="1">
+          </div>
+        </div>
+      </app-card>
+    </div>
+
+    <div class="col-12">
+      <app-card title="Status & Image" subtitle="Availability and image reference.">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Status</label>
+            <select class="form-select" formControlName="status">
+              <option *ngFor="let status of statusList" [value]="status">{{ status }}</option>
+            </select>
+          </div>
+          <div class="col-md-8">
+            <label class="form-label">Image URL</label>
+            <input type="text" class="form-control" formControlName="imageUrl">
+          </div>
+        </div>
+      </app-card>
+    </div>
+  </div>
+
+  <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">
+    <button type="button" class="btn btn-outline-secondary" (click)="cancelClick.emit()">Cancel</button>
+    <button type="button" class="btn btn-outline-secondary" (click)="reset()">Reset</button>
+    <button type="submit" class="btn btn-success px-4" [disabled]="isSubmitting || loadingOptions">
+      {{ isSubmitting ? 'Saving...' : submitLabel }}
+    </button>
+  </div>
+</form>
