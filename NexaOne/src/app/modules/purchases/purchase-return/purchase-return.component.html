@@ -1,0 +1,157 @@
+<div class="container-fluid p-4">
+  <app-page-header
+    title="Purchase Returns"
+    subtitle="Create supplier return entries and review returned purchase items with quick totals.">
+  </app-page-header>
+
+  <div class="row g-4">
+    <div class="col-12">
+      <app-card title="Purchase Return List" subtitle="Saved purchase returns from API or local fallback state.">
+        <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Return Code</th>
+                <th>Purchase Code</th>
+                <th>Supplier</th>
+                <th>Return Date</th>
+                <th class="text-end">Total Amount</th>
+                <th class="text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let purchaseReturn of returns">
+                <td class="fw-semibold">{{ purchaseReturn.returnCode || 'Draft' }}</td>
+                <td>{{ purchaseReturn.purchaseCode || 'N/A' }}</td>
+                <td>{{ purchaseReturn.supplierName || 'N/A' }}</td>
+                <td>{{ purchaseReturn.returnDate | date:'mediumDate' }}</td>
+                <td class="text-end">{{ purchaseReturn.totalAmount | number:'1.2-2' }}</td>
+                <td class="text-center">
+                  <button type="button" class="btn btn-sm btn-outline-primary" (click)="selectReturn(purchaseReturn)">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="!loading && returns.length === 0">
+                <td colspan="6" class="text-center text-muted py-5">No purchase returns found.</td>
+              </tr>
+              <tr *ngIf="loading">
+                <td colspan="6" class="text-center text-muted py-5">Loading purchase returns...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </app-card>
+
+      <app-card *ngIf="selectedReturn" title="Selected Return Summary" subtitle="Quick view of the currently selected purchase return.">
+        <div class="row g-3">
+          <div class="col-md-6"><strong>Return Code:</strong> {{ selectedReturn.returnCode || 'Draft' }}</div>
+          <div class="col-md-6"><strong>Purchase Code:</strong> {{ selectedReturn.purchaseCode || 'N/A' }}</div>
+          <div class="col-md-6"><strong>Supplier:</strong> {{ selectedReturn.supplierName || 'N/A' }}</div>
+          <div class="col-md-6"><strong>Return Date:</strong> {{ selectedReturn.returnDate | date:'mediumDate' }}</div>
+          <div class="col-md-6"><strong>Total Amount:</strong> {{ selectedReturn.totalAmount | number:'1.2-2' }}</div>
+          <div class="col-md-6"><strong>Items:</strong> {{ selectedReturn.items.length }}</div>
+        </div>
+      </app-card>
+    </div>
+
+    <div class="col-12">
+      <app-card title="Create Purchase Return" subtitle="Stock receive/return and supplier ledger will be connected later.">
+        <div class="purchase-return-form-shell">
+        <form [formGroup]="form" (ngSubmit)="saveReturn()" novalidate>
+          <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
+
+          <div class="section-title">Header Section</div>
+          <div class="row g-3">
+            <div class="col-12 col-md-6 col-xl-3">
+              <label class="form-label">Return Code</label>
+              <input type="text" class="form-control" formControlName="returnCode" readonly>
+              <div class="form-text">Handled automatically by backend.</div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+              <label class="form-label">Return Date *</label>
+              <input type="date" class="form-control" formControlName="returnDate">
+              <div class="invalid-feedback d-block" *ngIf="hasError('returnDate', 'required')">Return date is required.</div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+              <label class="form-label">Purchase *</label>
+              <select class="form-select" formControlName="purchaseId" (change)="onPurchaseChange()">
+                <option [ngValue]="null">Select Purchase</option>
+                <option *ngFor="let purchase of purchases" [ngValue]="purchase.id">{{ purchase.purchaseCode || ('Purchase #' + purchase.id) }}</option>
+              </select>
+              <div class="invalid-feedback d-block" *ngIf="hasError('purchaseId', 'required')">Purchase is required.</div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+              <label class="form-label">Supplier *</label>
+              <select class="form-select" formControlName="supplierId">
+                <option [ngValue]="null">Select Supplier</option>
+                <option *ngFor="let supplier of suppliers" [ngValue]="supplier.id">{{ supplier.name }}</option>
+              </select>
+              <div class="invalid-feedback d-block" *ngIf="hasError('supplierId', 'required')">Supplier is required.</div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+            <div class="section-title mb-0">Item Table Section</div>
+            <button type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
+              <i class="bi bi-plus-lg me-1"></i>Add Row
+            </button>
+          </div>
+
+          <div class="table-responsive purchase-return-items-wrap">
+            <table class="table table-sm align-middle purchase-return-items-table">
+              <thead class="table-light">
+                <tr>
+                  <th class="product-column">Product</th>
+                  <th class="number-column text-end">Qty</th>
+                  <th class="number-column text-end">Unit Price</th>
+                  <th class="number-column text-end">Total</th>
+                  <th class="action-column text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody formArrayName="items">
+                <tr *ngFor="let group of items.controls; let i = index" [formGroupName]="i">
+                  <td>
+                    <select class="form-select form-select-sm item-product-select" formControlName="productId">
+                      <option [ngValue]="null">Select Product</option>
+                      <option *ngFor="let product of products" [ngValue]="product.id">{{ product.productName }}</option>
+                    </select>
+                  </td>
+                  <td><input type="number" class="form-control form-control-sm text-end item-number-input" formControlName="quantity" min="0.01" step="0.01"></td>
+                  <td><input type="number" class="form-control form-control-sm text-end item-number-input" formControlName="unitPrice" min="0" step="0.01"></td>
+                  <td><input type="number" class="form-control form-control-sm text-end item-number-input" formControlName="total" readonly></td>
+                  <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-light border" (click)="removeItem(i)" [disabled]="items.length === 1">
+                      <i class="bi bi-trash text-danger"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section-title mt-4">Return Summary Section</div>
+          <div class="summary-panel">
+            <div class="d-flex justify-content-between">
+              <span>Total Amount</span>
+              <strong>{{ totalAmount | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+
+          <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">
+            <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">Reset</button>
+            <button type="submit" class="btn btn-success px-4" [disabled]="submitting">
+              {{ submitting ? 'Saving...' : 'Save Return' }}
+            </button>
+          </div>
+        </form>
+        </div>
+      </app-card>
+    </div>
+  </div>
+</div>

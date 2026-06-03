@@ -1,0 +1,107 @@
+<div class="container-fluid p-4">
+  <app-page-header
+    [title]="isEditMode ? 'Edit Customer' : 'Create Customer'"
+    subtitle="Maintain customer master data, balances, and status.">
+  </app-page-header>
+
+  <app-card
+    [title]="isEditMode ? 'Customer Update Form' : 'Customer Creation Form'"
+    subtitle="Ledger and transaction history will be added later.">
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Customer Code</label>
+          <input type="text" class="form-control" formControlName="customerCode" readonly>
+          <div class="form-text">Handled automatically by backend.</div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Status *</label>
+          <select class="form-select" formControlName="status">
+            <option *ngFor="let status of statusList" [value]="status">{{ status }}</option>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Name *</label>
+          <input type="text" class="form-control" formControlName="name">
+          <div class="invalid-feedback d-block" *ngIf="hasError('name', 'required')">Customer name is required.</div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Company Name</label>
+          <input type="text" class="form-control" formControlName="companyName">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Contact Person</label>
+          <input type="text" class="form-control" formControlName="contactPerson">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Phone</label>
+          <input type="text" class="form-control" formControlName="phone">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-control" formControlName="email">
+          <div class="invalid-feedback d-block" *ngIf="hasError('email', 'email')">Email format is invalid.</div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Tax Number</label>
+          <input type="text" class="form-control" formControlName="taxNumber">
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">Address</label>
+          <textarea class="form-control" rows="3" formControlName="address"></textarea>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">City</label>
+          <input type="text" class="form-control" formControlName="city">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Country</label>
+          <input type="text" class="form-control" formControlName="country">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Postal Code</label>
+          <input type="text" class="form-control" formControlName="postalCode">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Credit Limit</label>
+          <input type="number" class="form-control" formControlName="creditLimit" min="0" step="0.01">
+          <div class="invalid-feedback d-block" *ngIf="hasError('creditLimit', 'min')">Credit limit cannot be negative.</div>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Opening Balance</label>
+          <input type="number" class="form-control" formControlName="openingBalance" min="0" step="0.01">
+          <div class="invalid-feedback d-block" *ngIf="hasError('openingBalance', 'min')">Opening balance cannot be negative.</div>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Current Balance</label>
+          <input type="number" class="form-control" formControlName="currentBalance" step="0.01">
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">
+        <button type="button" class="btn btn-outline-secondary" (click)="cancel()" [disabled]="submitting || loading">
+          Cancel
+        </button>
+        <button type="submit" class="btn btn-success px-4" [disabled]="submitting || loading || form.invalid">
+          {{ submitting ? 'Saving...' : (isEditMode ? 'Update Customer' : 'Save Customer') }}
+        </button>
+      </div>
+    </form>
+  </app-card>
+</div>

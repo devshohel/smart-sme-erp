@@ -1,0 +1,155 @@
+<div class="container-fluid p-4">
+  <app-page-header
+    title="Sales Orders"
+    subtitle="Manage sales orders, customer requests, and order lifecycle in one place.">
+  </app-page-header>
+
+  <div class="row g-4">
+    <div class="col-12 col-xl-7">
+      <app-card title="Order List" subtitle="Existing and locally staged sales orders.">
+        <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Order No</th>
+                <th>Customer</th>
+                <th>Warehouse</th>
+                <th>Date</th>
+                <th class="text-end">Grand Total</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let order of orders" class="cursor-pointer" (click)="selectOrder(order)">
+                <td class="fw-semibold">{{ order.orderNo || 'Draft' }}</td>
+                <td>{{ order.customerName || 'N/A' }}</td>
+                <td>{{ order.warehouseName || 'N/A' }}</td>
+                <td>{{ order.orderDate }}</td>
+                <td class="text-end">{{ order.grandTotal | number:'1.2-2' }}</td>
+                <td><app-sales-status-badge [label]="order.status"></app-sales-status-badge></td>
+              </tr>
+              <tr *ngIf="!loading && orders.length === 0">
+                <td colspan="6" class="text-center text-muted py-5">No sales orders found.</td>
+              </tr>
+              <tr *ngIf="loading">
+                <td colspan="6" class="text-center text-muted py-5">Loading sales orders...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </app-card>
+
+      <app-card *ngIf="selectedOrder" title="Selected Order" subtitle="Quick order summary for the selected row.">
+        <div class="row g-3">
+          <div class="col-md-6"><strong>Order No:</strong> {{ selectedOrder.orderNo || 'Draft' }}</div>
+          <div class="col-md-6"><strong>Status:</strong> <app-sales-status-badge [label]="selectedOrder.status"></app-sales-status-badge></div>
+          <div class="col-md-6"><strong>Customer:</strong> {{ selectedOrder.customerName }}</div>
+          <div class="col-md-6"><strong>Warehouse:</strong> {{ selectedOrder.warehouseName }}</div>
+          <div class="col-md-6"><strong>Order Date:</strong> {{ selectedOrder.orderDate }}</div>
+          <div class="col-md-6"><strong>Notes:</strong> {{ selectedOrder.notes || 'N/A' }}</div>
+        </div>
+      </app-card>
+    </div>
+
+    <div class="col-12 col-xl-5">
+      <app-card title="Create Sales Order" subtitle="Add products dynamically and calculate totals automatically.">
+        <form [formGroup]="orderForm" (ngSubmit)="saveOrder()" novalidate>
+          <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Customer *</label>
+              <select class="form-select" formControlName="customerId">
+                <option [ngValue]="null">Select Customer</option>
+                <option *ngFor="let customer of customers" [ngValue]="customer.id">{{ customer.name }}</option>
+              </select>
+              <div class="invalid-feedback d-block" *ngIf="hasError('customerId', 'required')">Customer is required.</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Warehouse *</label>
+              <select class="form-select" formControlName="warehouseId">
+                <option [ngValue]="null">Select Warehouse</option>
+                <option *ngFor="let warehouse of warehouses" [ngValue]="warehouse.id">{{ warehouse.name }}</option>
+              </select>
+              <div class="invalid-feedback d-block" *ngIf="hasError('warehouseId', 'required')">Warehouse is required.</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Order Date *</label>
+              <input type="date" class="form-control" formControlName="orderDate">
+              <div class="invalid-feedback d-block" *ngIf="hasError('orderDate', 'required')">Order date is required.</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Status *</label>
+              <select class="form-select" formControlName="status">
+                <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea class="form-control" rows="3" formControlName="notes" placeholder="Optional order notes"></textarea>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+            <h6 class="mb-0">Product Rows</h6>
+            <button type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
+              <i class="bi bi-plus-lg me-1"></i>Add Row
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-sm align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Product</th>
+                  <th class="text-end">Qty</th>
+                  <th class="text-end">Unit Price</th>
+                  <th class="text-end">Subtotal</th>
+                  <th class="text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody formArrayName="items">
+                <tr *ngFor="let group of items.controls; let i = index" [formGroupName]="i">
+                  <td>
+                    <select class="form-select form-select-sm" formControlName="productId" (change)="onProductChange(i)">
+                      <option [ngValue]="null">Select Product</option>
+                      <option *ngFor="let product of products" [ngValue]="product.id">{{ product.productName }}</option>
+                    </select>
+                  </td>
+                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="quantity" min="0.01" step="0.01"></td>
+                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="unitPrice" min="0" step="0.01"></td>
+                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="subtotal" readonly></td>
+                  <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-light border" (click)="removeItem(i)" [disabled]="items.length === 1">
+                      <i class="bi bi-trash text-danger"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="summary-panel mt-3">
+            <div class="d-flex justify-content-between">
+              <span>Grand Total</span>
+              <strong>{{ grandTotal | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+
+          <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">
+            <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">Reset</button>
+            <button type="submit" class="btn btn-success px-4" [disabled]="submitting">
+              {{ submitting ? 'Saving...' : 'Save Order' }}
+            </button>
+          </div>
+        </form>
+      </app-card>
+    </div>
+  </div>
+</div>

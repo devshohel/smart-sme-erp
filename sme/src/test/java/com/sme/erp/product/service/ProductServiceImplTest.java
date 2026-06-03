@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -84,6 +85,49 @@ class ProductServiceImplTest {
         assertThat(saved.getPurchasePrice()).isEqualByComparingTo("11.00");
         assertThat(result.getProductCode()).isEqualTo("PRD-001");
         assertThat(result.getProductName()).isEqualTo("New Name");
+    }
+
+    @Test
+    void getAllProducts_returnsMappedProducts() {
+        Product product = new Product();
+        product.setId(1L);
+        product.setProductCode("PRD-001");
+        product.setProductName("Test Product");
+        product.setSku("SKU-001");
+        product.setPurchasePrice(new BigDecimal("10.00"));
+        product.setSalePrice(new BigDecimal("15.00"));
+
+        when(productRepository.findAll()).thenReturn(List.of(product));
+
+        List<ProductDTO> result = service.getAllProducts();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getProductCode()).isEqualTo("PRD-001");
+        assertThat(result.get(0).getProductName()).isEqualTo("Test Product");
+    }
+
+    @Test
+    void saveProduct_createSavesNewProduct() {
+        ProductDTO dto = new ProductDTO();
+        dto.setProductCode("PRD-101");
+        dto.setProductName("New Product");
+        dto.setSku("SKU-101");
+        dto.setPurchasePrice(new BigDecimal("10.00"));
+        dto.setSalePrice(new BigDecimal("15.00"));
+
+        when(productRepository.existsBySku("SKU-101")).thenReturn(false);
+        when(productRepository.existsByProductCode("PRD-101")).thenReturn(false);
+        when(productRepository.save(any(Product.class))).thenAnswer(invocation -> {
+            Product saved = invocation.getArgument(0);
+            saved.setId(10L);
+            return saved;
+        });
+
+        ProductDTO result = service.saveProduct(dto);
+
+        assertThat(result.getId()).isEqualTo(10L);
+        assertThat(result.getProductCode()).isEqualTo("PRD-101");
+        assertThat(result.getProductName()).isEqualTo("New Product");
     }
 
     @Test

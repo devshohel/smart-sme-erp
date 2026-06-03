@@ -1,0 +1,104 @@
+<div class="container-fluid p-4">
+  <app-page-header
+    title="Customers"
+    subtitle="Manage customer records, balances, and account status.">
+    <button class="btn btn-success" (click)="createCustomer()">
+      <i class="bi bi-person-plus me-1"></i>
+      New Customer
+    </button>
+  </app-page-header>
+
+  <app-card title="Customer Filters" subtitle="Search customers by keyword and status.">
+    <form (ngSubmit)="search()">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Keyword</label>
+          <input
+            type="text"
+            class="form-control"
+            [(ngModel)]="filters.keyword"
+            name="keyword"
+            placeholder="Code, name, company, contact, phone, email, city">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Status</label>
+          <select class="form-select" [(ngModel)]="filters.status" name="status">
+            <option value="">All Statuses</option>
+            <option *ngFor="let status of statusList" [value]="status">{{ status }}</option>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <div class="d-grid gap-2 w-100">
+            <button type="submit" class="btn btn-success" [disabled]="loading">
+              {{ loading ? 'Loading...' : 'Search' }}
+            </button>
+            <button type="button" class="btn btn-outline-secondary" (click)="resetFilters()" [disabled]="loading">
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </app-card>
+
+  <app-card title="Customer List" subtitle="Active and inactive customer accounts.">
+    <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Customer</th>
+            <th>Contact</th>
+            <th>Location</th>
+            <th class="text-end">Credit Limit</th>
+            <th class="text-end">Balance</th>
+            <th>Status</th>
+            <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let customer of customers">
+            <td>
+              <div class="fw-semibold">{{ customer.name }}</div>
+              <div class="text-muted small">{{ customer.customerCode || 'Auto generated' }}</div>
+              <div class="text-muted small">{{ customer.companyName || 'No company' }}</div>
+            </td>
+            <td>
+              <div>{{ customer.contactPerson || 'N/A' }}</div>
+              <div class="text-muted small">{{ customer.phone || 'No phone' }}</div>
+              <div class="text-muted small">{{ customer.email || 'No email' }}</div>
+            </td>
+            <td>
+              <div>{{ customer.city || 'N/A' }}</div>
+              <div class="text-muted small">{{ customer.country || 'N/A' }}</div>
+            </td>
+            <td class="text-end">{{ (customer.creditLimit ?? 0) | number:'1.2-2' }}</td>
+            <td class="text-end fw-semibold">{{ (customer.currentBalance ?? 0) | number:'1.2-2' }}</td>
+            <td>
+              <span class="badge px-3 py-2" [ngClass]="statusClass(customer.status)">
+                {{ customer.status || 'ACTIVE' }}
+              </span>
+            </td>
+            <td class="text-center">
+              <button type="button" class="btn btn-sm btn-outline-primary me-1" (click)="editCustomer(customer)">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteCustomer(customer)">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+
+          <tr *ngIf="!loading && customers.length === 0">
+            <td colspan="7" class="text-center text-muted py-5">No customers found.</td>
+          </tr>
+
+          <tr *ngIf="loading">
+            <td colspan="7" class="text-center text-muted py-5">Loading customers...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </app-card>
+</div>

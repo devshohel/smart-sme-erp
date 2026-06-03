@@ -65,15 +65,87 @@
       </div>
     </div>
 
-    <a routerLink="/sales" routerLinkActive="active" class="side-link d-flex align-items-center px-3 py-2 my-1" (click)="closeSidebar()">
-      <i class="bi bi-cart-check icon fs-5 me-3"></i>
-      <span>Sales & Invoices</span>
-    </a>
+    <div class="menu-dropdown-item">
+      <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         (click)="toggleSales()"
+         role="button"
+         [attr.aria-expanded]="isSalesOpen">
+        <i class="bi bi-cart-check icon fs-5 me-3"></i>
+        <span>Sales</span>
+      </a>
 
-    <a routerLink="/customers" routerLinkActive="active" class="side-link d-flex align-items-center px-3 py-2 my-1" (click)="closeSidebar()">
-      <i class="bi bi-people icon fs-5 me-3"></i>
-      <span>Customers</span>
-    </a>
+      <div class="submenu" [class.show]="isSalesOpen">
+        <a routerLink="/sales/orders" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-receipt me-2"></i> Orders
+        </a>
+        <a routerLink="/sales/invoices" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-file-earmark-text me-2"></i> Invoices
+        </a>
+        <a routerLink="/sales/returns" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-arrow-return-left me-2"></i> Returns
+        </a>
+      </div>
+    </div>
+
+    <div class="menu-dropdown-item">
+      <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         (click)="toggleCustomers()"
+         role="button"
+         [attr.aria-expanded]="isCustomersOpen">
+        <i class="bi bi-people icon fs-5 me-3"></i>
+        <span>Customers</span>
+      </a>
+
+      <div class="submenu" [class.show]="isCustomersOpen">
+        <a routerLink="/customers/list" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-person-lines-fill me-2"></i> Customer List
+        </a>
+        <a routerLink="/customers/create" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-person-plus me-2"></i> Customer Form
+        </a>
+      </div>
+    </div>
+
+    <div class="menu-dropdown-item">
+      <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         (click)="toggleSuppliers()"
+         role="button"
+         [attr.aria-expanded]="isSuppliersOpen">
+        <i class="bi bi-truck icon fs-5 me-3"></i>
+        <span>Suppliers</span>
+      </a>
+
+      <div class="submenu" [class.show]="isSuppliersOpen">
+        <a routerLink="/suppliers/list" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-truck-flatbed me-2"></i> Supplier List
+        </a>
+        <a routerLink="/suppliers/create" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-plus-square me-2"></i> Supplier Form
+        </a>
+      </div>
+    </div>
+
+    <div class="menu-dropdown-item">
+      <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         (click)="togglePurchases()"
+         role="button"
+         [attr.aria-expanded]="isPurchasesOpen">
+        <i class="bi bi-bag-check icon fs-5 me-3"></i>
+        <span>Purchases</span>
+      </a>
+
+      <div class="submenu" [class.show]="isPurchasesOpen">
+        <a routerLink="/purchases/orders" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-cart-plus me-2"></i> Purchase Orders
+        </a>
+        <a routerLink="/purchases/orders" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-receipt-cutoff me-2"></i> Purchase Invoices
+        </a>
+        <a routerLink="/purchases/returns" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-arrow-return-left me-2"></i> Purchase Returns
+        </a>
+      </div>
+    </div>
 
     <a routerLink="/reports" routerLinkActive="active" class="side-link d-flex align-items-center px-3 py-2 my-1" (click)="closeSidebar()">
       <i class="bi bi-bar-chart-line icon fs-5 me-3"></i>

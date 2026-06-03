@@ -26,6 +26,12 @@ public class UomController {
         return ResponseEntity.ok(service.save(dto));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<UomDTO> update(@PathVariable Long id, @Valid @RequestBody UomDTO dto) {
+        dto.setId(id);
+        return ResponseEntity.ok(service.save(dto));
+    }
+
     // Get All UOMs
     @GetMapping
     public ResponseEntity<List<UomDTO>> getAll() {

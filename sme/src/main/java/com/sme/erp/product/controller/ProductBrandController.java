@@ -25,6 +25,12 @@ public class ProductBrandController {
         return ResponseEntity.ok(service.save(dto));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductBrandDTO> update(@PathVariable Long id, @Valid @RequestBody ProductBrandDTO dto) {
+        dto.setId(id);
+        return ResponseEntity.ok(service.save(dto));
+    }
+
     @GetMapping
     public ResponseEntity<List<ProductBrandDTO>> getAll() {
         return ResponseEntity.ok(service.getAll());

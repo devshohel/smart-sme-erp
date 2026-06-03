@@ -12,6 +12,10 @@ export class SidebarComponent {
 
   isProductsOpen = true;
   isInventoryOpen = true;
+  isSalesOpen = true;
+  isCustomersOpen = true;
+  isSuppliersOpen = true;
+  isPurchasesOpen = true;
 
   constructor() {
     this.checkScreenSize();
@@ -28,6 +32,22 @@ export class SidebarComponent {
 
   toggleInventory(): void {
     this.isInventoryOpen = !this.isInventoryOpen;
+  }
+
+  toggleSales(): void {
+    this.isSalesOpen = !this.isSalesOpen;
+  }
+
+  toggleCustomers(): void {
+    this.isCustomersOpen = !this.isCustomersOpen;
+  }
+
+  toggleSuppliers(): void {
+    this.isSuppliersOpen = !this.isSuppliersOpen;
+  }
+
+  togglePurchases(): void {
+    this.isPurchasesOpen = !this.isPurchasesOpen;
   }
 
   closeSidebar(): void {

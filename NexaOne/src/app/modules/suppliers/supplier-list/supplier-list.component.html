@@ -1,0 +1,104 @@
+<div class="container-fluid p-4">
+  <app-page-header
+    title="Suppliers"
+    subtitle="Manage supplier records, payable balances, and payment terms.">
+    <button class="btn btn-success" (click)="createSupplier()">
+      <i class="bi bi-person-plus me-1"></i>
+      New Supplier
+    </button>
+  </app-page-header>
+
+  <app-card title="Supplier Filters" subtitle="Search suppliers by keyword and status.">
+    <form (ngSubmit)="search()">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Keyword</label>
+          <input
+            type="text"
+            class="form-control"
+            [(ngModel)]="filters.keyword"
+            name="keyword"
+            placeholder="Code, name, company, contact, phone, email, city">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Status</label>
+          <select class="form-select" [(ngModel)]="filters.status" name="status">
+            <option value="">All Statuses</option>
+            <option *ngFor="let status of statusList" [value]="status">{{ status }}</option>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <div class="d-grid gap-2 w-100">
+            <button type="submit" class="btn btn-success" [disabled]="loading">
+              {{ loading ? 'Loading...' : 'Search' }}
+            </button>
+            <button type="button" class="btn btn-outline-secondary" (click)="resetFilters()" [disabled]="loading">
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </app-card>
+
+  <app-card title="Supplier List" subtitle="Supplier master data and financial snapshot.">
+    <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Supplier</th>
+            <th>Contact</th>
+            <th>Location</th>
+            <th>Payment Terms</th>
+            <th class="text-end">Current Balance</th>
+            <th>Status</th>
+            <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let supplier of suppliers">
+            <td>
+              <div class="fw-semibold">{{ supplier.name }}</div>
+              <div class="text-muted small">{{ supplier.supplierCode || 'Auto generated' }}</div>
+              <div class="text-muted small">{{ supplier.companyName || 'No company' }}</div>
+            </td>
+            <td>
+              <div>{{ supplier.contactPerson || 'N/A' }}</div>
+              <div class="text-muted small">{{ supplier.phone || 'No phone' }}</div>
+              <div class="text-muted small">{{ supplier.email || 'No email' }}</div>
+            </td>
+            <td>
+              <div>{{ supplier.city || 'N/A' }}</div>
+              <div class="text-muted small">{{ supplier.country || 'N/A' }}</div>
+            </td>
+            <td>{{ supplier.paymentTerms || 'N/A' }}</td>
+            <td class="text-end fw-semibold">{{ (supplier.currentBalance ?? 0) | number:'1.2-2' }}</td>
+            <td>
+              <span class="badge px-3 py-2" [ngClass]="statusClass(supplier.status)">
+                {{ supplier.status || 'ACTIVE' }}
+              </span>
+            </td>
+            <td class="text-center">
+              <button type="button" class="btn btn-sm btn-outline-primary me-1" (click)="editSupplier(supplier)">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteSupplier(supplier)">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>
+          </tr>
+
+          <tr *ngIf="!loading && suppliers.length === 0">
+            <td colspan="7" class="text-center text-muted py-5">No suppliers found.</td>
+          </tr>
+
+          <tr *ngIf="loading">
+            <td colspan="7" class="text-center text-muted py-5">Loading suppliers...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </app-card>
+</div>

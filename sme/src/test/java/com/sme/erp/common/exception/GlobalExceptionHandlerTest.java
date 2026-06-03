@@ -2,6 +2,7 @@ package com.sme.erp.common.exception;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -49,6 +50,14 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.message").value("bad request"));
     }
 
+    @Test
+    void returns409ForDataIntegrityViolationException() throws Exception {
+        mockMvc.perform(get("/test/data-integrity").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message").value("Duplicate entry 'CUS-0001' for key 'customers.customer_code'"));
+    }
+
     @RestController
     @RequestMapping("/test")
     static class TestExceptionController {
@@ -66,6 +75,13 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/bad-request")
         String badRequest() {
             throw new BadRequestException("bad request");
+        }
+
+        @GetMapping("/data-integrity")
+        String dataIntegrity() {
+            throw new DataIntegrityViolationException(
+                    "could not execute statement",
+                    new RuntimeException("Duplicate entry 'CUS-0001' for key 'customers.customer_code'"));
         }
     }
 }

@@ -1,0 +1,10 @@
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.summary-panel {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #f8f9fa;
+}

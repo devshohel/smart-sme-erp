@@ -1,0 +1,77 @@
+package com.sme.erp.purchase.entity;
+
+import com.sme.erp.product.entity.Product;
+import com.sme.erp.product.entity.Uom;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+
+import java.math.BigDecimal;
+
+@Entity
+@Table(name = "purchase_items")
+public class PurchaseItem {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "purchase_id", nullable = false)
+    private PurchaseOrder purchase;
+
+    @ManyToOne
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
+
+    @ManyToOne
+    @JoinColumn(name = "uom_id")
+    private Uom uom;
+
+    @Column(precision = 15, scale = 2, nullable = false)
+    private BigDecimal quantity = BigDecimal.ZERO;
+
+    @Column(name = "unit_price", precision = 15, scale = 2, nullable = false)
+    private BigDecimal unitPrice = BigDecimal.ZERO;
+
+    @Column(precision = 15, scale = 2, nullable = false)
+    private BigDecimal discount = BigDecimal.ZERO;
+
+    @Column(precision = 15, scale = 2, nullable = false)
+    private BigDecimal tax = BigDecimal.ZERO;
+
+    @Column(name = "sub_total", precision = 15, scale = 2, nullable = false)
+    private BigDecimal subTotal = BigDecimal.ZERO;
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public PurchaseOrder getPurchase() { return purchase; }
+    public void setPurchase(PurchaseOrder purchase) { this.purchase = purchase; }
+
+    public Product getProduct() { return product; }
+    public void setProduct(Product product) { this.product = product; }
+
+    public Uom getUom() { return uom; }
+    public void setUom(Uom uom) { this.uom = uom; }
+
+    public BigDecimal getQuantity() { return quantity; }
+    public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }
+
+    public BigDecimal getUnitPrice() { return unitPrice; }
+    public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
+
+    public BigDecimal getDiscount() { return discount; }
+    public void setDiscount(BigDecimal discount) { this.discount = discount; }
+
+    public BigDecimal getTax() { return tax; }
+    public void setTax(BigDecimal tax) { this.tax = tax; }
+
+    public BigDecimal getSubTotal() { return subTotal; }
+    public void setSubTotal(BigDecimal subTotal) { this.subTotal = subTotal; }
+}

@@ -1,0 +1,53 @@
+.summary-panel {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #f8f9fa;
+}
+
+.section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+  margin-bottom: 0.75rem;
+}
+
+.purchase-return-form-shell {
+  width: 100%;
+}
+
+.purchase-return-items-wrap {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.9rem;
+  background: #fff;
+}
+
+.purchase-return-items-table {
+  margin-bottom: 0;
+  min-width: 760px;
+}
+
+.purchase-return-items-table th,
+.purchase-return-items-table td {
+  padding: 0.8rem 0.75rem;
+  vertical-align: middle;
+}
+
+.product-column {
+  min-width: 280px;
+}
+
+.number-column {
+  min-width: 140px;
+}
+
+.action-column {
+  min-width: 90px;
+}
+
+.item-product-select,
+.item-number-input {
+  min-height: 2.35rem;
+}

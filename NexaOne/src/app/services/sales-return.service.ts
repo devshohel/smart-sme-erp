@@ -1,0 +1,51 @@
+import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
+import { SalesReturn } from '../models/sales-return.model';
+import { ApiResponse, unwrapApiResponse } from '../shared/utils/api-response.util';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class SalesReturnService {
+  private readonly baseUrl = `${environment.apiUrl}/sales/returns`;
+
+  constructor(private http: HttpClient) {}
+
+  getAllReturns(): Observable<SalesReturn[]> {
+    return this.http
+      .get<SalesReturn[] | ApiResponse<SalesReturn[]>>(this.baseUrl)
+      .pipe(map(response => unwrapApiResponse(response).map(item => this.normalizeReturn(item))));
+  }
+
+  saveReturn(salesReturn: SalesReturn): Observable<SalesReturn> {
+    const payload = this.normalizeReturn(salesReturn);
+
+    return this.http
+      .post<SalesReturn | ApiResponse<SalesReturn>>(this.baseUrl, payload)
+      .pipe(map(response => this.normalizeReturn(unwrapApiResponse(response))));
+  }
+
+  private normalizeReturn(salesReturn: SalesReturn): SalesReturn {
+    return {
+      ...salesReturn,
+      invoiceId: salesReturn.invoiceId ?? null,
+      customerId: salesReturn.customerId ?? null,
+      returnDate: this.toApiDateTime(salesReturn.returnDate),
+      totalAmount: Number(salesReturn.totalAmount || 0),
+      items: (salesReturn.items || []).map(item => ({
+        ...item,
+        productId: item.productId ?? null,
+        quantity: Number(item.quantity || 0),
+        unitPrice: Number(item.unitPrice || 0),
+        total: Number(item.total || 0)
+      }))
+    };
+  }
+
+  private toApiDateTime(value: string): string {
+    return value && value.length === 10 ? `${value}T00:00:00` : value;
+  }
+}

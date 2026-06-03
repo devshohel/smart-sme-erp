@@ -25,6 +25,12 @@ public class ProductCategoryController {
         return ResponseEntity.ok(service.save(dto));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductCategoryDTO> update(@PathVariable Long id, @Valid @RequestBody ProductCategoryDTO dto) {
+        dto.setId(id);
+        return ResponseEntity.ok(service.save(dto));
+    }
+
     // GET ALL
     @GetMapping
     public ResponseEntity<List<ProductCategoryDTO>> getAll() {
