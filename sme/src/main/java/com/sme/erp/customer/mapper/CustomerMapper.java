@@ -57,28 +57,28 @@ public class CustomerMapper {
         if (dto.getName() != null) {
             entity.setName(dto.getName());
         }
-        if (dto.getCompanyName() != null) {
+        if (dto.isCompanyNamePresent()) {
             entity.setCompanyName(dto.getCompanyName());
         }
-        if (dto.getContactPerson() != null) {
+        if (dto.isContactPersonPresent()) {
             entity.setContactPerson(dto.getContactPerson());
         }
-        if (dto.getPhone() != null) {
+        if (dto.isPhonePresent()) {
             entity.setPhone(dto.getPhone());
         }
-        if (dto.getEmail() != null) {
+        if (dto.isEmailPresent()) {
             entity.setEmail(dto.getEmail());
         }
-        if (dto.getAddress() != null) {
+        if (dto.isAddressPresent()) {
             entity.setAddress(dto.getAddress());
         }
-        if (dto.getCity() != null) {
+        if (dto.isCityPresent()) {
             entity.setCity(dto.getCity());
         }
-        if (dto.getCountry() != null) {
+        if (dto.isCountryPresent()) {
             entity.setCountry(dto.getCountry());
         }
-        if (dto.getPostalCode() != null) {
+        if (dto.isPostalCodePresent()) {
             entity.setPostalCode(dto.getPostalCode());
         }
         if (dto.getCreditLimit() != null) {
@@ -90,7 +90,7 @@ public class CustomerMapper {
         if (dto.getCurrentBalance() != null) {
             entity.setCurrentBalance(dto.getCurrentBalance());
         }
-        if (dto.getTaxNumber() != null) {
+        if (dto.isTaxNumberPresent()) {
             entity.setTaxNumber(dto.getTaxNumber());
         }
         if (dto.getStatus() != null) {

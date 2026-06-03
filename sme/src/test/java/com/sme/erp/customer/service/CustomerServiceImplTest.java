@@ -101,6 +101,8 @@ class CustomerServiceImplTest {
         existing.setId(1L);
         existing.setCustomerCode("CUS-0001");
         existing.setName("Old Name");
+        existing.setCompanyName("Existing Company");
+        existing.setPhone("123456");
         existing.setOpeningBalance(new BigDecimal("75.00"));
         existing.setCreditLimit(new BigDecimal("100.00"));
         existing.setCurrentBalance(new BigDecimal("75.00"));
@@ -117,8 +119,59 @@ class CustomerServiceImplTest {
 
         assertThat(result.getName()).isEqualTo("New Name");
         assertThat(result.getCustomerCode()).isEqualTo("CUS-0001");
+        assertThat(result.getCompanyName()).isEqualTo("Existing Company");
+        assertThat(result.getPhone()).isEqualTo("123456");
         assertThat(result.getOpeningBalance()).isEqualByComparingTo("75.00");
         assertThat(result.getCreditLimit()).isEqualByComparingTo("250.00");
+    }
+
+    @Test
+    void update_clearsOptionalFieldsWhenBlankValuesAreNormalized() {
+        Customer existing = new Customer();
+        existing.setId(1L);
+        existing.setCustomerCode("CUS-0001");
+        existing.setName("Old Name");
+        existing.setCompanyName("Old Company");
+        existing.setContactPerson("Old Contact");
+        existing.setPhone("123456");
+        existing.setEmail("old@example.com");
+        existing.setAddress("Old Address");
+        existing.setCity("Old City");
+        existing.setCountry("Old Country");
+        existing.setPostalCode("1000");
+        existing.setTaxNumber("TAX-1");
+        existing.setOpeningBalance(BigDecimal.ZERO);
+        existing.setCreditLimit(BigDecimal.ZERO);
+        existing.setCurrentBalance(BigDecimal.ZERO);
+        existing.setStatus(Status.ACTIVE);
+
+        CustomerDTO dto = new CustomerDTO();
+        dto.setName("Updated Name");
+        dto.setCompanyName(" ");
+        dto.setContactPerson(" ");
+        dto.setPhone(" ");
+        dto.setEmail(" ");
+        dto.setAddress(" ");
+        dto.setCity(" ");
+        dto.setCountry(" ");
+        dto.setPostalCode(" ");
+        dto.setTaxNumber(" ");
+
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(customerRepository.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CustomerDTO result = service.update(1L, dto);
+
+        assertThat(result.getName()).isEqualTo("Updated Name");
+        assertThat(result.getCompanyName()).isNull();
+        assertThat(result.getContactPerson()).isNull();
+        assertThat(result.getPhone()).isNull();
+        assertThat(result.getEmail()).isNull();
+        assertThat(result.getAddress()).isNull();
+        assertThat(result.getCity()).isNull();
+        assertThat(result.getCountry()).isNull();
+        assertThat(result.getPostalCode()).isNull();
+        assertThat(result.getTaxNumber()).isNull();
     }
 
     @Test

@@ -109,15 +109,15 @@ public class CustomerServiceImpl implements CustomerService {
     private void normalizeDto(CustomerDTO dto) {
         dto.setCustomerCode(RequestValueUtils.normalize(dto.getCustomerCode()));
         dto.setName(RequestValueUtils.normalizeRequired(dto.getName(), "Customer name"));
-        dto.setCompanyName(RequestValueUtils.normalize(dto.getCompanyName()));
-        dto.setContactPerson(RequestValueUtils.normalize(dto.getContactPerson()));
-        dto.setPhone(RequestValueUtils.normalize(dto.getPhone()));
-        dto.setEmail(RequestValueUtils.normalize(dto.getEmail()));
-        dto.setAddress(RequestValueUtils.normalize(dto.getAddress()));
-        dto.setCity(RequestValueUtils.normalize(dto.getCity()));
-        dto.setCountry(RequestValueUtils.normalize(dto.getCountry()));
-        dto.setPostalCode(RequestValueUtils.normalize(dto.getPostalCode()));
-        dto.setTaxNumber(RequestValueUtils.normalize(dto.getTaxNumber()));
+        dto.normalizeCompanyName(RequestValueUtils.normalize(dto.getCompanyName()));
+        dto.normalizeContactPerson(RequestValueUtils.normalize(dto.getContactPerson()));
+        dto.normalizePhone(RequestValueUtils.normalize(dto.getPhone()));
+        dto.normalizeEmail(RequestValueUtils.normalize(dto.getEmail()));
+        dto.normalizeAddress(RequestValueUtils.normalize(dto.getAddress()));
+        dto.normalizeCity(RequestValueUtils.normalize(dto.getCity()));
+        dto.normalizeCountry(RequestValueUtils.normalize(dto.getCountry()));
+        dto.normalizePostalCode(RequestValueUtils.normalize(dto.getPostalCode()));
+        dto.normalizeTaxNumber(RequestValueUtils.normalize(dto.getTaxNumber()));
     }
 
     private void validateFinancials(CustomerDTO dto) {
