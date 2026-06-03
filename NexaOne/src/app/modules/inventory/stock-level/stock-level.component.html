@@ -1,10 +1,10 @@
 <div class="container-fluid p-4">
   <app-page-header
     title="Current Stock"
-    subtitle="Look up real-time stock by product and warehouse.">
+    subtitle="Review current stock and look up a specific product warehouse pair.">
   </app-page-header>
 
-  <app-card title="Stock Lookup" subtitle="Use the available stock API to search current warehouse stock.">
+  <app-card title="Stock Lookup" subtitle="Search a specific product and warehouse without clearing the current stock list.">
     <form [formGroup]="filterForm" (ngSubmit)="lookupStock()" novalidate>
       <div class="row g-3">
         <div class="col-md-5">
@@ -30,14 +30,14 @@
         </div>
         <div class="col-md-6">
           <label class="form-label">Quick Filter</label>
-          <input type="text" class="form-control" [(ngModel)]="searchKeyword" [ngModelOptions]="{standalone: true}" placeholder="Filter searched stock rows">
+          <input type="text" class="form-control" [(ngModel)]="searchKeyword" [ngModelOptions]="{standalone: true}" placeholder="Filter current stock rows">
         </div>
       </div>
       <div class="alert alert-danger mt-3 mb-0" *ngIf="errorMessage">{{ errorMessage }}</div>
     </form>
   </app-card>
 
-  <app-card title="Stock Results" subtitle="Searched stock records with low stock indication.">
+  <app-card title="Stock Results" subtitle="Current stock records with low stock indication.">
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">
         <thead class="table-light">
@@ -69,7 +69,7 @@
             </td>
           </tr>
           <tr *ngIf="!loading && filteredResults().length === 0">
-            <td colspan="6" class="text-center text-muted py-5">No stock rows found yet. Run a stock lookup first.</td>
+            <td colspan="6" class="text-center text-muted py-5">No stock rows found.</td>
           </tr>
         </tbody>
       </table>

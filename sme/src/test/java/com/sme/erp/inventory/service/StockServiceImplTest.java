@@ -23,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -119,5 +120,32 @@ class StockServiceImplTest {
         assertThatThrownBy(() -> service.stockOut(1L, 2L, new BigDecimal("2.00")))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("Stock was modified by another transaction. Please retry.");
+    }
+
+    @Test
+    void getAllStock_returnsMappedStockRows() {
+        Product product = new Product();
+        product.setId(1L);
+        product.setProductName("Product A");
+
+        Warehouse warehouse = new Warehouse();
+        warehouse.setId(2L);
+        warehouse.setName("Main Warehouse");
+
+        Stock stock = new Stock();
+        stock.setProduct(product);
+        stock.setWarehouse(warehouse);
+        stock.setQuantity(new BigDecimal("7.00"));
+
+        when(stockRepository.findAll()).thenReturn(List.of(stock));
+
+        List<StockDTO> result = service.getAllStock();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getProductId()).isEqualTo(1L);
+        assertThat(result.get(0).getProductName()).isEqualTo("Product A");
+        assertThat(result.get(0).getWarehouseId()).isEqualTo(2L);
+        assertThat(result.get(0).getWarehouseName()).isEqualTo("Main Warehouse");
+        assertThat(result.get(0).getQuantity()).isEqualByComparingTo("7.00");
     }
 }

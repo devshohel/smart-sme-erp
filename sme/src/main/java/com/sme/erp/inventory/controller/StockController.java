@@ -9,6 +9,7 @@ import org.springframework.validation.annotation.Validated;
 import com.sme.erp.inventory.service.StockService;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/stocks")
@@ -44,5 +45,10 @@ public class StockController {
     public ResponseEntity<StockDTO> getStock(@RequestParam @NotNull @Positive Long productId,
                                              @RequestParam @NotNull @Positive Long warehouseId) {
         return ResponseEntity.ok(service.getStock(productId, warehouseId));
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<StockDTO>> getAllStock() {
+        return ResponseEntity.ok(service.getAllStock());
     }
 }

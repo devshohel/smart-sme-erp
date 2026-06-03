@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Customer } from '../../../models/customer.model';
 import { Status } from '../../../models/product.model';
@@ -29,7 +29,7 @@ export class CustomerFormComponent implements OnInit {
   ) {
     this.form = this.fb.group({
       customerCode: [{ value: '', disabled: true }],
-      name: ['', [Validators.required, Validators.maxLength(255)]],
+      name: ['', [Validators.required, this.notBlankValidator, Validators.maxLength(255)]],
       companyName: ['', [Validators.maxLength(255)]],
       contactPerson: ['', [Validators.maxLength(255)]],
       phone: ['', [Validators.maxLength(100)]],
@@ -145,9 +145,17 @@ export class CustomerFormComponent implements OnInit {
       postalCode: value.postalCode ? value.postalCode.trim() : undefined,
       creditLimit: value.creditLimit === null || value.creditLimit === '' ? 0 : Number(value.creditLimit),
       openingBalance: value.openingBalance === null || value.openingBalance === '' ? 0 : Number(value.openingBalance),
-      currentBalance: value.currentBalance === null || value.currentBalance === '' ? 0 : Number(value.currentBalance),
+      currentBalance: this.isEditMode
+        ? (value.currentBalance === null || value.currentBalance === '' ? 0 : Number(value.currentBalance))
+        : undefined,
       taxNumber: value.taxNumber ? value.taxNumber.trim() : undefined,
       status: value.status
     };
+  }
+
+  private notBlankValidator(control: AbstractControl): ValidationErrors | null {
+    return typeof control.value === 'string' && control.value.trim().length === 0
+      ? { required: true }
+      : null;
   }
 }

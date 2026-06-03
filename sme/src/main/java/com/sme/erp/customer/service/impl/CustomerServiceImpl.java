@@ -139,11 +139,9 @@ public class CustomerServiceImpl implements CustomerService {
             return requestedCode;
         }
 
-        long nextNumber = customerRepository.findTopByOrderByIdDesc()
-                .map(customer -> customer.getId() + 1)
-                .orElse(1L);
+        long nextNumber = customerRepository.findMaxIdIncludingDeleted() + 1;
         String generated = String.format("CUS-%04d", nextNumber);
-        while (customerRepository.existsByCustomerCode(generated)) {
+        while (customerRepository.existsByCustomerCodeIncludingDeleted(generated)) {
             nextNumber++;
             generated = String.format("CUS-%04d", nextNumber);
         }
@@ -152,8 +150,8 @@ public class CustomerServiceImpl implements CustomerService {
 
     private void validateCustomerCodeUnique(String customerCode, Long currentId) {
         boolean exists = currentId == null
-                ? customerRepository.existsByCustomerCode(customerCode)
-                : customerRepository.existsByCustomerCodeAndIdNot(customerCode, currentId);
+                ? customerRepository.existsByCustomerCodeIncludingDeleted(customerCode)
+                : customerRepository.existsByCustomerCodeAndIdNotIncludingDeleted(customerCode, currentId);
         if (exists) {
             throw new DuplicateResourceException("Customer code already exists: " + customerCode);
         }

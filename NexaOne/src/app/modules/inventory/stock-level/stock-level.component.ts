@@ -38,6 +38,7 @@ export class StockLevelComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadOptions();
+    this.loadAllStock();
   }
 
   loadOptions(): void {
@@ -54,6 +55,24 @@ export class StockLevelComponent implements OnInit {
       error: (error) => {
         this.warehouses = [];
         debugApiError('StockLevelComponent.loadWarehouses', error);
+      }
+    });
+  }
+
+  loadAllStock(): void {
+    this.loading = true;
+    this.errorMessage = '';
+
+    this.stockService.getAllStock().subscribe({
+      next: (data) => {
+        this.results = data;
+        this.loading = false;
+      },
+      error: (error) => {
+        this.results = [];
+        this.loading = false;
+        this.errorMessage = extractApiErrorMessage(error, 'Current stock could not be loaded.');
+        debugApiError('StockLevelComponent.loadAllStock', error);
       }
     });
   }

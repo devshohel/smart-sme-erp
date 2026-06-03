@@ -27,6 +27,12 @@ export class InventoryStockService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
+  getAllStock(): Observable<Stock[]> {
+    return this.http
+      .get<Stock[] | ApiResponse<Stock[]>>(`${this.stocksUrl}/all`)
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
   getAllMovements(): Observable<StockMovement[]> {
     return this.http
       .get<StockMovement[] | ApiResponse<StockMovement[]>>(this.movementsUrl)
