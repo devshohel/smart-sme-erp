@@ -141,7 +141,7 @@ public class CustomerServiceImpl implements CustomerService {
 
         long nextNumber = customerRepository.findMaxIdIncludingDeleted() + 1;
         String generated = String.format("CUS-%04d", nextNumber);
-        while (customerRepository.existsByCustomerCodeIncludingDeleted(generated)) {
+        while (existsByCustomerCodeIncludingDeleted(generated)) {
             nextNumber++;
             generated = String.format("CUS-%04d", nextNumber);
         }
@@ -150,11 +150,23 @@ public class CustomerServiceImpl implements CustomerService {
 
     private void validateCustomerCodeUnique(String customerCode, Long currentId) {
         boolean exists = currentId == null
-                ? customerRepository.existsByCustomerCodeIncludingDeleted(customerCode)
-                : customerRepository.existsByCustomerCodeAndIdNotIncludingDeleted(customerCode, currentId);
+                ? existsByCustomerCodeIncludingDeleted(customerCode)
+                : existsByCustomerCodeAndIdNotIncludingDeleted(customerCode, currentId);
         if (exists) {
             throw new DuplicateResourceException("Customer code already exists: " + customerCode);
         }
+    }
+
+    private boolean existsByCustomerCodeIncludingDeleted(String customerCode) {
+        return hasRows(customerRepository.countByCustomerCodeIncludingDeleted(customerCode));
+    }
+
+    private boolean existsByCustomerCodeAndIdNotIncludingDeleted(String customerCode, Long currentId) {
+        return hasRows(customerRepository.countByCustomerCodeAndIdNotIncludingDeleted(customerCode, currentId));
+    }
+
+    private boolean hasRows(Long count) {
+        return count != null && count > 0;
     }
 
     private void validateEmailUnique(String email, Long currentId) {

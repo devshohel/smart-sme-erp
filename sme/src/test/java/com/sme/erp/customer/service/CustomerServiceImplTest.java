@@ -46,7 +46,7 @@ class CustomerServiceImplTest {
         dto.setCreditLimit(new BigDecimal("500.00"));
 
         when(customerRepository.findMaxIdIncludingDeleted()).thenReturn(9L);
-        when(customerRepository.existsByCustomerCodeIncludingDeleted("CUS-0010")).thenReturn(false);
+        when(customerRepository.countByCustomerCodeIncludingDeleted("CUS-0010")).thenReturn(0L);
         when(customerRepository.save(any(Customer.class))).thenAnswer(invocation -> {
             Customer saved = invocation.getArgument(0);
             saved.setId(10L);
@@ -71,7 +71,7 @@ class CustomerServiceImplTest {
         dto.setCustomerCode("CUS-0005");
         dto.setName("Acme Trading");
 
-        when(customerRepository.existsByCustomerCodeIncludingDeleted("CUS-0005")).thenReturn(true);
+        when(customerRepository.countByCustomerCodeIncludingDeleted("CUS-0005")).thenReturn(1L);
 
         assertThatThrownBy(() -> service.create(dto))
                 .isInstanceOf(DuplicateResourceException.class)

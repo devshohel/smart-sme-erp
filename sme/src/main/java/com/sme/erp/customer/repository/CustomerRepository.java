@@ -20,11 +20,11 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     @Query(value = "SELECT COALESCE(MAX(id), 0) FROM customers", nativeQuery = true)
     Long findMaxIdIncludingDeleted();
 
-    @Query(value = "SELECT COUNT(*) > 0 FROM customers WHERE customer_code = :customerCode", nativeQuery = true)
-    boolean existsByCustomerCodeIncludingDeleted(@Param("customerCode") String customerCode);
+    @Query(value = "SELECT COUNT(*) FROM customers WHERE customer_code = :customerCode", nativeQuery = true)
+    Long countByCustomerCodeIncludingDeleted(@Param("customerCode") String customerCode);
 
-    @Query(value = "SELECT COUNT(*) > 0 FROM customers WHERE customer_code = :customerCode AND id <> :id", nativeQuery = true)
-    boolean existsByCustomerCodeAndIdNotIncludingDeleted(@Param("customerCode") String customerCode, @Param("id") Long id);
+    @Query(value = "SELECT COUNT(*) FROM customers WHERE customer_code = :customerCode AND id <> :id", nativeQuery = true)
+    Long countByCustomerCodeAndIdNotIncludingDeleted(@Param("customerCode") String customerCode, @Param("id") Long id);
 
     boolean existsByEmail(String email);
 

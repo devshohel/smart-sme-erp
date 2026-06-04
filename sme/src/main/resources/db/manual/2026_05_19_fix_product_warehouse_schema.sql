@@ -60,41 +60,6 @@ WHERE p.category_id IS NOT NULL
   AND c.id IS NULL
 ORDER BY p.id;
 
--- Check old nullable soft-delete/status values in product-side master tables
-SELECT 'products' AS table_name, COUNT(*) AS null_is_deleted_rows
-FROM products
-WHERE is_deleted IS NULL
-UNION ALL
-SELECT 'product_categories' AS table_name, COUNT(*) AS null_is_deleted_rows
-FROM product_categories
-WHERE is_deleted IS NULL
-UNION ALL
-SELECT 'product_brands' AS table_name, COUNT(*) AS null_is_deleted_rows
-FROM product_brands
-WHERE is_deleted IS NULL;
-
-SELECT 'products' AS table_name, COUNT(*) AS null_status_rows
-FROM products
-WHERE status IS NULL
-UNION ALL
-SELECT 'product_categories' AS table_name, COUNT(*) AS null_status_rows
-FROM product_categories
-WHERE status IS NULL
-UNION ALL
-SELECT 'product_brands' AS table_name, COUNT(*) AS null_status_rows
-FROM product_brands
-WHERE status IS NULL
-UNION ALL
-SELECT 'uoms' AS table_name, COUNT(*) AS null_status_rows
-FROM uoms
-WHERE status IS NULL;
-
--- Optional check for nullable warehouse active flag if that column exists in the live DB.
--- Comment out if the live warehouses table does not have `active`.
-SELECT COUNT(*) AS null_warehouse_active_rows
-FROM warehouses
-WHERE active IS NULL;
-
 -- Optional: check broken product -> brand references
 SELECT
     p.id,
@@ -165,35 +130,6 @@ SET p.uom_id = NULL
 WHERE p.uom_id IS NOT NULL
   AND u.id IS NULL;
 
--- Normalize nullable soft-delete/status values so old rows behave consistently.
-UPDATE products
-SET is_deleted = FALSE
-WHERE is_deleted IS NULL;
-
-UPDATE product_categories
-SET is_deleted = FALSE
-WHERE is_deleted IS NULL;
-
-UPDATE product_brands
-SET is_deleted = FALSE
-WHERE is_deleted IS NULL;
-
-UPDATE products
-SET status = 'ACTIVE'
-WHERE status IS NULL;
-
-UPDATE product_categories
-SET status = 'ACTIVE'
-WHERE status IS NULL;
-
-UPDATE product_brands
-SET status = 'ACTIVE'
-WHERE status IS NULL;
-
-UPDATE uoms
-SET status = 'ACTIVE'
-WHERE status IS NULL;
-
 -- Verify cleanup results
 SELECT
     p.id,
@@ -232,10 +168,10 @@ SET warehouse_name = name
 WHERE warehouse_name IS NULL
   AND name IS NOT NULL;
 
-UPDATE warehouses
-SET location = address
-WHERE location IS NULL
-  AND address IS NOT NULL;
+-- UPDATE warehouses
+-- SET location = address
+-- WHERE location IS NULL
+  -- AND address IS NOT NULL;
 
 -- Step 2.3: if legacy code is still required by the live table design,
 -- keep it populated from warehouse_code for backward safety.
@@ -244,12 +180,6 @@ UPDATE warehouses
 SET code = warehouse_code
 WHERE code IS NULL
   AND warehouse_code IS NOT NULL;
-
--- Step 2.3b: normalize nullable active values for old rows if the live table has `active`.
--- Comment out if the live warehouses table does not have `active`.
-UPDATE warehouses
-SET active = TRUE
-WHERE active IS NULL;
 
 -- Step 2.4: verify no rows are still missing final required values.
 SELECT
