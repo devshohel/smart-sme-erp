@@ -31,6 +31,8 @@ export class SalesReturnService {
   private normalizeReturn(salesReturn: SalesReturn): SalesReturn {
     return {
       ...salesReturn,
+      returnNo: salesReturn.returnNo || salesReturn.returnCode,
+      returnCode: salesReturn.returnCode || salesReturn.returnNo,
       invoiceId: salesReturn.invoiceId ?? null,
       customerId: salesReturn.customerId ?? null,
       returnDate: this.toApiDateTime(salesReturn.returnDate),

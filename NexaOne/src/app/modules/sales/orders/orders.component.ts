@@ -26,8 +26,9 @@ export class OrdersComponent implements OnInit {
   successMessage = '';
   errorMessage = '';
   selectedOrder: SalesOrder | null = null;
+  editingOrderId: number | null = null;
 
-  readonly statuses: SalesOrderStatus[] = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
+  readonly statuses: SalesOrderStatus[] = ['DRAFT', 'PENDING', 'APPROVED', 'CANCELLED'];
 
   constructor(
     private fb: FormBuilder,
@@ -56,12 +57,12 @@ export class OrdersComponent implements OnInit {
     return this.orderForm.get('items') as FormArray;
   }
 
-  loadOrders(): void {
+  loadOrders(selectedId?: number): void {
     this.loading = true;
     this.orderService.getAllOrders().subscribe({
       next: (orders) => {
         this.orders = orders;
-        this.selectedOrder = orders[0] || null;
+        this.selectedOrder = orders.find(order => order.id === selectedId) || orders[0] || null;
         this.loading = false;
       },
       error: (error) => {
@@ -97,12 +98,12 @@ export class OrdersComponent implements OnInit {
     });
   }
 
-  addItem(): void {
+  addItem(item?: Partial<SalesOrderLineItem>): void {
     const group = this.fb.group({
-      productId: [null, Validators.required],
-      quantity: [1, [Validators.required, Validators.min(0.01)]],
-      unitPrice: [0, [Validators.required, Validators.min(0)]],
-      subtotal: [{ value: 0, disabled: true }]
+      productId: [item?.productId ?? null, Validators.required],
+      quantity: [item?.quantity ?? 1, [Validators.required, Validators.min(0.01)]],
+      unitPrice: [item?.unitPrice ?? 0, [Validators.required, Validators.min(0)]],
+      subtotal: [{ value: item?.subtotal ?? 0, disabled: true }]
     });
 
     group.get('quantity')?.valueChanges.subscribe(() => this.recalculateRow(group));
@@ -154,10 +155,10 @@ export class OrdersComponent implements OnInit {
     this.orderService.saveOrder(payload).subscribe({
       next: (saved) => {
         this.submitting = false;
-        this.successMessage = 'Sales order saved successfully.';
+        this.successMessage = this.editingOrderId ? 'Sales order updated successfully.' : 'Sales order saved successfully.';
         this.selectedOrder = saved;
-        this.loadOrders();
         this.resetForm();
+        this.loadOrders(saved.id);
       },
       error: (error) => {
         this.submitting = false;
@@ -171,7 +172,31 @@ export class OrdersComponent implements OnInit {
     this.selectedOrder = order;
   }
 
+  editOrder(order: SalesOrder): void {
+    this.editingOrderId = order.id || null;
+    this.selectedOrder = order;
+    while (this.items.length > 0) {
+      this.items.removeAt(0);
+    }
+
+    this.orderForm.patchValue({
+      customerId: order.customerId,
+      warehouseId: order.warehouseId,
+      orderDate: this.toDateInput(order.orderDate),
+      status: order.status || 'PENDING',
+      notes: order.notes || ''
+    });
+
+    if (!order.items.length) {
+      this.addItem();
+      return;
+    }
+
+    order.items.forEach(item => this.addItem(item));
+  }
+
   resetForm(): void {
+    this.editingOrderId = null;
     while (this.items.length > 0) {
       this.items.removeAt(0);
     }
@@ -208,6 +233,8 @@ export class OrdersComponent implements OnInit {
     }));
 
     return {
+      id: this.editingOrderId || undefined,
+      orderNo: this.editingOrderId ? this.selectedOrder?.orderNo : undefined,
       customerId: value.customerId !== null ? Number(value.customerId) : null,
       customerName: customer?.name || '',
       warehouseId: value.warehouseId !== null ? Number(value.warehouseId) : null,
@@ -222,5 +249,9 @@ export class OrdersComponent implements OnInit {
 
   private today(): string {
     return new Date().toISOString().slice(0, 10);
+  }
+
+  private toDateInput(value?: string): string {
+    return value ? value.slice(0, 10) : this.today();
   }
 }

@@ -4,3 +4,32 @@
   padding: 0.85rem 1rem;
   background: #f8f9fa;
 }
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+  margin-bottom: 0.75rem;
+}
+
+.return-items-wrap {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.75rem;
+}
+
+.return-items-table {
+  min-width: 820px;
+  margin-bottom: 0;
+}
+
+.return-items-table th,
+.return-items-table td {
+  padding: 0.8rem 0.75rem;
+  vertical-align: middle;
+}

@@ -4,10 +4,12 @@ import { InventoryWarehouse } from '../../../models/inventory-warehouse.model';
 import { Product } from '../../../models/product.model';
 import { PaymentStatus, SalesCustomer, SalesInvoiceLineItem } from '../../../models/sales-common.model';
 import { SalesInvoice } from '../../../models/sales-invoice.model';
+import { SalesOrder } from '../../../models/sales-order.model';
 import { InventoryWarehouseService } from '../../../services/inventory-warehouse.service';
 import { ProductService } from '../../../services/product.service';
 import { SalesCustomerService } from '../../../services/sales-customer.service';
 import { SalesInvoiceService } from '../../../services/sales-invoice.service';
+import { SalesOrderService } from '../../../services/sales-order.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
 @Component({
@@ -18,6 +20,7 @@ import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api
 export class InvoicesComponent implements OnInit {
   invoiceForm: FormGroup;
   invoices: SalesInvoice[] = [];
+  orders: SalesOrder[] = [];
   customers: SalesCustomer[] = [];
   products: Product[] = [];
   warehouses: InventoryWarehouse[] = [];
@@ -32,11 +35,13 @@ export class InvoicesComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private invoiceService: SalesInvoiceService,
+    private orderService: SalesOrderService,
     private customerService: SalesCustomerService,
     private productService: ProductService,
     private warehouseService: InventoryWarehouseService
   ) {
     this.invoiceForm = this.fb.group({
+      orderId: [null],
       customerId: [null, Validators.required],
       warehouseId: [null, Validators.required],
       saleDate: [this.today(), Validators.required],
@@ -94,12 +99,12 @@ export class InvoicesComponent implements OnInit {
     return 'DUE';
   }
 
-  loadInvoices(): void {
+  loadInvoices(selectedId?: number): void {
     this.loading = true;
     this.invoiceService.getAllInvoices().subscribe({
       next: (invoices) => {
         this.invoices = invoices;
-        this.selectedInvoice = invoices[0] || null;
+        this.selectedInvoice = invoices.find(invoice => invoice.id === selectedId) || invoices[0] || null;
         this.loading = false;
       },
       error: (error) => {
@@ -113,6 +118,11 @@ export class InvoicesComponent implements OnInit {
   }
 
   loadReferenceData(): void {
+    this.orderService.getAllOrders().subscribe({
+      next: orders => this.orders = orders.filter(order => order.status === 'APPROVED'),
+      error: error => debugApiError('InvoicesComponent.loadOrders', error)
+    });
+
     this.customerService.getAllCustomers().subscribe({
       next: customers => this.customers = customers,
       error: error => debugApiError('InvoicesComponent.loadCustomers', error)
@@ -135,14 +145,14 @@ export class InvoicesComponent implements OnInit {
     });
   }
 
-  addItem(): void {
+  addItem(item?: Partial<SalesInvoiceLineItem>): void {
     const group = this.fb.group({
-      productId: [null, Validators.required],
-      quantity: [1, [Validators.required, Validators.min(0.01)]],
-      unitPrice: [0, [Validators.required, Validators.min(0)]],
-      discount: [0, [Validators.required, Validators.min(0)]],
-      tax: [0, [Validators.required, Validators.min(0)]],
-      subtotal: [{ value: 0, disabled: true }]
+      productId: [item?.productId ?? null, Validators.required],
+      quantity: [item?.quantity ?? 1, [Validators.required, Validators.min(0.01)]],
+      unitPrice: [item?.unitPrice ?? 0, [Validators.required, Validators.min(0)]],
+      discount: [item?.discount ?? 0, [Validators.required, Validators.min(0)]],
+      tax: [item?.tax ?? 0, [Validators.required, Validators.min(0)]],
+      subtotal: [{ value: item?.subtotal ?? 0, disabled: true }]
     });
 
     ['quantity', 'unitPrice', 'discount', 'tax'].forEach(field => {
@@ -178,6 +188,38 @@ export class InvoicesComponent implements OnInit {
     group.get('subtotal')?.setValue(subtotal, { emitEvent: false });
   }
 
+  onOrderChange(): void {
+    const orderId = Number(this.invoiceForm.get('orderId')?.value || 0);
+    const order = this.orders.find(item => item.id === orderId);
+    if (!order) {
+      return;
+    }
+
+    while (this.items.length > 0) {
+      this.items.removeAt(0);
+    }
+
+    this.invoiceForm.patchValue({
+      customerId: order.customerId,
+      warehouseId: order.warehouseId
+    });
+
+    if (!order.items.length) {
+      this.addItem();
+      return;
+    }
+
+    order.items.forEach(item => this.addItem({
+      productId: item.productId,
+      uomId: item.uomId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      discount: 0,
+      tax: 0,
+      subtotal: item.subtotal
+    }));
+  }
+
   saveInvoice(): void {
     this.successMessage = '';
     this.errorMessage = '';
@@ -195,8 +237,8 @@ export class InvoicesComponent implements OnInit {
         this.submitting = false;
         this.successMessage = 'Invoice saved successfully.';
         this.selectedInvoice = saved;
-        this.loadInvoices();
         this.resetForm();
+        this.loadInvoices(saved.id);
       },
       error: (error) => {
         this.submitting = false;
@@ -217,6 +259,7 @@ export class InvoicesComponent implements OnInit {
 
     this.invoiceForm.reset({
       customerId: null,
+      orderId: null,
       warehouseId: null,
       saleDate: this.today(),
       paidAmount: 0,
@@ -245,6 +288,8 @@ export class InvoicesComponent implements OnInit {
     }));
 
     return {
+      orderId: value.orderId !== null ? Number(value.orderId) : null,
+      orderNo: this.orders.find(order => order.id === Number(value.orderId))?.orderNo || '',
       customerId: value.customerId !== null ? Number(value.customerId) : null,
       customerName: customer?.name || '',
       warehouseId: value.warehouseId !== null ? Number(value.warehouseId) : null,
@@ -258,7 +303,8 @@ export class InvoicesComponent implements OnInit {
       netTotal: this.netTotal,
       paidAmount: Number(value.paidAmount || 0),
       dueAmount: this.dueAmount,
-      paymentStatus: this.paymentStatus
+      paymentStatus: this.paymentStatus,
+      status: 'CONFIRMED'
     };
   }
 

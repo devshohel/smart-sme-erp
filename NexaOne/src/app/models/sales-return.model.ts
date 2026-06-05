@@ -3,6 +3,7 @@ import { SalesCustomer, SalesReturnLineItem } from './sales-common.model';
 export interface SalesReturn {
   id?: number;
   returnNo?: string;
+  returnCode?: string;
   invoiceId: number | null;
   invoiceNo?: string;
   customerId: number | null;

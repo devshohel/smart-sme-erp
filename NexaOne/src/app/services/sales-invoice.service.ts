@@ -23,14 +23,18 @@ export class SalesInvoiceService {
   saveInvoice(invoice: SalesInvoice): Observable<SalesInvoice> {
     const payload = this.normalizeInvoice(invoice);
 
-    return this.http
-      .post<SalesInvoice | ApiResponse<SalesInvoice>>(this.baseUrl, payload)
+    const request$ = payload.id
+      ? this.http.put<SalesInvoice | ApiResponse<SalesInvoice>>(`${this.baseUrl}/${payload.id}`, payload)
+      : this.http.post<SalesInvoice | ApiResponse<SalesInvoice>>(this.baseUrl, payload);
+
+    return request$
       .pipe(map(response => this.normalizeInvoice(unwrapApiResponse(response))));
   }
 
   private normalizeInvoice(invoice: SalesInvoice): SalesInvoice {
     return {
       ...invoice,
+      orderId: invoice.orderId ?? null,
       customerId: invoice.customerId ?? null,
       warehouseId: invoice.warehouseId ?? null,
       saleDate: this.toApiDateTime(invoice.saleDate),
@@ -41,14 +45,17 @@ export class SalesInvoiceService {
       paidAmount: Number(invoice.paidAmount || 0),
       dueAmount: Number(invoice.dueAmount || 0),
       paymentStatus: invoice.paymentStatus || 'DUE',
+      status: invoice.status || 'CONFIRMED',
       items: (invoice.items || []).map(item => ({
         ...item,
         productId: item.productId ?? null,
+        uomId: item.uomId ?? null,
         quantity: Number(item.quantity || 0),
         unitPrice: Number(item.unitPrice || 0),
         discount: Number(item.discount || 0),
         tax: Number(item.tax || 0),
-        subtotal: Number(item.subtotal || 0)
+        subtotal: Number((item as any).subtotal ?? (item as any).subTotal ?? 0),
+        subTotal: Number((item as any).subtotal ?? (item as any).subTotal ?? 0)
       }))
     };
   }

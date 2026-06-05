@@ -35,6 +35,7 @@ public class SalesReturnMapper {
         dto.setTotalAmount(entity.getTotalAmount());
         dto.setCreatedBy(entity.getCreatedBy());
         dto.setCreatedAt(entity.getCreatedAt());
+        dto.setNotes(entity.getNotes());
         dto.setItems(entity.getItems().stream().map(salesReturnItemMapper::toDTO).collect(Collectors.toList()));
         return dto;
     }

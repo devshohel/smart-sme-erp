@@ -25,6 +25,7 @@ export class ReturnsComponent implements OnInit {
   submitting = false;
   successMessage = '';
   errorMessage = '';
+  selectedReturn: SalesReturn | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -56,11 +57,12 @@ export class ReturnsComponent implements OnInit {
     return this.items.controls.reduce((sum, control) => sum + Number(control.get('total')?.value || 0), 0);
   }
 
-  loadReturns(): void {
+  loadReturns(selectedId?: number): void {
     this.loading = true;
     this.returnService.getAllReturns().subscribe({
       next: (returns) => {
         this.returns = returns;
+        this.selectedReturn = returns.find(item => item.id === selectedId) || returns[0] || null;
         this.loading = false;
       },
       error: (error) => {
@@ -163,11 +165,12 @@ export class ReturnsComponent implements OnInit {
     const payload = this.buildReturnPayload();
 
     this.returnService.saveReturn(payload).subscribe({
-      next: () => {
+      next: (saved) => {
         this.submitting = false;
         this.successMessage = 'Sales return saved successfully.';
-        this.loadReturns();
+        this.selectedReturn = saved;
         this.resetForm();
+        this.loadReturns(saved.id);
       },
       error: (error) => {
         this.submitting = false;

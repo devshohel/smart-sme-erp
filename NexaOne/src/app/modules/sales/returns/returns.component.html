@@ -5,8 +5,8 @@
   </app-page-header>
 
   <div class="row g-4">
-    <div class="col-12 col-xl-7">
-      <app-card title="Return List" subtitle="Saved sales returns from API or local fallback state.">
+    <div class="col-12">
+      <app-card title="Sales Return List" subtitle="Return history from saved sales invoices.">
         <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
 
         <div class="table-responsive">
@@ -21,7 +21,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let salesReturn of returns">
+              <tr *ngFor="let salesReturn of returns" class="cursor-pointer" [class.table-active]="selectedReturn?.id === salesReturn.id" (click)="selectedReturn = salesReturn">
                 <td class="fw-semibold">{{ salesReturn.returnNo || 'Draft' }}</td>
                 <td>{{ salesReturn.invoiceNo || 'N/A' }}</td>
                 <td>{{ salesReturn.customerName || 'N/A' }}</td>
@@ -38,15 +38,25 @@
           </table>
         </div>
       </app-card>
+
+      <app-card *ngIf="selectedReturn" title="Selected Return" subtitle="Saved return snapshot.">
+        <div class="row g-3">
+          <div class="col-md-6"><strong>Return No:</strong> {{ selectedReturn.returnNo || 'Draft' }}</div>
+          <div class="col-md-6"><strong>Invoice:</strong> {{ selectedReturn.invoiceNo || 'N/A' }}</div>
+          <div class="col-md-6"><strong>Customer:</strong> {{ selectedReturn.customerName || 'N/A' }}</div>
+          <div class="col-md-6"><strong>Total:</strong> {{ selectedReturn.totalAmount | number:'1.2-2' }}</div>
+        </div>
+      </app-card>
     </div>
 
-    <div class="col-12 col-xl-5">
-      <app-card title="Create Return" subtitle="Select invoice items and compute return totals automatically.">
+    <div class="col-12">
+      <app-card title="Create Sales Return" subtitle="Select invoice items and compute return totals automatically.">
         <form [formGroup]="returnForm" (ngSubmit)="saveReturn()" novalidate>
           <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
 
+          <div class="section-title">Header Information</div>
           <div class="row g-3">
-            <div class="col-md-6">
+            <div class="col-12 col-md-6 col-xl-3">
               <label class="form-label">Invoice *</label>
               <select class="form-select" formControlName="invoiceId" (change)="onInvoiceChange()">
                 <option [ngValue]="null">Select Invoice</option>
@@ -55,7 +65,7 @@
               <div class="invalid-feedback d-block" *ngIf="hasError('invoiceId', 'required')">Invoice is required.</div>
             </div>
 
-            <div class="col-md-6">
+            <div class="col-12 col-md-6 col-xl-3">
               <label class="form-label">Customer *</label>
               <select class="form-select" formControlName="customerId">
                 <option [ngValue]="null">Select Customer</option>
@@ -64,7 +74,7 @@
               <div class="invalid-feedback d-block" *ngIf="hasError('customerId', 'required')">Customer is required.</div>
             </div>
 
-            <div class="col-md-6">
+            <div class="col-12 col-md-6 col-xl-3">
               <label class="form-label">Return Date *</label>
               <input type="date" class="form-control" formControlName="returnDate">
               <div class="invalid-feedback d-block" *ngIf="hasError('returnDate', 'required')">Return date is required.</div>
@@ -77,14 +87,14 @@
           </div>
 
           <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
-            <h6 class="mb-0">Return Items</h6>
+            <div class="section-title mb-0">Item Table</div>
             <button type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
               <i class="bi bi-plus-lg me-1"></i>Add Row
             </button>
           </div>
 
-          <div class="table-responsive">
-            <table class="table table-sm align-middle">
+          <div class="table-responsive return-items-wrap">
+            <table class="table table-sm align-middle return-items-table">
               <thead class="table-light">
                 <tr>
                   <th>Product</th>
@@ -115,14 +125,16 @@
             </table>
           </div>
 
-          <div class="summary-panel mt-3">
+          <div class="section-title mt-4">Summary</div>
+          <div class="summary-panel">
             <div class="d-flex justify-content-between">
               <span>Return Total</span>
               <strong>{{ totalAmount | number:'1.2-2' }}</strong>
             </div>
           </div>
 
-          <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">
+          <div class="section-title mt-4">Action Buttons</div>
+          <div class="d-flex flex-wrap justify-content-end gap-2">
             <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">Reset</button>
             <button type="submit" class="btn btn-success px-4" [disabled]="submitting">
               {{ submitting ? 'Saving...' : 'Save Return' }}

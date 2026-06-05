@@ -8,3 +8,28 @@
   padding: 0.85rem 1rem;
   background: #f8f9fa;
 }
+
+.section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+  margin-bottom: 0.75rem;
+}
+
+.sales-items-wrap {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.75rem;
+}
+
+.sales-items-table {
+  min-width: 860px;
+  margin-bottom: 0;
+}
+
+.sales-items-table th,
+.sales-items-table td {
+  padding: 0.8rem 0.75rem;
+  vertical-align: middle;
+}

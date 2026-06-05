@@ -1,7 +1,8 @@
 package com.sme.erp.sales.enums;
 
 public enum SalesInvoiceStatus {
-    DRAFT,
+    PENDING,
     CONFIRMED,
+    COMPLETED,
     CANCELLED
 }

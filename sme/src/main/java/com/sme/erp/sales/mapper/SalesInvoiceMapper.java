@@ -46,6 +46,7 @@ public class SalesInvoiceMapper {
         dto.setStatus(entity.getStatus());
         dto.setCreatedBy(entity.getCreatedBy());
         dto.setCreatedAt(entity.getCreatedAt());
+        dto.setNotes(entity.getNotes());
         dto.setItems(entity.getItems().stream().map(salesItemMapper::toDTO).collect(Collectors.toList()));
         return dto;
     }

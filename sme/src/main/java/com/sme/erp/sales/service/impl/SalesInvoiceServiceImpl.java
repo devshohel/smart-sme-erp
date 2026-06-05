@@ -8,6 +8,7 @@ import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.inventory.entity.Warehouse;
 import com.sme.erp.inventory.repository.WarehouseRepository;
+import com.sme.erp.inventory.service.StockService;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.entity.Uom;
 import com.sme.erp.product.repository.ProductRepository;
@@ -17,6 +18,7 @@ import com.sme.erp.sales.dto.SalesItemDTO;
 import com.sme.erp.sales.entity.SalesInvoice;
 import com.sme.erp.sales.entity.SalesItem;
 import com.sme.erp.sales.entity.SalesOrder;
+import com.sme.erp.sales.enums.SalesInvoiceStatus;
 import com.sme.erp.sales.enums.SalesPaymentStatus;
 import com.sme.erp.sales.mapper.SalesInvoiceMapper;
 import com.sme.erp.sales.repository.SalesInvoiceRepository;
@@ -40,6 +42,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     private final ProductRepository productRepository;
     private final UomRepository uomRepository;
     private final SalesInvoiceMapper salesInvoiceMapper;
+    private final StockService stockService;
 
     public SalesInvoiceServiceImpl(
             SalesInvoiceRepository salesInvoiceRepository,
@@ -48,7 +51,8 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
             WarehouseRepository warehouseRepository,
             ProductRepository productRepository,
             UomRepository uomRepository,
-            SalesInvoiceMapper salesInvoiceMapper) {
+            SalesInvoiceMapper salesInvoiceMapper,
+            StockService stockService) {
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.salesOrderRepository = salesOrderRepository;
         this.customerRepository = customerRepository;
@@ -56,6 +60,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         this.productRepository = productRepository;
         this.uomRepository = uomRepository;
         this.salesInvoiceMapper = salesInvoiceMapper;
+        this.stockService = stockService;
     }
 
     @Override
@@ -88,6 +93,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
     private SalesInvoiceDTO save(SalesInvoiceDTO dto, SalesInvoice entity) {
         validateItems(dto.getItems());
+        SalesInvoiceStatus previousStatus = entity.getStatus();
 
         String requestedInvoiceNo = RequestValueUtils.normalize(dto.getInvoiceNo());
         entity.setInvoiceNo(resolveInvoiceNo(entity.getId(), requestedInvoiceNo));
@@ -96,10 +102,11 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         entity.setWarehouse(findWarehouseById(dto.getWarehouseId()));
         entity.setSaleDate(dto.getSaleDate());
         entity.setCreatedBy(dto.getCreatedBy());
+        entity.setNotes(RequestValueUtils.normalize(dto.getNotes()));
         entity.setStatus(dto.getStatus() != null ? dto.getStatus() : entity.getStatus());
 
         CalculationResult calculation = buildItems(entity, dto.getItems());
-        entity.setItems(calculation.items());
+        replaceItems(entity, calculation.items());
         entity.setTotalAmount(calculation.totalAmount());
         entity.setDiscountAmount(calculation.discountAmount());
         entity.setTaxAmount(calculation.taxAmount());
@@ -115,9 +122,26 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
         SalesInvoice saved = salesInvoiceRepository.save(entity);
 
-        // TODO Connect safe stock-out integration here only after StockService exposes a dedicated sales stock deduction flow.
+        if (previousStatus != SalesInvoiceStatus.CONFIRMED && saved.getStatus() == SalesInvoiceStatus.CONFIRMED) {
+            deductStock(saved);
+        }
 
         return salesInvoiceMapper.toDTO(saved);
+    }
+
+    private void deductStock(SalesInvoice invoice) {
+        Long warehouseId = invoice.getWarehouse().getId();
+        for (SalesItem item : invoice.getItems()) {
+            stockService.stockOut(
+                    item.getProduct().getId(),
+                    warehouseId,
+                    item.getQuantity());
+        }
+    }
+
+    private void replaceItems(SalesInvoice invoice, List<SalesItem> items) {
+        invoice.getItems().clear();
+        invoice.getItems().addAll(items);
     }
 
     private CalculationResult buildItems(SalesInvoice invoice, List<SalesItemDTO> itemDTOs) {

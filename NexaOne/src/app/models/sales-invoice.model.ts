@@ -1,8 +1,10 @@
-import { PaymentStatus, SalesCustomer, SalesInvoiceLineItem } from './sales-common.model';
+import { PaymentStatus, SalesCustomer, SalesInvoiceLineItem, SalesInvoiceStatus } from './sales-common.model';
 
 export interface SalesInvoice {
   id?: number;
   invoiceNo?: string;
+  orderId?: number | null;
+  orderNo?: string;
   customerId: number | null;
   customerName?: string;
   customer?: SalesCustomer;
@@ -18,4 +20,5 @@ export interface SalesInvoice {
   paidAmount: number;
   dueAmount: number;
   paymentStatus: PaymentStatus;
+  status?: SalesInvoiceStatus;
 }

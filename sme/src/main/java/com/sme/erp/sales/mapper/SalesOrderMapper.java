@@ -4,10 +4,16 @@ import com.sme.erp.sales.dto.SalesOrderDTO;
 import com.sme.erp.sales.entity.SalesOrder;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
+import java.util.stream.Collectors;
 
 @Component
 public class SalesOrderMapper {
+
+    private final SalesItemMapper salesItemMapper;
+
+    public SalesOrderMapper(SalesItemMapper salesItemMapper) {
+        this.salesItemMapper = salesItemMapper;
+    }
 
     public SalesOrderDTO toDTO(SalesOrder entity) {
         if (entity == null) {
@@ -29,7 +35,9 @@ public class SalesOrderMapper {
         dto.setStatus(entity.getStatus());
         dto.setCreatedBy(entity.getCreatedBy());
         dto.setCreatedAt(entity.getCreatedAt());
-        dto.setGrandTotal(BigDecimal.ZERO);
+        dto.setNotes(entity.getNotes());
+        dto.setGrandTotal(entity.getGrandTotal());
+        dto.setItems(entity.getItems().stream().map(salesItemMapper::toDTO).collect(Collectors.toList()));
         return dto;
     }
 }

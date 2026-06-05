@@ -6,6 +6,7 @@ import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.repository.CustomerRepository;
+import com.sme.erp.inventory.service.StockService;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.repository.ProductRepository;
 import com.sme.erp.sales.dto.SalesReturnDTO;
@@ -33,18 +34,21 @@ public class SalesReturnServiceImpl implements SalesReturnService {
     private final CustomerRepository customerRepository;
     private final ProductRepository productRepository;
     private final SalesReturnMapper salesReturnMapper;
+    private final StockService stockService;
 
     public SalesReturnServiceImpl(
             SalesReturnRepository salesReturnRepository,
             SalesInvoiceRepository salesInvoiceRepository,
             CustomerRepository customerRepository,
             ProductRepository productRepository,
-            SalesReturnMapper salesReturnMapper) {
+            SalesReturnMapper salesReturnMapper,
+            StockService stockService) {
         this.salesReturnRepository = salesReturnRepository;
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.customerRepository = customerRepository;
         this.productRepository = productRepository;
         this.salesReturnMapper = salesReturnMapper;
+        this.stockService = stockService;
     }
 
     @Override
@@ -78,6 +82,7 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         entity.setCustomer(customer);
         entity.setReturnDate(dto.getReturnDate());
         entity.setCreatedBy(dto.getCreatedBy());
+        entity.setNotes(RequestValueUtils.normalize(dto.getNotes()));
 
         CalculationResult calculation = buildItems(entity, dto.getItems());
         entity.setItems(calculation.items());
@@ -85,9 +90,20 @@ public class SalesReturnServiceImpl implements SalesReturnService {
 
         SalesReturn saved = salesReturnRepository.save(entity);
 
-        // TODO Connect safe stock return integration here only after StockService exposes a dedicated sales return restock flow.
+        restockReturnedItems(saved);
 
         return salesReturnMapper.toDTO(saved);
+    }
+
+    private void restockReturnedItems(SalesReturn salesReturn) {
+        Long warehouseId = salesReturn.getInvoice().getWarehouse().getId();
+        for (SalesReturnItem item : salesReturn.getItems()) {
+            stockService.stockIn(
+                    item.getProduct().getId(),
+                    warehouseId,
+                    item.getQuantity(),
+                    item.getUnitPrice());
+        }
     }
 
     private CalculationResult buildItems(SalesReturn salesReturn, List<SalesReturnItemDTO> itemDTOs) {

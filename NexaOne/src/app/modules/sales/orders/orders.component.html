@@ -5,8 +5,8 @@
   </app-page-header>
 
   <div class="row g-4">
-    <div class="col-12 col-xl-7">
-      <app-card title="Order List" subtitle="Existing and locally staged sales orders.">
+    <div class="col-12">
+      <app-card title="Sales Order List" subtitle="Approved orders can be converted into sales invoices.">
         <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
 
         <div class="table-responsive">
@@ -19,6 +19,7 @@
                 <th>Date</th>
                 <th class="text-end">Grand Total</th>
                 <th>Status</th>
+                <th class="text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -29,12 +30,17 @@
                 <td>{{ order.orderDate }}</td>
                 <td class="text-end">{{ order.grandTotal | number:'1.2-2' }}</td>
                 <td><app-sales-status-badge [label]="order.status"></app-sales-status-badge></td>
+                <td class="text-center">
+                  <button type="button" class="btn btn-sm btn-outline-primary" (click)="editOrder(order)">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                </td>
               </tr>
               <tr *ngIf="!loading && orders.length === 0">
-                <td colspan="6" class="text-center text-muted py-5">No sales orders found.</td>
+                <td colspan="7" class="text-center text-muted py-5">No sales orders found.</td>
               </tr>
               <tr *ngIf="loading">
-                <td colspan="6" class="text-center text-muted py-5">Loading sales orders...</td>
+                <td colspan="7" class="text-center text-muted py-5">Loading sales orders...</td>
               </tr>
             </tbody>
           </table>
@@ -53,11 +59,12 @@
       </app-card>
     </div>
 
-    <div class="col-12 col-xl-5">
-      <app-card title="Create Sales Order" subtitle="Add products dynamically and calculate totals automatically.">
+    <div class="col-12">
+      <app-card [title]="editingOrderId ? 'Edit Sales Order' : 'Create Sales Order'" subtitle="Create customer order requests before invoice confirmation.">
         <form [formGroup]="orderForm" (ngSubmit)="saveOrder()" novalidate>
           <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
 
+          <div class="section-title">Header Information</div>
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label">Customer *</label>
@@ -97,14 +104,14 @@
           </div>
 
           <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
-            <h6 class="mb-0">Product Rows</h6>
+            <div class="section-title mb-0">Item Table</div>
             <button type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
               <i class="bi bi-plus-lg me-1"></i>Add Row
             </button>
           </div>
 
-          <div class="table-responsive">
-            <table class="table table-sm align-middle">
+          <div class="table-responsive sales-items-wrap">
+            <table class="table table-sm align-middle sales-items-table">
               <thead class="table-light">
                 <tr>
                   <th>Product</th>
@@ -135,17 +142,21 @@
             </table>
           </div>
 
-          <div class="summary-panel mt-3">
+          <div class="section-title mt-4">Summary</div>
+          <div class="summary-panel">
             <div class="d-flex justify-content-between">
               <span>Grand Total</span>
               <strong>{{ grandTotal | number:'1.2-2' }}</strong>
             </div>
           </div>
 
-          <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">
-            <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">Reset</button>
+          <div class="section-title mt-4">Action Buttons</div>
+          <div class="d-flex flex-wrap justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">
+              {{ editingOrderId ? 'Cancel Edit' : 'Reset' }}
+            </button>
             <button type="submit" class="btn btn-success px-4" [disabled]="submitting">
-              {{ submitting ? 'Saving...' : 'Save Order' }}
+              {{ submitting ? 'Saving...' : (editingOrderId ? 'Update Order' : 'Save Order') }}
             </button>
           </div>
         </form>

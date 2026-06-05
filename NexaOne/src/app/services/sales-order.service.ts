@@ -23,8 +23,11 @@ export class SalesOrderService {
   saveOrder(order: SalesOrder): Observable<SalesOrder> {
     const payload = this.normalizeOrder(order);
 
-    return this.http
-      .post<SalesOrder | ApiResponse<SalesOrder>>(this.baseUrl, payload)
+    const request$ = payload.id
+      ? this.http.put<SalesOrder | ApiResponse<SalesOrder>>(`${this.baseUrl}/${payload.id}`, payload)
+      : this.http.post<SalesOrder | ApiResponse<SalesOrder>>(this.baseUrl, payload);
+
+    return request$
       .pipe(map(response => this.normalizeOrder(unwrapApiResponse(response))));
   }
 
@@ -39,9 +42,11 @@ export class SalesOrderService {
       items: (order.items || []).map(item => ({
         ...item,
         productId: item.productId ?? null,
+        uomId: item.uomId ?? null,
         quantity: Number(item.quantity || 0),
         unitPrice: Number(item.unitPrice || 0),
-        subtotal: Number(item.subtotal || 0)
+        subtotal: Number((item as any).subtotal ?? (item as any).subTotal ?? 0),
+        subTotal: Number((item as any).subtotal ?? (item as any).subTotal ?? 0)
       }))
     };
   }

@@ -22,8 +22,12 @@ public class SalesItem {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "invoice_id", nullable = false)
+    @JoinColumn(name = "invoice_id")
     private SalesInvoice invoice;
+
+    @ManyToOne
+    @JoinColumn(name = "order_id")
+    private SalesOrder order;
 
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
@@ -53,6 +57,9 @@ public class SalesItem {
 
     public SalesInvoice getInvoice() { return invoice; }
     public void setInvoice(SalesInvoice invoice) { this.invoice = invoice; }
+
+    public SalesOrder getOrder() { return order; }
+    public void setOrder(SalesOrder order) { this.order = order; }
 
     public Product getProduct() { return product; }
     public void setProduct(Product product) { this.product = product; }
