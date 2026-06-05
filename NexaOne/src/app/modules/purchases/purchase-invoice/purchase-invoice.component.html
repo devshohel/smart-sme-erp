@@ -1,0 +1,155 @@
+<div class="container-fluid p-4">
+  <app-page-header
+    title="Purchase Invoices"
+    subtitle="Receive approved purchase orders, update stock, and record supplier payment status.">
+  </app-page-header>
+
+  <div class="row g-4">
+    <div class="col-12">
+      <app-card title="Purchase Invoice List" subtitle="Received purchases and supplier payment overview.">
+        <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Invoice Ref</th>
+                <th>Supplier</th>
+                <th>Warehouse</th>
+                <th class="text-end">Net Total</th>
+                <th class="text-end">Paid</th>
+                <th class="text-end">Due</th>
+                <th>Status</th>
+                <th class="text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let invoice of invoiceList" [class.table-active]="selectedOrder?.id === invoice.id">
+                <td class="fw-semibold">{{ invoice.purchaseCode || 'Draft' }}</td>
+                <td>{{ invoice.supplierName || 'N/A' }}</td>
+                <td>{{ invoice.warehouseName || 'N/A' }}</td>
+                <td class="text-end">{{ invoice.netTotal | number:'1.2-2' }}</td>
+                <td class="text-end">{{ invoice.paidAmount | number:'1.2-2' }}</td>
+                <td class="text-end">{{ invoice.dueAmount | number:'1.2-2' }}</td>
+                <td>
+                  <span class="badge px-3 py-2" [ngClass]="statusClass(invoice.status)">
+                    {{ invoice.status || 'PENDING' }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <button type="button" class="btn btn-sm btn-outline-primary" (click)="selectInvoice(invoice)">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="!loading && invoiceList.length === 0">
+                <td colspan="8" class="text-center text-muted py-5">No purchase invoices found.</td>
+              </tr>
+              <tr *ngIf="loading">
+                <td colspan="8" class="text-center text-muted py-5">Loading purchase invoices...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </app-card>
+    </div>
+
+    <div class="col-12">
+      <app-card title="Goods Receive / Purchase Receive" subtitle="Generate purchase invoice from an approved purchase order.">
+        <form [formGroup]="form" (ngSubmit)="receiveAndSaveInvoice()" novalidate>
+          <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
+
+          <div class="section-title">Header Information</div>
+          <div class="row g-3">
+            <div class="col-12 col-md-6 col-xl-3">
+              <label class="form-label">Purchase Order *</label>
+              <select class="form-select" formControlName="purchaseId" (change)="onPurchaseChange()">
+                <option [ngValue]="null">Select Purchase Order</option>
+                <option *ngFor="let order of eligibleOrders" [ngValue]="order.id">
+                  {{ order.purchaseCode || ('Purchase #' + order.id) }} - {{ order.supplierName || 'Supplier' }}
+                </option>
+              </select>
+              <div class="invalid-feedback d-block" *ngIf="hasError('purchaseId', 'required')">Purchase order is required.</div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+              <label class="form-label">Receive Date *</label>
+              <input type="date" class="form-control" formControlName="receiveDate">
+              <div class="invalid-feedback d-block" *ngIf="hasError('receiveDate', 'required')">Receive date is required.</div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+              <label class="form-label">Supplier</label>
+              <input type="text" class="form-control" [value]="selectedOrder?.supplierName || 'N/A'" readonly>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+              <label class="form-label">Warehouse</label>
+              <input type="text" class="form-control" [value]="selectedOrder?.warehouseName || 'N/A'" readonly>
+            </div>
+          </div>
+
+          <div class="section-title mt-4">Item Table Section</div>
+          <div class="table-responsive purchase-invoice-items-wrap">
+            <table class="table table-sm align-middle purchase-invoice-items-table">
+              <thead class="table-light">
+                <tr>
+                  <th>Product</th>
+                  <th>UOM</th>
+                  <th class="text-end">Qty Received</th>
+                  <th class="text-end">Unit Cost</th>
+                  <th class="text-end">Discount</th>
+                  <th class="text-end">Tax</th>
+                  <th class="text-end">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of selectedOrder?.items">
+                  <td>{{ item.productName || 'N/A' }}</td>
+                  <td>{{ item.uomName || 'N/A' }}</td>
+                  <td class="text-end">{{ item.quantity | number:'1.2-2' }}</td>
+                  <td class="text-end">{{ item.unitPrice | number:'1.2-2' }}</td>
+                  <td class="text-end">{{ item.discount | number:'1.2-2' }}</td>
+                  <td class="text-end">{{ item.tax | number:'1.2-2' }}</td>
+                  <td class="text-end">{{ item.subTotal | number:'1.2-2' }}</td>
+                </tr>
+                <tr *ngIf="!selectedOrder">
+                  <td colspan="7" class="text-center text-muted py-5">Select a purchase order to receive.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="row g-4 mt-1">
+            <div class="col-12 col-lg-6">
+              <div class="section-title">Summary Section</div>
+              <div class="summary-panel">
+                <div class="d-flex justify-content-between"><span>Total Amount</span><strong>{{ selectedOrder?.totalAmount || 0 | number:'1.2-2' }}</strong></div>
+                <div class="d-flex justify-content-between mt-2"><span>Discount Amount</span><strong>{{ selectedOrder?.discountAmount || 0 | number:'1.2-2' }}</strong></div>
+                <div class="d-flex justify-content-between mt-2"><span>Tax Amount</span><strong>{{ selectedOrder?.taxAmount || 0 | number:'1.2-2' }}</strong></div>
+                <div class="d-flex justify-content-between mt-2"><span>Net Total</span><strong>{{ netTotal | number:'1.2-2' }}</strong></div>
+              </div>
+            </div>
+
+            <div class="col-12 col-lg-6">
+              <div class="section-title">Payment Section</div>
+              <div class="summary-panel">
+                <label class="form-label">Supplier Payment *</label>
+                <input type="number" class="form-control text-end" formControlName="paidAmount" min="0" step="0.01">
+                <div class="invalid-feedback d-block" *ngIf="hasError('paidAmount', 'min')">Payment cannot be negative.</div>
+                <div class="d-flex justify-content-between mt-3"><span>Due Amount</span><strong>{{ dueAmount | number:'1.2-2' }}</strong></div>
+                <div class="d-flex justify-content-between mt-2"><span>Advance Amount</span><strong>{{ advanceAmount | number:'1.2-2' }}</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">
+            <button type="submit" class="btn btn-success px-4" [disabled]="submitting || !selectedOrder">
+              {{ submitting ? 'Saving...' : 'Receive & Generate Invoice' }}
+            </button>
+          </div>
+        </form>
+      </app-card>
+    </div>
+  </div>
+</div>

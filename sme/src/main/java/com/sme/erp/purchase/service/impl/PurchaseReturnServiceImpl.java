@@ -4,6 +4,7 @@ import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
+import com.sme.erp.inventory.service.StockService;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.repository.ProductRepository;
 import com.sme.erp.purchase.dto.PurchaseReturnDTO;
@@ -33,18 +34,21 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
     private final SupplierRepository supplierRepository;
     private final ProductRepository productRepository;
     private final PurchaseReturnMapper purchaseReturnMapper;
+    private final StockService stockService;
 
     public PurchaseReturnServiceImpl(
             PurchaseReturnRepository purchaseReturnRepository,
             PurchaseOrderRepository purchaseOrderRepository,
             SupplierRepository supplierRepository,
             ProductRepository productRepository,
-            PurchaseReturnMapper purchaseReturnMapper) {
+            PurchaseReturnMapper purchaseReturnMapper,
+            StockService stockService) {
         this.purchaseReturnRepository = purchaseReturnRepository;
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.supplierRepository = supplierRepository;
         this.productRepository = productRepository;
         this.purchaseReturnMapper = purchaseReturnMapper;
+        this.stockService = stockService;
     }
 
     @Override
@@ -85,10 +89,21 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
 
         PurchaseReturn saved = purchaseReturnRepository.save(entity);
 
-        // TODO Connect safe purchase return stock-out integration here only after StockService exposes a dedicated purchase return flow.
+        deductReturnedStock(saved);
+
         // TODO Supplier ledger or payment integration should own future payable and advance balance movements.
 
         return purchaseReturnMapper.toDTO(saved);
+    }
+
+    private void deductReturnedStock(PurchaseReturn purchaseReturn) {
+        Long warehouseId = purchaseReturn.getPurchase().getWarehouse().getId();
+        for (PurchaseReturnItem item : purchaseReturn.getItems()) {
+            stockService.stockOut(
+                    item.getProduct().getId(),
+                    warehouseId,
+                    item.getQuantity());
+        }
     }
 
     private CalculationResult buildItems(PurchaseReturn purchaseReturn, List<PurchaseReturnItemDTO> itemDTOs) {

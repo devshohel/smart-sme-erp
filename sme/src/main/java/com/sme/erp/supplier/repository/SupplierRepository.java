@@ -17,6 +17,15 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
 
     boolean existsBySupplierCodeAndIdNot(String supplierCode, Long id);
 
+    @Query(value = "SELECT COALESCE(MAX(id), 0) FROM suppliers", nativeQuery = true)
+    Long findMaxIdIncludingDeleted();
+
+    @Query(value = "SELECT COUNT(*) FROM suppliers WHERE supplier_code = :supplierCode", nativeQuery = true)
+    Long countBySupplierCodeIncludingDeleted(@Param("supplierCode") String supplierCode);
+
+    @Query(value = "SELECT COUNT(*) FROM suppliers WHERE supplier_code = :supplierCode AND id <> :id", nativeQuery = true)
+    Long countBySupplierCodeAndIdNotIncludingDeleted(@Param("supplierCode") String supplierCode, @Param("id") Long id);
+
     boolean existsByEmail(String email);
 
     boolean existsByEmailAndIdNot(String email, Long id);

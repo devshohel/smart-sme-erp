@@ -1,0 +1,34 @@
+.section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+  margin-bottom: 0.75rem;
+}
+
+.summary-panel,
+.purchase-invoice-items-wrap {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.75rem;
+  background: #f8f9fa;
+}
+
+.summary-panel {
+  padding: 0.85rem 1rem;
+}
+
+.purchase-invoice-items-wrap {
+  background: #fff;
+}
+
+.purchase-invoice-items-table {
+  margin-bottom: 0;
+  min-width: 880px;
+}
+
+.purchase-invoice-items-table th,
+.purchase-invoice-items-table td {
+  padding: 0.8rem 0.75rem;
+  vertical-align: middle;
+}

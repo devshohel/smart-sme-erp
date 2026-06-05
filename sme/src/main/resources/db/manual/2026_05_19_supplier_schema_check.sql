@@ -4,6 +4,18 @@
 -- 1. Inspect supplier table shape.
 SHOW COLUMNS FROM suppliers;
 
+SELECT
+    column_name,
+    column_type,
+    is_nullable,
+    column_key,
+    column_default,
+    extra
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'suppliers'
+ORDER BY ordinal_position;
+
 -- 2. Check for duplicate values that would block unique business rules.
 SELECT supplier_code, COUNT(*) AS duplicate_count
 FROM suppliers
@@ -55,3 +67,25 @@ WHERE status IS NULL
 -- ALTER TABLE suppliers ADD COLUMN created_by BIGINT NULL;
 -- ALTER TABLE suppliers ADD COLUMN created_at DATETIME NULL;
 -- ALTER TABLE suppliers ADD COLUMN updated_at DATETIME NULL;
+
+-- 6. Optional ID generation alignment.
+-- Supplier.id uses GenerationType.IDENTITY, so MySQL must generate the id.
+-- Apply only if the column inspection shows suppliers.id Extra does not contain auto_increment.
+-- If MySQL reports Error 1833, inspect and temporarily drop foreign keys that reference suppliers.id,
+-- modify the id column, then recreate those foreign keys.
+--
+-- ALTER TABLE suppliers
+--     MODIFY id BIGINT NOT NULL AUTO_INCREMENT;
+
+-- 7. Post-check for ID generation.
+SELECT
+    column_name,
+    column_type,
+    is_nullable,
+    column_key,
+    column_default,
+    extra
+FROM information_schema.columns
+WHERE table_schema = DATABASE()
+  AND table_name = 'suppliers'
+  AND column_name = 'id';

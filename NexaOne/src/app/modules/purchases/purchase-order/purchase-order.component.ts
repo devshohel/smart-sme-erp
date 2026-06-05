@@ -31,7 +31,7 @@ export class PurchaseOrderComponent implements OnInit {
   selectedOrder: PurchaseOrder | null = null;
   editingOrderId: number | null = null;
 
-  readonly statuses: PurchaseStatus[] = ['DRAFT', 'PENDING', 'APPROVED', 'RECEIVED', 'PARTIAL_PAID', 'PAID', 'CANCELLED'];
+  readonly statuses: PurchaseStatus[] = ['DRAFT', 'PENDING', 'APPROVED', 'CANCELLED'];
   readonly activeStatus: Status = 'ACTIVE';
 
   constructor(
@@ -48,7 +48,6 @@ export class PurchaseOrderComponent implements OnInit {
       warehouseId: [null, Validators.required],
       purchaseDate: [this.today(), Validators.required],
       status: ['PENDING', Validators.required],
-      paidAmount: [0, [Validators.required, Validators.min(0)]],
       items: this.fb.array([])
     });
     this.addItem();
@@ -83,16 +82,12 @@ export class PurchaseOrderComponent implements OnInit {
     return this.totalAmount - this.discountAmount + this.taxAmount;
   }
 
-  get dueAmount(): number {
-    return Math.max(this.netTotal - Number(this.form.get('paidAmount')?.value || 0), 0);
-  }
-
   loadOrders(): void {
     this.loading = true;
     this.purchaseService.getAllOrders().subscribe({
       next: (orders) => {
-        this.orders = orders;
-        this.selectedOrder = orders[0] || null;
+        this.orders = orders.filter(order => this.statuses.includes(order.status || 'PENDING'));
+        this.selectedOrder = this.orders[0] || null;
         this.loading = false;
       },
       error: (error) => {
@@ -233,20 +228,15 @@ export class PurchaseOrderComponent implements OnInit {
       supplierId: null,
       warehouseId: null,
       purchaseDate: this.today(),
-      status: 'PENDING',
-      paidAmount: 0
+      status: 'PENDING'
     });
     this.addItem();
   }
 
   statusClass(status?: PurchaseStatus): string {
     switch (status) {
-      case 'PAID':
-      case 'RECEIVED':
-        return 'bg-success-subtle text-success';
       case 'APPROVED':
-      case 'PARTIAL_PAID':
-        return 'bg-info-subtle text-info';
+        return 'bg-success-subtle text-success';
       case 'CANCELLED':
         return 'bg-danger-subtle text-danger';
       case 'DRAFT':
@@ -272,7 +262,6 @@ export class PurchaseOrderComponent implements OnInit {
       warehouseId: order.warehouseId,
       purchaseDate: this.toDateInput(order.purchaseDate),
       status: order.status || 'PENDING',
-      paidAmount: order.paidAmount ?? 0
     });
 
     if (!order.items.length) {
@@ -311,8 +300,8 @@ export class PurchaseOrderComponent implements OnInit {
       discountAmount: this.discountAmount,
       taxAmount: this.taxAmount,
       netTotal: this.netTotal,
-      paidAmount: Number(value.paidAmount || 0),
-      dueAmount: this.dueAmount,
+      paidAmount: this.editingOrderId ? Number(this.selectedOrder?.paidAmount || 0) : 0,
+      dueAmount: this.editingOrderId ? Math.max(this.netTotal - Number(this.selectedOrder?.paidAmount || 0), 0) : this.netTotal,
       status: value.status,
       items
     };

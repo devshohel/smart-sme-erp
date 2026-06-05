@@ -6,6 +6,7 @@ import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
 import com.sme.erp.inventory.entity.Warehouse;
 import com.sme.erp.inventory.repository.WarehouseRepository;
+import com.sme.erp.inventory.service.StockService;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.entity.Uom;
 import com.sme.erp.product.repository.ProductRepository;
@@ -37,6 +38,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final ProductRepository productRepository;
     private final UomRepository uomRepository;
     private final PurchaseOrderMapper purchaseOrderMapper;
+    private final StockService stockService;
 
     public PurchaseOrderServiceImpl(
             PurchaseOrderRepository purchaseOrderRepository,
@@ -44,13 +46,15 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             WarehouseRepository warehouseRepository,
             ProductRepository productRepository,
             UomRepository uomRepository,
-            PurchaseOrderMapper purchaseOrderMapper) {
+            PurchaseOrderMapper purchaseOrderMapper,
+            StockService stockService) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.supplierRepository = supplierRepository;
         this.warehouseRepository = warehouseRepository;
         this.productRepository = productRepository;
         this.uomRepository = uomRepository;
         this.purchaseOrderMapper = purchaseOrderMapper;
+        this.stockService = stockService;
     }
 
     @Override
@@ -83,6 +87,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
     private PurchaseOrderDTO save(PurchaseOrderDTO dto, PurchaseOrder entity) {
         validateItems(dto.getItems());
+        PurchaseStatus previousStatus = entity.getStatus();
 
         String requestedPurchaseCode = RequestValueUtils.normalize(dto.getPurchaseCode());
         entity.setPurchaseCode(resolvePurchaseCode(entity.getId(), requestedPurchaseCode));
@@ -111,10 +116,24 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
         PurchaseOrder saved = purchaseOrderRepository.save(entity);
 
-        // TODO Connect safe stock receive integration here only after StockService exposes a dedicated purchase receive flow.
+        if (previousStatus != PurchaseStatus.RECEIVED && saved.getStatus() == PurchaseStatus.RECEIVED) {
+            receiveStock(saved);
+        }
+
         // TODO Supplier ledger or payment integration should own future payable and advance balance movements.
 
         return purchaseOrderMapper.toDTO(saved);
+    }
+
+    private void receiveStock(PurchaseOrder purchaseOrder) {
+        Long warehouseId = purchaseOrder.getWarehouse().getId();
+        for (PurchaseItem item : purchaseOrder.getItems()) {
+            stockService.stockIn(
+                    item.getProduct().getId(),
+                    warehouseId,
+                    item.getQuantity(),
+                    item.getUnitPrice());
+        }
     }
 
     private CalculationResult buildItems(PurchaseOrder purchaseOrder, List<PurchaseItemDTO> itemDTOs) {

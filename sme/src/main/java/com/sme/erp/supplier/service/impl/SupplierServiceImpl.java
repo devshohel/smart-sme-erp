@@ -107,17 +107,17 @@ public class SupplierServiceImpl implements SupplierService {
     private void normalizeDto(SupplierDTO dto) {
         dto.setSupplierCode(RequestValueUtils.normalize(dto.getSupplierCode()));
         dto.setName(RequestValueUtils.normalizeRequired(dto.getName(), "Supplier name"));
-        dto.setCompanyName(RequestValueUtils.normalize(dto.getCompanyName()));
-        dto.setContactPerson(RequestValueUtils.normalize(dto.getContactPerson()));
-        dto.setPhone(RequestValueUtils.normalize(dto.getPhone()));
-        dto.setEmail(RequestValueUtils.normalize(dto.getEmail()));
-        dto.setAddress(RequestValueUtils.normalize(dto.getAddress()));
-        dto.setCity(RequestValueUtils.normalize(dto.getCity()));
-        dto.setCountry(RequestValueUtils.normalize(dto.getCountry()));
-        dto.setPostalCode(RequestValueUtils.normalize(dto.getPostalCode()));
-        dto.setTaxNumber(RequestValueUtils.normalize(dto.getTaxNumber()));
-        dto.setBankAccount(RequestValueUtils.normalize(dto.getBankAccount()));
-        dto.setPaymentTerms(RequestValueUtils.normalize(dto.getPaymentTerms()));
+        dto.normalizeCompanyName(RequestValueUtils.normalize(dto.getCompanyName()));
+        dto.normalizeContactPerson(RequestValueUtils.normalize(dto.getContactPerson()));
+        dto.normalizePhone(RequestValueUtils.normalize(dto.getPhone()));
+        dto.normalizeEmail(RequestValueUtils.normalize(dto.getEmail()));
+        dto.normalizeAddress(RequestValueUtils.normalize(dto.getAddress()));
+        dto.normalizeCity(RequestValueUtils.normalize(dto.getCity()));
+        dto.normalizeCountry(RequestValueUtils.normalize(dto.getCountry()));
+        dto.normalizePostalCode(RequestValueUtils.normalize(dto.getPostalCode()));
+        dto.normalizeTaxNumber(RequestValueUtils.normalize(dto.getTaxNumber()));
+        dto.normalizeBankAccount(RequestValueUtils.normalize(dto.getBankAccount()));
+        dto.normalizePaymentTerms(RequestValueUtils.normalize(dto.getPaymentTerms()));
     }
 
     private void validateFinancials(SupplierDTO dto) {
@@ -138,11 +138,9 @@ public class SupplierServiceImpl implements SupplierService {
             return requestedCode;
         }
 
-        long nextNumber = supplierRepository.findTopByOrderByIdDesc()
-                .map(supplier -> supplier.getId() + 1)
-                .orElse(1L);
+        long nextNumber = supplierRepository.findMaxIdIncludingDeleted() + 1;
         String generated = String.format("SUP-%04d", nextNumber);
-        while (supplierRepository.existsBySupplierCode(generated)) {
+        while (existsBySupplierCodeIncludingDeleted(generated)) {
             nextNumber++;
             generated = String.format("SUP-%04d", nextNumber);
         }
@@ -151,11 +149,23 @@ public class SupplierServiceImpl implements SupplierService {
 
     private void validateSupplierCodeUnique(String supplierCode, Long currentId) {
         boolean exists = currentId == null
-                ? supplierRepository.existsBySupplierCode(supplierCode)
-                : supplierRepository.existsBySupplierCodeAndIdNot(supplierCode, currentId);
+                ? existsBySupplierCodeIncludingDeleted(supplierCode)
+                : existsBySupplierCodeAndIdNotIncludingDeleted(supplierCode, currentId);
         if (exists) {
             throw new DuplicateResourceException("Supplier code already exists: " + supplierCode);
         }
+    }
+
+    private boolean existsBySupplierCodeIncludingDeleted(String supplierCode) {
+        return hasRows(supplierRepository.countBySupplierCodeIncludingDeleted(supplierCode));
+    }
+
+    private boolean existsBySupplierCodeAndIdNotIncludingDeleted(String supplierCode, Long currentId) {
+        return hasRows(supplierRepository.countBySupplierCodeAndIdNotIncludingDeleted(supplierCode, currentId));
+    }
+
+    private boolean hasRows(Long count) {
+        return count != null && count > 0;
     }
 
     private void validateEmailUnique(String email, Long currentId) {

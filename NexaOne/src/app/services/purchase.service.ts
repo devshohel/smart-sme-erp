@@ -156,6 +156,7 @@ export class PurchaseService {
       ...order,
       supplierId: order.supplierId ?? null,
       warehouseId: order.warehouseId ?? null,
+      purchaseDate: this.toApiDateTime(order.purchaseDate),
       totalAmount: Number(order.totalAmount || 0),
       discountAmount: Number(order.discountAmount || 0),
       taxAmount: Number(order.taxAmount || 0),
@@ -181,6 +182,7 @@ export class PurchaseService {
       ...purchaseReturn,
       purchaseId: purchaseReturn.purchaseId ?? null,
       supplierId: purchaseReturn.supplierId ?? null,
+      returnDate: this.toApiDateTime(purchaseReturn.returnDate),
       totalAmount: Number(purchaseReturn.totalAmount || 0),
       items: (purchaseReturn.items || []).map(item => ({
         ...item,
@@ -190,5 +192,9 @@ export class PurchaseService {
         total: Number(item.total || 0)
       }))
     };
+  }
+
+  private toApiDateTime(value: string): string {
+    return value && value.length === 10 ? `${value}T00:00:00` : value;
   }
 }
