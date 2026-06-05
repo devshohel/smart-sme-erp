@@ -82,12 +82,12 @@ export class PurchaseOrderComponent implements OnInit {
     return this.totalAmount - this.discountAmount + this.taxAmount;
   }
 
-  loadOrders(): void {
+  loadOrders(selectedId?: number): void {
     this.loading = true;
     this.purchaseService.getAllOrders().subscribe({
       next: (orders) => {
         this.orders = orders.filter(order => this.statuses.includes(order.status || 'PENDING'));
-        this.selectedOrder = this.orders[0] || null;
+        this.selectedOrder = this.orders.find(order => order.id === selectedId) || this.orders[0] || null;
         this.loading = false;
       },
       error: (error) => {
@@ -206,8 +206,8 @@ export class PurchaseOrderComponent implements OnInit {
         this.submitting = false;
         this.successMessage = this.editingOrderId ? 'Purchase order updated successfully.' : 'Purchase order saved successfully.';
         this.selectedOrder = saved;
-        this.loadOrders();
         this.resetForm();
+        this.loadOrders(saved.id);
       },
       error: (error) => {
         this.submitting = false;

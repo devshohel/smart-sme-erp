@@ -55,13 +55,7 @@ export class PurchaseService {
 
     return request$.pipe(
       map(response => this.normalizeOrder(unwrapApiResponse(response))),
-      tap(saved => this.upsertOrder(saved)),
-      catchError((error) => {
-        debugApiError('PurchaseService.saveOrder', error);
-        const fallback = this.createFallbackOrder(payload);
-        this.upsertOrder(fallback);
-        return of(fallback);
-      })
+      tap(saved => this.upsertOrder(saved))
     );
   }
 
@@ -101,13 +95,7 @@ export class PurchaseService {
       .post<PurchaseReturn | ApiResponse<PurchaseReturn>>(this.returnsUrl, payload)
       .pipe(
         map(response => this.normalizeReturn(unwrapApiResponse(response))),
-        tap(saved => this.upsertReturn(saved)),
-        catchError((error) => {
-          debugApiError('PurchaseService.saveReturn', error);
-          const fallback = this.createFallbackReturn(payload);
-          this.upsertReturn(fallback);
-          return of(fallback);
-        })
+        tap(saved => this.upsertReturn(saved))
       );
   }
 
@@ -131,24 +119,6 @@ export class PurchaseService {
       returns.unshift(purchaseReturn);
     }
     this.returnsSubject.next(returns);
-  }
-
-  private createFallbackOrder(order: PurchaseOrder): PurchaseOrder {
-    const nextId = this.ordersSubject.value.reduce((max, item) => Math.max(max, item.id || 0), 0) + 1;
-    return {
-      ...order,
-      id: order.id || nextId,
-      purchaseCode: order.purchaseCode || `PO-${String(nextId).padStart(4, '0')}`
-    };
-  }
-
-  private createFallbackReturn(purchaseReturn: PurchaseReturn): PurchaseReturn {
-    const nextId = this.returnsSubject.value.reduce((max, item) => Math.max(max, item.id || 0), 0) + 1;
-    return {
-      ...purchaseReturn,
-      id: nextId,
-      returnCode: purchaseReturn.returnCode || `PR-${String(nextId).padStart(4, '0')}`
-    };
   }
 
   private normalizeOrder(order: PurchaseOrder): PurchaseOrder {

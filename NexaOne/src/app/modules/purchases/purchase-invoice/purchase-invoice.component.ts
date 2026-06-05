@@ -57,12 +57,12 @@ export class PurchaseInvoiceComponent implements OnInit {
     return Math.max(this.paidAmount - this.netTotal, 0);
   }
 
-  loadOrders(): void {
+  loadOrders(selectedId?: number): void {
     this.loading = true;
     this.purchaseService.getAllOrders().subscribe({
       next: (orders) => {
         this.orders = orders;
-        this.selectedOrder = this.eligibleOrders[0] || null;
+        this.selectedOrder = this.orders.find(order => order.id === selectedId) || this.eligibleOrders[0] || null;
         if (this.selectedOrder) {
           this.patchSelection(this.selectedOrder);
         }
@@ -114,7 +114,7 @@ export class PurchaseInvoiceComponent implements OnInit {
         this.submitting = false;
         this.successMessage = 'Purchase invoice saved and goods receive completed.';
         this.selectedOrder = saved;
-        this.loadOrders();
+        this.loadOrders(saved.id);
       },
       error: (error) => {
         this.submitting = false;

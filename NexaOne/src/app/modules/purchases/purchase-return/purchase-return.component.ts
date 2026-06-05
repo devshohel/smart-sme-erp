@@ -54,12 +54,12 @@ export class PurchaseReturnComponent implements OnInit {
     return this.items.controls.reduce((sum, control) => sum + Number(control.get('total')?.value || 0), 0);
   }
 
-  loadReturns(): void {
+  loadReturns(selectedId?: number): void {
     this.loading = true;
     this.purchaseService.getAllReturns().subscribe({
       next: (returns) => {
         this.returns = returns;
-        this.selectedReturn = returns[0] || null;
+        this.selectedReturn = returns.find(item => item.id === selectedId) || returns[0] || null;
         this.loading = false;
       },
       error: (error) => {
@@ -165,8 +165,8 @@ export class PurchaseReturnComponent implements OnInit {
         this.submitting = false;
         this.successMessage = 'Purchase return saved successfully.';
         this.selectedReturn = saved;
-        this.loadReturns();
         this.resetForm();
+        this.loadReturns(saved.id);
       },
       error: (error) => {
         this.submitting = false;

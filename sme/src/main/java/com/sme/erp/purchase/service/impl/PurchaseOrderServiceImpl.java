@@ -101,7 +101,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
 
         CalculationResult calculation = buildItems(entity, dto.getItems());
-        entity.setItems(calculation.items());
+        replaceItems(entity, calculation.items());
         entity.setTotalAmount(calculation.totalAmount());
         entity.setDiscountAmount(calculation.discountAmount());
         entity.setTaxAmount(calculation.taxAmount());
@@ -134,6 +134,11 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                     item.getQuantity(),
                     item.getUnitPrice());
         }
+    }
+
+    private void replaceItems(PurchaseOrder purchaseOrder, List<PurchaseItem> items) {
+        purchaseOrder.getItems().clear();
+        purchaseOrder.getItems().addAll(items);
     }
 
     private CalculationResult buildItems(PurchaseOrder purchaseOrder, List<PurchaseItemDTO> itemDTOs) {
