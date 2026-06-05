@@ -102,7 +102,9 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
             stockService.stockOut(
                     item.getProduct().getId(),
                     warehouseId,
-                    item.getQuantity());
+                    item.getQuantity(),
+                    "PURCHASE_RETURN",
+                    purchaseReturn.getReturnCode());
         }
     }
 

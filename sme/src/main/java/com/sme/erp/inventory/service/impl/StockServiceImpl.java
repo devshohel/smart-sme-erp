@@ -55,6 +55,18 @@ public class StockServiceImpl implements StockService {
     @Override
     @Transactional
     public StockDTO stockIn(Long productId, Long warehouseId, BigDecimal qty, BigDecimal unitCost) {
+        return stockIn(productId, warehouseId, qty, unitCost, "PURCHASE", null);
+    }
+
+    @Override
+    @Transactional
+    public StockDTO stockIn(
+            Long productId,
+            Long warehouseId,
+            BigDecimal qty,
+            BigDecimal unitCost,
+            String referenceType,
+            String referenceNo) {
         validatePositiveId(productId, "Product id");
         validatePositiveId(warehouseId, "Warehouse id");
         validatePositiveAmount(qty, "Quantity");
@@ -65,7 +77,7 @@ public class StockServiceImpl implements StockService {
         stock.setQuantity(stock.getQuantity().add(qty));
         saveStockOrThrowConflict(stock);
 
-        saveMovement(stock, qty, MovementType.IN, "PURCHASE", null, unitCost);
+        saveMovement(stock, qty, MovementType.IN, normalizeReferenceType(referenceType, "PURCHASE"), referenceNo, unitCost);
 
         return stockMapper.toDTO(stock);
     }
@@ -74,6 +86,12 @@ public class StockServiceImpl implements StockService {
     @Override
     @Transactional
     public StockDTO stockOut(Long productId, Long warehouseId, BigDecimal qty) {
+        return stockOut(productId, warehouseId, qty, "SALE", null);
+    }
+
+    @Override
+    @Transactional
+    public StockDTO stockOut(Long productId, Long warehouseId, BigDecimal qty, String referenceType, String referenceNo) {
         validatePositiveId(productId, "Product id");
         validatePositiveId(warehouseId, "Warehouse id");
         validatePositiveAmount(qty, "Quantity");
@@ -87,7 +105,7 @@ public class StockServiceImpl implements StockService {
         stock.setQuantity(stock.getQuantity().subtract(qty));
         saveStockOrThrowConflict(stock);
 
-        saveMovement(stock, qty, MovementType.OUT, "SALE", null, null);
+        saveMovement(stock, qty, MovementType.OUT, normalizeReferenceType(referenceType, "SALE"), referenceNo, null);
 
         return stockMapper.toDTO(stock);
     }
@@ -231,5 +249,12 @@ public class StockServiceImpl implements StockService {
         if (reason == null || reason.trim().isEmpty()) {
             throw new BadRequestException("Reason is required");
         }
+    }
+
+    private String normalizeReferenceType(String referenceType, String fallback) {
+        if (referenceType == null || referenceType.trim().isEmpty()) {
+            return fallback;
+        }
+        return referenceType.trim();
     }
 }

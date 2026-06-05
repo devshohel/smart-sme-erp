@@ -102,7 +102,9 @@ public class SalesReturnServiceImpl implements SalesReturnService {
                     item.getProduct().getId(),
                     warehouseId,
                     item.getQuantity(),
-                    item.getUnitPrice());
+                    item.getUnitPrice(),
+                    "SALES_RETURN",
+                    salesReturn.getReturnCode());
         }
     }
 

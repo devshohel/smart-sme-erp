@@ -135,7 +135,9 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
             stockService.stockOut(
                     item.getProduct().getId(),
                     warehouseId,
-                    item.getQuantity());
+                    item.getQuantity(),
+                    "SALES_INVOICE",
+                    invoice.getInvoiceNo());
         }
     }
 

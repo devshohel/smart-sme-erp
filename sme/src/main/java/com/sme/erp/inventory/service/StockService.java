@@ -9,7 +9,17 @@ public interface StockService {
 
 	StockDTO stockIn(Long productId, Long warehouseId, BigDecimal qty, BigDecimal unitCost);
 
+    StockDTO stockIn(
+            Long productId,
+            Long warehouseId,
+            BigDecimal qty,
+            BigDecimal unitCost,
+            String referenceType,
+            String referenceNo);
+
     StockDTO stockOut(Long productId, Long warehouseId, BigDecimal  qty);
+
+    StockDTO stockOut(Long productId, Long warehouseId, BigDecimal qty, String referenceType, String referenceNo);
     
     StockDTO adjustStock(Long productId, Long warehouseId, BigDecimal qty, String reason);
 

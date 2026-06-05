@@ -132,7 +132,9 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                     item.getProduct().getId(),
                     warehouseId,
                     item.getQuantity(),
-                    item.getUnitPrice());
+                    item.getUnitPrice(),
+                    "PURCHASE_RECEIVE",
+                    purchaseOrder.getPurchaseCode());
         }
     }
 

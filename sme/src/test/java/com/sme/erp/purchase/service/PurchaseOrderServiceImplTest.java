@@ -90,6 +90,7 @@ class PurchaseOrderServiceImplTest {
         assertThat(result.getNetTotal()).isEqualByComparingTo("13.50");
         assertThat(result.getDueAmount()).isEqualByComparingTo("13.50");
         verify(stockService, never()).stockIn(any(), any(), any(), any());
+        verify(stockService, never()).stockIn(any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -103,7 +104,13 @@ class PurchaseOrderServiceImplTest {
 
         service.update(10L, dto);
 
-        verify(stockService).stockIn(4L, 3L, new BigDecimal("2.00"), new BigDecimal("7.00"));
+        verify(stockService).stockIn(
+                4L,
+                3L,
+                new BigDecimal("2.00"),
+                new BigDecimal("7.00"),
+                "PURCHASE_RECEIVE",
+                "PO-0010");
     }
 
     @Test
@@ -118,6 +125,7 @@ class PurchaseOrderServiceImplTest {
         service.update(10L, dto);
 
         verify(stockService, never()).stockIn(any(), any(), any(), any());
+        verify(stockService, never()).stockIn(any(), any(), any(), any(), any(), any());
     }
 
     private void mockReferences(PurchaseOrder existing, PurchaseOrderDTO dto) {

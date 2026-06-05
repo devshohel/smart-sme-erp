@@ -70,7 +70,7 @@ class PurchaseReturnServiceImplTest {
 
         service.create(dto);
 
-        verify(stockService).stockOut(4L, 3L, new BigDecimal("2.00"));
+        verify(stockService).stockOut(4L, 3L, new BigDecimal("2.00"), "PURCHASE_RETURN", "PR-0001");
     }
 
     private PurchaseReturnDTO returnDto() {

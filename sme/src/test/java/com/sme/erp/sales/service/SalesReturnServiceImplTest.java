@@ -64,7 +64,13 @@ class SalesReturnServiceImplTest {
 
         service.create(dto);
 
-        verify(stockService).stockIn(4L, 3L, new BigDecimal("2.00"), new BigDecimal("6.00"));
+        verify(stockService).stockIn(
+                4L,
+                3L,
+                new BigDecimal("2.00"),
+                new BigDecimal("6.00"),
+                "SALES_RETURN",
+                "SR-0001");
     }
 
     private SalesReturnDTO returnDto() {

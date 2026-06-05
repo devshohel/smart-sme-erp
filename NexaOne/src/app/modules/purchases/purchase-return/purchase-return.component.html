@@ -6,7 +6,7 @@
 
   <div class="row g-4">
     <div class="col-12">
-      <app-card title="Purchase Return List" subtitle="Saved purchase returns from API or local fallback state.">
+      <app-card title="Purchase Return List" subtitle="Saved purchase returns loaded from backend.">
         <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
 
         <div class="table-responsive">
@@ -58,7 +58,7 @@
     </div>
 
     <div class="col-12">
-      <app-card title="Create Purchase Return" subtitle="Stock receive/return and supplier ledger will be connected later.">
+      <app-card title="Create Purchase Return" subtitle="Returned purchase items deduct stock after backend save.">
         <div class="purchase-return-form-shell">
         <form [formGroup]="form" (ngSubmit)="saveReturn()" novalidate>
           <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>

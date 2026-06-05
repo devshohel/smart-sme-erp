@@ -1,10 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, of } from 'rxjs';
-import { catchError, map, take, tap } from 'rxjs/operators';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { map, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { PurchaseOrder, PurchaseReturn } from '../models/purchase.model';
-import { debugApiError } from '../shared/utils/api-error.util';
 import { ApiResponse, unwrapApiResponse } from '../shared/utils/api-response.util';
 
 @Injectable({
@@ -23,11 +22,7 @@ export class PurchaseService {
       .get<PurchaseOrder[] | ApiResponse<PurchaseOrder[]>>(this.ordersUrl)
       .pipe(
         map(response => unwrapApiResponse(response).map(order => this.normalizeOrder(order))),
-        tap(orders => this.ordersSubject.next(orders)),
-        catchError((error) => {
-          debugApiError('PurchaseService.getAllOrders', error);
-          return this.ordersSubject.pipe(take(1));
-        })
+        tap(orders => this.ordersSubject.next(orders))
       );
   }
 
@@ -35,15 +30,7 @@ export class PurchaseService {
     return this.http
       .get<PurchaseOrder | ApiResponse<PurchaseOrder>>(`${this.ordersUrl}/${id}`)
       .pipe(
-        map(response => this.normalizeOrder(unwrapApiResponse(response))),
-        catchError((error) => {
-          debugApiError('PurchaseService.getOrderById', error);
-          const fallback = this.ordersSubject.value.find(item => item.id === id);
-          if (fallback) {
-            return of(fallback);
-          }
-          throw error;
-        })
+        map(response => this.normalizeOrder(unwrapApiResponse(response)))
       );
   }
 
@@ -64,11 +51,7 @@ export class PurchaseService {
       .get<PurchaseReturn[] | ApiResponse<PurchaseReturn[]>>(this.returnsUrl)
       .pipe(
         map(response => unwrapApiResponse(response).map(item => this.normalizeReturn(item))),
-        tap(items => this.returnsSubject.next(items)),
-        catchError((error) => {
-          debugApiError('PurchaseService.getAllReturns', error);
-          return this.returnsSubject.pipe(take(1));
-        })
+        tap(items => this.returnsSubject.next(items))
       );
   }
 
@@ -76,15 +59,7 @@ export class PurchaseService {
     return this.http
       .get<PurchaseReturn | ApiResponse<PurchaseReturn>>(`${this.returnsUrl}/${id}`)
       .pipe(
-        map(response => this.normalizeReturn(unwrapApiResponse(response))),
-        catchError((error) => {
-          debugApiError('PurchaseService.getReturnById', error);
-          const fallback = this.returnsSubject.value.find(item => item.id === id);
-          if (fallback) {
-            return of(fallback);
-          }
-          throw error;
-        })
+        map(response => this.normalizeReturn(unwrapApiResponse(response)))
       );
   }
 

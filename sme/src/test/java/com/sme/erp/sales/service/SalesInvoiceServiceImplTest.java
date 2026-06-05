@@ -69,7 +69,7 @@ class SalesInvoiceServiceImplTest {
 
         service.create(dto);
 
-        verify(stockService).stockOut(4L, 3L, new BigDecimal("2.00"));
+        verify(stockService).stockOut(4L, 3L, new BigDecimal("2.00"), "SALES_INVOICE", "INV-0001");
     }
 
     @Test
@@ -90,6 +90,7 @@ class SalesInvoiceServiceImplTest {
         service.update(8L, dto);
 
         verify(stockService, never()).stockOut(any(), any(), any());
+        verify(stockService, never()).stockOut(any(), any(), any(), any(), any());
     }
 
     private SalesInvoiceDTO invoiceDto(SalesInvoiceStatus status) {
