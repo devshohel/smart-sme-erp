@@ -1,0 +1,30 @@
+<div class="login-page">
+  <section class="login-panel">
+    <div class="brand-mark">
+      <i class="bi bi-intersect"></i>
+      <span>Nexa<span>One</span></span>
+    </div>
+    <h1>ERP Login</h1>
+    <p>Sign in to continue to Smart SME ERP.</p>
+
+    <form (ngSubmit)="login()" class="login-form">
+      <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+      <label class="form-label">Username</label>
+      <input class="form-control" name="username" [(ngModel)]="username" autocomplete="username" required>
+
+      <label class="form-label mt-3">Password</label>
+      <div class="input-group">
+        <input class="form-control" name="password" [(ngModel)]="password" [type]="showPassword ? 'text' : 'password'" autocomplete="current-password" required>
+        <button class="btn btn-outline-secondary" type="button" (click)="showPassword = !showPassword">
+          <i class="bi" [ngClass]="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+        </button>
+      </div>
+
+      <button class="btn btn-success w-100 mt-4" type="submit" [disabled]="loading">
+        <span class="spinner-border spinner-border-sm me-2" *ngIf="loading"></span>
+        {{ loading ? 'Signing in...' : 'Login' }}
+      </button>
+    </form>
+  </section>
+</div>

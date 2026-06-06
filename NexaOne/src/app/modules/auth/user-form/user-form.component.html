@@ -1,0 +1,57 @@
+<div class="container-fluid p-4">
+  <app-page-header
+    [title]="isEdit ? 'Edit User' : 'Create User'"
+    subtitle="Set login identity, role, and account status.">
+  </app-page-header>
+
+  <app-card [title]="isEdit ? 'User Details' : 'New User'" subtitle="Passwords are stored with BCrypt encryption.">
+    <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div class="text-muted py-4" *ngIf="loading">Loading user...</div>
+
+    <form (ngSubmit)="save()" *ngIf="!loading">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Name</label>
+          <input class="form-control" name="name" [(ngModel)]="user.name" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Username</label>
+          <input class="form-control" name="username" [(ngModel)]="user.username" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Email</label>
+          <input class="form-control" type="email" name="email" [(ngModel)]="user.email" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Phone</label>
+          <input class="form-control" name="phone" [(ngModel)]="user.phone">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Role</label>
+          <select class="form-select" name="roleId" [(ngModel)]="user.roleId" required>
+            <option [ngValue]="null">Select Role</option>
+            <option *ngFor="let role of roles" [ngValue]="role.id">{{ role.roleName }}</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Status</label>
+          <select class="form-select" name="status" [(ngModel)]="user.status">
+            <option *ngFor="let status of statusList" [value]="status">{{ status }}</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">{{ isEdit ? 'New Password' : 'Password' }}</label>
+          <input class="form-control" type="password" name="password" [(ngModel)]="user.password" [required]="!isEdit">
+          <div class="form-text" *ngIf="isEdit">Leave blank to keep the current password.</div>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-4">
+        <button class="btn btn-outline-secondary" type="button" (click)="cancel()">Cancel</button>
+        <button class="btn btn-success" type="submit" [disabled]="saving">
+          {{ saving ? 'Saving...' : 'Save User' }}
+        </button>
+      </div>
+    </form>
+  </app-card>
+</div>

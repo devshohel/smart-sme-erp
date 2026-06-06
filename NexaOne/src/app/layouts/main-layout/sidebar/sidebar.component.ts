@@ -1,4 +1,5 @@
 import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
+import { AuthService } from '../../../modules/auth/auth.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -17,8 +18,9 @@ export class SidebarComponent {
   isSuppliersOpen = true;
   isPurchasesOpen = true;
   isReportsOpen = true;
+  isSettingsOpen = true;
 
-  constructor() {
+  constructor(private authService: AuthService) {
     this.checkScreenSize();
   }
 
@@ -53,6 +55,14 @@ export class SidebarComponent {
 
   toggleReports(): void {
     this.isReportsOpen = !this.isReportsOpen;
+  }
+
+  toggleSettings(): void {
+    this.isSettingsOpen = !this.isSettingsOpen;
+  }
+
+  logout(): void {
+    this.authService.logout();
   }
 
   closeSidebar(): void {
