@@ -1,81 +1,275 @@
-<div class="dashboard-wrapper">
-  <div class="row g-4">
-    <div class="col-md-3">
-      <div class="nexa-card border-start border-success border-4">
-        <div class="card-content">
-          <p class="label">Total Customers</p>
-          <h2 class="value">450</h2>
-          <span class="trend up text-success"><i class="bi bi-arrow-up"></i> 10% Increase</span>
-        </div>
-      </div>
+<div class="dashboard-page">
+  <div class="dashboard-header">
+    <div>
+      <h1>Dashboard</h1>
+      <p>Business position from current sales, purchase, inventory, customer, and supplier data.</p>
     </div>
-    
-    <div class="col-md-3">
-      <div class="nexa-card border-start border-primary border-4">
-        <div class="card-content">
-          <p class="label">Today's Sales</p>
-          <h2 class="value">৳ 1,250</h2>
-          <span class="trend up text-primary"><i class="bi bi-arrow-up"></i> 5% vs Yesterday</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-3">
-      <div class="nexa-card border-start border-warning border-4">
-        <div class="card-content">
-          <p class="label">Total Stock</p>
-          <h2 class="value">1,820</h2>
-          <span class="trend text-warning">15 Items Low</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-3">
-      <div class="nexa-card border-start border-danger border-4">
-        <div class="card-content">
-          <p class="label">Today's Expense</p>
-          <h2 class="value">৳ 240</h2>
-          <span class="trend text-danger">Within Budget</span>
-        </div>
-      </div>
-    </div>
+    <button type="button" class="btn btn-outline-success btn-sm" (click)="loadSummary()" [disabled]="loading">
+      <i class="bi bi-arrow-clockwise me-1"></i>{{ loading ? 'Refreshing' : 'Refresh' }}
+    </button>
   </div>
 
-  <div class="mt-5">
-    <div class="nexa-card">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h5 class="fw-bold m-0">Recent Transactions</h5>
-        <button class="btn btn-sm btn-outline-success">View All</button>
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="dashboard-loading" *ngIf="loading && !summary">Loading dashboard data...</div>
+
+  <ng-container *ngIf="summary as data">
+    <div class="row g-3 mb-3">
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="metric-card accent-green">
+          <span>Today's Sales</span>
+          <strong>BDT {{ data.todaySales | number:'1.2-2' }}</strong>
+          <small>Confirmed sales invoices today</small>
+        </div>
       </div>
-      <div class="table-responsive">
-        <table class="table table-hover align-middle">
-          <thead class="table-light">
-            <tr>
-              <th>Invoice</th>
-              <th>Customer</th>
-              <th>Product</th>
-              <th>Amount</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>#INV-001</td>
-              <td>Abdur Rahim</td>
-              <td>Monitor</td>
-              <td>৳ 850</td>
-              <td><span class="badge bg-success-subtle text-success p-2">Paid</span></td>
-            </tr>
-            <tr>
-              <td>#INV-002</td>
-              <td>John Doe</td>
-              <td>Keyboard</td>
-              <td>৳ 45</td>
-              <td><span class="badge bg-warning-subtle text-warning p-2">Pending</span></td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="metric-card accent-blue">
+          <span>Today's Purchase</span>
+          <strong>BDT {{ data.todayPurchase | number:'1.2-2' }}</strong>
+          <small>Non-cancelled purchase net total</small>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="metric-card accent-amber">
+          <span>Today's Expense</span>
+          <strong>BDT {{ data.todayExpense | number:'1.2-2' }}</strong>
+          <small>Expense module not implemented yet</small>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="metric-card accent-profit">
+          <span>Today's Profit</span>
+          <strong>BDT {{ data.todayProfit | number:'1.2-2' }}</strong>
+          <small>Sales - purchase - expense</small>
+        </div>
       </div>
     </div>
-  </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="metric-card">
+          <span>Total Stock Value</span>
+          <strong>BDT {{ data.totalStockValue | number:'1.2-2' }}</strong>
+          <small>Quantity x purchase price</small>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="metric-card">
+          <span>Customer Due</span>
+          <strong>BDT {{ data.customerDue | number:'1.2-2' }}</strong>
+          <small>Open sales invoice due</small>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="metric-card">
+          <span>Supplier Due</span>
+          <strong>BDT {{ data.supplierDue | number:'1.2-2' }}</strong>
+          <small>Open purchase due</small>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="metric-card">
+          <span>Net Profit</span>
+          <strong>BDT {{ data.netProfit | number:'1.2-2' }}</strong>
+          <small>Total sales - purchase - expense</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="metric-card">
+          <span>Total Customers</span>
+          <strong>{{ data.totalCustomers | number }}</strong>
+          <small>Active customer master rows</small>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="metric-card">
+          <span>Total Suppliers</span>
+          <strong>{{ data.totalSuppliers | number }}</strong>
+          <small>Active supplier master rows</small>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="metric-card">
+          <span>Low Stock Items</span>
+          <strong>{{ data.lowStockItemsCount | number }}</strong>
+          <small>At or below reorder level</small>
+        </div>
+      </div>
+      <div class="col-12 col-sm-6 col-xl-3">
+        <div class="metric-card">
+          <span>This Month Profit</span>
+          <strong>BDT {{ data.thisMonthProfit | number:'1.2-2' }}</strong>
+          <small>Current month simplified profit</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+      <div class="col-12 col-xl-7">
+        <section class="dashboard-card chart-card">
+          <div class="section-heading">
+            <div>
+              <h2>Monthly Sales vs Purchase</h2>
+              <p>Last six months net totals</p>
+            </div>
+          </div>
+
+          <div class="empty-state" *ngIf="data.monthlySalesPurchase.length === 0">No data available yet.</div>
+          <div class="monthly-chart" *ngIf="data.monthlySalesPurchase.length > 0">
+            <div class="chart-column" *ngFor="let row of data.monthlySalesPurchase; trackBy: trackByMonth">
+              <div class="chart-bars">
+                <div class="bar sales" [style.height.px]="barHeight(row.sales)" title="Sales"></div>
+                <div class="bar purchase" [style.height.px]="barHeight(row.purchase)" title="Purchase"></div>
+              </div>
+              <span>{{ row.month }}</span>
+            </div>
+          </div>
+          <div class="chart-legend">
+            <span><i class="legend-dot sales"></i>Sales</span>
+            <span><i class="legend-dot purchase"></i>Purchase</span>
+          </div>
+        </section>
+      </div>
+
+      <div class="col-12 col-xl-5">
+        <section class="dashboard-card chart-card">
+          <div class="section-heading">
+            <div>
+              <h2>Monthly Profit Trend</h2>
+              <p>Simplified profit by month</p>
+            </div>
+          </div>
+
+          <div class="empty-state" *ngIf="profitTrendRows().length === 0">No data available yet.</div>
+          <div class="profit-list" *ngIf="profitTrendRows().length > 0">
+            <div class="profit-row" *ngFor="let row of profitTrendRows(); trackBy: trackByMonth">
+              <span>{{ row.month }}</span>
+              <strong>BDT {{ row.profit | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+
+          <div class="top-products">
+            <h3>Top Selling Products</h3>
+            <div class="empty-state compact" *ngIf="data.topSellingProducts.length === 0">No data available yet.</div>
+            <div class="product-row" *ngFor="let product of data.topSellingProducts">
+              <div>
+                <span>{{ product.productName || 'Unnamed Product' }}</span>
+                <small>Qty {{ product.quantity | number:'1.0-2' }}</small>
+              </div>
+              <strong>BDT {{ product.amount | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-12 col-xl-4">
+        <section class="dashboard-card">
+          <div class="section-heading">
+            <div>
+              <h2>Low Stock Alerts</h2>
+              <p>Items needing attention</p>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Warehouse</th>
+                  <th class="text-end">Qty</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of data.lowStockAlerts">
+                  <td>
+                    <strong>{{ item.productName }}</strong>
+                    <small class="d-block text-muted">Reorder {{ item.reorderLevel | number:'1.0-2' }}</small>
+                  </td>
+                  <td>{{ item.warehouseName }}</td>
+                  <td class="text-end">{{ item.quantity | number:'1.0-2' }}</td>
+                </tr>
+                <tr *ngIf="data.lowStockAlerts.length === 0">
+                  <td colspan="3" class="empty-table">No data available yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <div class="col-12 col-xl-4">
+        <section class="dashboard-card">
+          <div class="section-heading">
+            <div>
+              <h2>Due Alerts</h2>
+              <p>Customer and supplier balances</p>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Party</th>
+                  <th>Ref</th>
+                  <th class="text-end">Due</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of data.dueAlerts">
+                  <td>
+                    <strong>{{ item.partyName }}</strong>
+                    <small class="d-block text-muted">{{ item.type }}</small>
+                  </td>
+                  <td>{{ item.referenceNo }}</td>
+                  <td class="text-end">BDT {{ item.dueAmount | number:'1.2-2' }}</td>
+                </tr>
+                <tr *ngIf="data.dueAlerts.length === 0">
+                  <td colspan="3" class="empty-table">No data available yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <div class="col-12 col-xl-4">
+        <section class="dashboard-card">
+          <div class="section-heading">
+            <div>
+              <h2>Recent Transactions</h2>
+              <p>Latest sales and purchases</p>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Transaction</th>
+                  <th class="text-end">Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of data.recentTransactions">
+                  <td>
+                    <strong>{{ item.referenceNo }}</strong>
+                    <small class="d-block text-muted">{{ item.type }} - {{ item.partyName }}</small>
+                  </td>
+                  <td class="text-end">BDT {{ item.amount | number:'1.2-2' }}</td>
+                  <td><span class="status-badge" [ngClass]="statusClass(item.status)">{{ item.status }}</span></td>
+                </tr>
+                <tr *ngIf="data.recentTransactions.length === 0">
+                  <td colspan="3" class="empty-table">No data available yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  </ng-container>
 </div>
