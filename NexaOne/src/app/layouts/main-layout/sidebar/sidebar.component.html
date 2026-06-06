@@ -147,10 +147,36 @@
       </div>
     </div>
 
-    <a routerLink="/reports" routerLinkActive="active" class="side-link d-flex align-items-center px-3 py-2 my-1" (click)="closeSidebar()">
-      <i class="bi bi-bar-chart-line icon fs-5 me-3"></i>
-      <span>Reports</span>
-    </a>
+    <div class="menu-dropdown-item">
+      <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         (click)="toggleReports()"
+         role="button"
+         [attr.aria-expanded]="isReportsOpen">
+        <i class="bi bi-bar-chart-line icon fs-5 me-3"></i>
+        <span>Reports</span>
+      </a>
+
+      <div class="submenu" [class.show]="isReportsOpen">
+        <a routerLink="/reports/sales" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-graph-up me-2"></i> Sales Report
+        </a>
+        <a routerLink="/reports/purchases" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-bag-check me-2"></i> Purchase Report
+        </a>
+        <a routerLink="/reports/stock" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-box-seam me-2"></i> Stock Report
+        </a>
+        <a routerLink="/reports/customer-dues" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-person-check me-2"></i> Customer Due Report
+        </a>
+        <a routerLink="/reports/supplier-dues" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-truck me-2"></i> Supplier Due Report
+        </a>
+        <a routerLink="/reports/profit-loss" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-cash-coin me-2"></i> Profit & Loss Summary
+        </a>
+      </div>
+    </div>
 
     <a routerLink="/settings" routerLinkActive="active" class="side-link d-flex align-items-center px-3 py-2 my-1" (click)="closeSidebar()">
       <i class="bi bi-gear icon fs-5 me-3"></i>

@@ -1,1 +1,172 @@
-<p>reports works!</p>
+<div class="reports-page">
+  <div class="reports-header">
+    <div>
+      <h1>{{ title }}</h1>
+      <p>Read-only ERP analytics from existing sales, purchase, inventory, customer, and supplier records.</p>
+    </div>
+    <div class="export-actions">
+      <button class="btn btn-outline-secondary btn-sm" type="button" (click)="exportPlaceholder('PDF')">
+        <i class="bi bi-file-earmark-pdf me-1"></i> Export PDF
+      </button>
+      <button class="btn btn-outline-secondary btn-sm" type="button" (click)="exportPlaceholder('Excel')">
+        <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export Excel
+      </button>
+    </div>
+  </div>
+
+  <div class="filter-panel" *ngIf="showDateFilters || reportType === 'sales' || reportType === 'purchases' || reportType === 'stock'">
+    <div class="quick-filters" *ngIf="showDateFilters">
+      <button class="btn btn-light btn-sm" type="button" (click)="setPeriod('today')">Daily</button>
+      <button class="btn btn-light btn-sm" type="button" (click)="setPeriod('month')">Monthly</button>
+    </div>
+
+    <div class="filter-grid">
+      <label *ngIf="showDateFilters">
+        <span>Start Date</span>
+        <input class="form-control form-control-sm" type="date" [(ngModel)]="filters.startDate">
+      </label>
+      <label *ngIf="showDateFilters">
+        <span>End Date</span>
+        <input class="form-control form-control-sm" type="date" [(ngModel)]="filters.endDate">
+      </label>
+      <label *ngIf="reportType === 'sales'">
+        <span>Customer</span>
+        <select class="form-select form-select-sm" [(ngModel)]="filters.customerId">
+          <option [ngValue]="null">All Customers</option>
+          <option *ngFor="let customer of customers" [ngValue]="customer.id">{{ customer.name }}</option>
+        </select>
+      </label>
+      <label *ngIf="reportType === 'purchases'">
+        <span>Supplier</span>
+        <select class="form-select form-select-sm" [(ngModel)]="filters.supplierId">
+          <option [ngValue]="null">All Suppliers</option>
+          <option *ngFor="let supplier of suppliers" [ngValue]="supplier.id">{{ supplier.name }}</option>
+        </select>
+      </label>
+      <label *ngIf="reportType === 'sales' || reportType === 'stock'">
+        <span>Product</span>
+        <select class="form-select form-select-sm" [(ngModel)]="filters.productId">
+          <option [ngValue]="null">All Products</option>
+          <option *ngFor="let product of products" [ngValue]="product.id">{{ product.productName }}</option>
+        </select>
+      </label>
+      <label *ngIf="reportType === 'stock'">
+        <span>Warehouse</span>
+        <select class="form-select form-select-sm" [(ngModel)]="filters.warehouseId">
+          <option [ngValue]="null">All Warehouses</option>
+          <option *ngFor="let warehouse of warehouses" [ngValue]="warehouse.id">{{ warehouse.name }}</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="filter-actions">
+      <button class="btn btn-success btn-sm" type="button" (click)="loadReport()">
+        <i class="bi bi-funnel me-1"></i> Apply Filters
+      </button>
+    </div>
+  </div>
+
+  <div class="kpi-grid" *ngIf="reportType === 'sales' && salesReport">
+    <div class="kpi-card"><span>Total Sales</span><strong>{{ salesReport.totalSales | currency }}</strong></div>
+    <div class="kpi-card accent-blue"><span>Total Paid</span><strong>{{ salesReport.totalPaid | currency }}</strong></div>
+    <div class="kpi-card accent-amber"><span>Total Due</span><strong>{{ salesReport.totalDue | currency }}</strong></div>
+    <div class="kpi-card accent-neutral"><span>Total Invoices</span><strong>{{ salesReport.totalInvoices }}</strong></div>
+  </div>
+
+  <div class="kpi-grid" *ngIf="reportType === 'purchases' && purchaseReport">
+    <div class="kpi-card"><span>Total Purchase</span><strong>{{ purchaseReport.totalPurchase | currency }}</strong></div>
+    <div class="kpi-card accent-blue"><span>Total Paid</span><strong>{{ purchaseReport.totalPaid | currency }}</strong></div>
+    <div class="kpi-card accent-amber"><span>Total Due</span><strong>{{ purchaseReport.totalDue | currency }}</strong></div>
+    <div class="kpi-card accent-neutral"><span>Total Orders</span><strong>{{ purchaseReport.totalOrders }}</strong></div>
+  </div>
+
+  <div class="kpi-grid" *ngIf="reportType === 'stock' && stockReport">
+    <div class="kpi-card"><span>Total Stock Quantity</span><strong>{{ stockReport.totalStockQuantity | number:'1.0-2' }}</strong></div>
+    <div class="kpi-card accent-blue"><span>Total Stock Value</span><strong>{{ stockReport.totalStockValue | currency }}</strong></div>
+    <div class="kpi-card accent-amber"><span>Low Stock Count</span><strong>{{ stockReport.lowStockCount }}</strong></div>
+  </div>
+
+  <div class="kpi-grid two" *ngIf="reportType === 'customer-dues' && customerDueReport">
+    <div class="kpi-card accent-amber"><span>Total Customer Due</span><strong>{{ customerDueReport.totalCustomerDue | currency }}</strong></div>
+    <div class="kpi-card accent-neutral"><span>Customers With Due</span><strong>{{ customerDueReport.totalCustomersWithDue }}</strong></div>
+  </div>
+
+  <div class="kpi-grid two" *ngIf="reportType === 'supplier-dues' && supplierDueReport">
+    <div class="kpi-card accent-amber"><span>Total Supplier Due</span><strong>{{ supplierDueReport.totalSupplierDue | currency }}</strong></div>
+    <div class="kpi-card accent-neutral"><span>Suppliers With Due</span><strong>{{ supplierDueReport.totalSuppliersWithDue }}</strong></div>
+  </div>
+
+  <div class="kpi-grid" *ngIf="reportType === 'profit-loss' && profitLossSummary">
+    <div class="kpi-card"><span>Revenue</span><strong>{{ profitLossSummary.revenue | currency }}</strong></div>
+    <div class="kpi-card accent-blue"><span>Purchase Cost</span><strong>{{ profitLossSummary.purchaseCost | currency }}</strong></div>
+    <div class="kpi-card accent-profit"><span>Gross Profit</span><strong>{{ profitLossSummary.grossProfit | currency }}</strong></div>
+    <div class="kpi-card accent-neutral"><span>Expense</span><strong>{{ profitLossSummary.expense | currency }}</strong></div>
+    <div class="kpi-card accent-amber"><span>Net Profit</span><strong>{{ profitLossSummary.netProfit | currency }}</strong></div>
+  </div>
+
+  <div class="report-card">
+    <div class="table-toolbar" *ngIf="reportType === 'stock'">
+      <button class="tab-button" [class.active]="stockTab === 'current'" type="button" (click)="stockTab = 'current'">Current Stock</button>
+      <button class="tab-button" [class.active]="stockTab === 'movements'" type="button" (click)="stockTab = 'movements'">Stock Movement</button>
+    </div>
+
+    <div class="loading-state" *ngIf="loading">
+      <span class="spinner-border spinner-border-sm me-2"></span> Loading report data...
+    </div>
+
+    <div class="empty-state text-danger" *ngIf="!loading && error">{{ error }}</div>
+    <div class="empty-state" *ngIf="!loading && !error && !hasRows">No report data found for the selected filters.</div>
+
+    <div class="table-responsive" *ngIf="!loading && !error && hasRows">
+      <table class="table report-table" *ngIf="reportType === 'sales' && salesReport">
+        <thead><tr><th>Invoice No</th><th>Customer</th><th>Date</th><th>Quantity</th><th>Amount</th><th>Paid</th><th>Due</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of salesReport.rows">
+            <td>{{ row.invoiceNo }}</td><td>{{ row.customer }}</td><td>{{ row.date | date:'mediumDate' }}</td>
+            <td>{{ row.quantity | number:'1.0-2' }}</td><td>{{ row.amount | currency }}</td><td>{{ row.paid | currency }}</td><td>{{ row.due | currency }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table class="table report-table" *ngIf="reportType === 'purchases' && purchaseReport">
+        <thead><tr><th>PO No</th><th>Supplier</th><th>Date</th><th>Amount</th><th>Paid</th><th>Due</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of purchaseReport.rows">
+            <td>{{ row.poNo }}</td><td>{{ row.supplier }}</td><td>{{ row.date | date:'mediumDate' }}</td>
+            <td>{{ row.amount | currency }}</td><td>{{ row.paid | currency }}</td><td>{{ row.due | currency }}</td><td><span class="status-pill">{{ row.status }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table class="table report-table" *ngIf="reportType === 'stock' && stockTab === 'current' && stockReport">
+        <thead><tr><th>Product</th><th>Warehouse</th><th>Quantity</th><th>Reorder Level</th><th>Stock Value</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of stockReport.rows">
+            <td>{{ row.product }}</td><td>{{ row.warehouse }}</td><td>{{ row.quantity | number:'1.0-2' }}</td>
+            <td>{{ row.reorderLevel | number:'1.0-0' }}</td><td>{{ row.stockValue | currency }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table class="table report-table" *ngIf="reportType === 'stock' && stockTab === 'movements' && stockReport">
+        <thead><tr><th>Date</th><th>Product</th><th>Movement Type</th><th>Quantity</th><th>Reference No</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of stockReport.movements">
+            <td>{{ row.date | date:'medium' }}</td><td>{{ row.product }}</td><td><span class="status-pill">{{ row.movementType }}</span></td>
+            <td>{{ row.quantity | number:'1.0-2' }}</td><td>{{ row.referenceNo || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table class="table report-table" *ngIf="reportType === 'customer-dues' && customerDueReport">
+        <thead><tr><th>Customer</th><th>Total Sales</th><th>Paid</th><th>Due</th></tr></thead>
+        <tbody><tr *ngFor="let row of customerDueReport.rows"><td>{{ row.customer }}</td><td>{{ row.totalSales | currency }}</td><td>{{ row.paid | currency }}</td><td>{{ row.due | currency }}</td></tr></tbody>
+      </table>
+
+      <table class="table report-table" *ngIf="reportType === 'supplier-dues' && supplierDueReport">
+        <thead><tr><th>Supplier</th><th>Total Purchase</th><th>Paid</th><th>Due</th></tr></thead>
+        <tbody><tr *ngFor="let row of supplierDueReport.rows"><td>{{ row.supplier }}</td><td>{{ row.totalPurchase | currency }}</td><td>{{ row.paid | currency }}</td><td>{{ row.due | currency }}</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
