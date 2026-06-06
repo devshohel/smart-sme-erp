@@ -1,6 +1,8 @@
 package com.sme.erp.product.service;
 
 import com.sme.erp.common.exception.DuplicateResourceException;
+import com.sme.erp.audit.service.ActivityLogService;
+import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.product.dto.ProductDTO;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.mapper.ProductMapper;
@@ -37,6 +39,10 @@ class ProductServiceImplTest {
     private ProductBrandRepository brandRepository;
     @Mock
     private UomRepository uomRepository;
+    @Mock
+    private ActivityLogService activityLogService;
+    @Mock
+    private AuditLogService auditLogService;
 
     private ProductServiceImpl service;
 
@@ -47,7 +53,9 @@ class ProductServiceImplTest {
                 new ProductMapper(),
                 categoryRepository,
                 brandRepository,
-                uomRepository);
+                uomRepository,
+                activityLogService,
+                auditLogService);
     }
 
     @Test

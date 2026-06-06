@@ -1,0 +1,141 @@
+<div class="container-fluid p-4">
+  <app-page-header title="Audit Logs" subtitle="Old and new values for important data changes."></app-page-header>
+
+  <app-card title="Filters">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-2">
+        <label class="form-label">From</label>
+        <input class="form-control" type="date" [(ngModel)]="filter.fromDate" name="auditFromDate">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">To</label>
+        <input class="form-control" type="date" [(ngModel)]="filter.toDate" name="auditToDate">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Username</label>
+        <input class="form-control" [(ngModel)]="filter.username" name="auditUsername">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Table/Module</label>
+        <input class="form-control" [(ngModel)]="filter.module" name="auditModule">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Action</label>
+        <input class="form-control" [(ngModel)]="filter.action" name="auditAction">
+      </div>
+      <div class="col-md-2 d-flex gap-2">
+        <button class="btn btn-success flex-fill" type="button" (click)="load()">Filter</button>
+        <button class="btn btn-outline-secondary" type="button" (click)="reset()">Reset</button>
+      </div>
+    </div>
+  </app-card>
+
+  <app-card title="Audit Log List">
+    <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div class="text-muted py-4" *ngIf="loading">Loading audit logs...</div>
+    <div class="text-muted py-4" *ngIf="!loading && !logs.length">No audit logs found.</div>
+
+    <div class="table-responsive" *ngIf="!loading && logs.length">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>User</th>
+            <th>Module/Table</th>
+            <th>Record</th>
+            <th>Action</th>
+            <th>Summary</th>
+            <th class="text-end">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let log of logs">
+            <td class="text-nowrap">{{ log.createdAt | date:'short' }}</td>
+            <td>{{ log.username || '-' }}</td>
+            <td>{{ log.tableName }}</td>
+            <td>{{ log.recordId || '-' }}</td>
+            <td><span class="badge" [ngClass]="badgeClass(log.action)">{{ log.action }}</span></td>
+            <td class="text-truncate" style="max-width: 340px;" [title]="summary(log)">{{ summary(log) }}</td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-primary" type="button" (click)="openDetails(log)">
+                View Details
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </app-card>
+
+  <div class="modal fade show d-block" tabindex="-1" role="dialog" *ngIf="selectedLog">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h5 class="modal-title mb-1">Audit Details</h5>
+            <div class="text-muted small">{{ summary(selectedLog) }}</div>
+          </div>
+          <button type="button" class="btn-close" aria-label="Close" (click)="closeDetails()"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <div class="text-muted small">User</div>
+              <div class="fw-semibold">{{ selectedLog.username || '-' }}</div>
+            </div>
+            <div class="col-md-4">
+              <div class="text-muted small">Date</div>
+              <div class="fw-semibold">{{ selectedLog.createdAt | date:'medium' }}</div>
+            </div>
+            <div class="col-md-4">
+              <div class="text-muted small">Action</div>
+              <span class="badge" [ngClass]="badgeClass(selectedLog.action)">{{ selectedLog.action }}</span>
+            </div>
+            <div class="col-md-4">
+              <div class="text-muted small">Table</div>
+              <div class="fw-semibold">{{ selectedLog.tableName }}</div>
+            </div>
+            <div class="col-md-4">
+              <div class="text-muted small">Record ID</div>
+              <div class="fw-semibold">{{ selectedLog.recordId || '-' }}</div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Field</th>
+                  <th *ngIf="isUpdate(selectedLog)">Old Value</th>
+                  <th *ngIf="isUpdate(selectedLog)">New Value</th>
+                  <th *ngIf="!isUpdate(selectedLog)">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of detailRows(selectedLog)">
+                  <td class="fw-semibold text-nowrap">{{ row.field }}</td>
+                  <td *ngIf="isUpdate(selectedLog)" class="text-break">{{ row.oldValue }}</td>
+                  <td *ngIf="isUpdate(selectedLog)" class="text-break">{{ row.newValue }}</td>
+                  <td *ngIf="!isUpdate(selectedLog)" class="text-break">
+                    {{ selectedLog.action === 'DELETE' ? row.oldValue : row.newValue }}
+                  </td>
+                </tr>
+                <tr *ngIf="detailRows(selectedLog).length === 0">
+                  <td [attr.colspan]="isUpdate(selectedLog) ? 3 : 2" class="text-center text-muted py-4">
+                    No field changes available.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" (click)="closeDetails()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show" *ngIf="selectedLog"></div>
+</div>

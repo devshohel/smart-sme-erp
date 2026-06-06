@@ -4,6 +4,8 @@ import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
+import com.sme.erp.audit.service.ActivityLogService;
+import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.inventory.entity.Warehouse;
 import com.sme.erp.inventory.repository.WarehouseRepository;
 import com.sme.erp.inventory.service.StockService;
@@ -39,6 +41,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final UomRepository uomRepository;
     private final PurchaseOrderMapper purchaseOrderMapper;
     private final StockService stockService;
+    private final ActivityLogService activityLogService;
+    private final AuditLogService auditLogService;
 
     public PurchaseOrderServiceImpl(
             PurchaseOrderRepository purchaseOrderRepository,
@@ -47,7 +51,9 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             ProductRepository productRepository,
             UomRepository uomRepository,
             PurchaseOrderMapper purchaseOrderMapper,
-            StockService stockService) {
+            StockService stockService,
+            ActivityLogService activityLogService,
+            AuditLogService auditLogService) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.supplierRepository = supplierRepository;
         this.warehouseRepository = warehouseRepository;
@@ -55,6 +61,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         this.uomRepository = uomRepository;
         this.purchaseOrderMapper = purchaseOrderMapper;
         this.stockService = stockService;
+        this.activityLogService = activityLogService;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -75,14 +83,20 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Transactional
     public PurchaseOrderDTO create(PurchaseOrderDTO dto) {
         PurchaseOrder entity = new PurchaseOrder();
-        return save(dto, entity);
+        PurchaseOrderDTO saved = save(dto, entity);
+        activityLogService.log("PURCHASE_CREATE", "PURCHASE", "purchase_orders", saved.getId(), "Created purchase order " + saved.getPurchaseCode());
+        auditLogService.log("purchase_orders", saved.getId(), null, auditLogService.toJson(saved), "CREATE");
+        return saved;
     }
 
     @Override
     @Transactional
     public PurchaseOrderDTO update(Long id, PurchaseOrderDTO dto) {
         PurchaseOrder entity = findPurchaseOrderById(id);
-        return save(dto, entity);
+        PurchaseOrderDTO oldData = purchaseOrderMapper.toDTO(entity);
+        PurchaseOrderDTO saved = save(dto, entity);
+        auditLogService.log("purchase_orders", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "UPDATE");
+        return saved;
     }
 
     private PurchaseOrderDTO save(PurchaseOrderDTO dto, PurchaseOrder entity) {
@@ -118,6 +132,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
         if (previousStatus != PurchaseStatus.RECEIVED && saved.getStatus() == PurchaseStatus.RECEIVED) {
             receiveStock(saved);
+            activityLogService.log("PURCHASE_RECEIVE", "PURCHASE", "purchase_orders", saved.getId(), "Received purchase order " + saved.getPurchaseCode());
         }
 
         // TODO Supplier ledger or payment integration should own future payable and advance balance movements.

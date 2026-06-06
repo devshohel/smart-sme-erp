@@ -8,6 +8,7 @@ import com.sme.erp.auth.repository.PermissionRepository;
 import com.sme.erp.auth.repository.RolePermissionRepository;
 import com.sme.erp.auth.repository.RoleRepository;
 import com.sme.erp.auth.service.RolePermissionService;
+import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.common.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,14 +21,17 @@ public class RolePermissionServiceImpl implements RolePermissionService {
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
     private final RolePermissionRepository rolePermissionRepository;
+    private final ActivityLogService activityLogService;
 
     public RolePermissionServiceImpl(
             RoleRepository roleRepository,
             PermissionRepository permissionRepository,
-            RolePermissionRepository rolePermissionRepository) {
+            RolePermissionRepository rolePermissionRepository,
+            ActivityLogService activityLogService) {
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
         this.rolePermissionRepository = rolePermissionRepository;
+        this.activityLogService = activityLogService;
     }
 
     @Override
@@ -57,7 +61,9 @@ public class RolePermissionServiceImpl implements RolePermissionService {
             rolePermissionRepository.save(rolePermission);
         });
 
-        return getRolePermissions(roleId);
+        List<PermissionDTO> updatedPermissions = getRolePermissions(roleId);
+        activityLogService.log("ROLE_PERMISSION_UPDATE", "ROLE", "role_permissions", roleId, "Updated permissions for role " + role.getRoleName());
+        return updatedPermissions;
     }
 
     private PermissionDTO toDto(Permission permission) {

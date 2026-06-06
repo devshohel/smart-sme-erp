@@ -1,0 +1,67 @@
+<div class="container-fluid p-4">
+  <app-page-header title="Login History" subtitle="Successful and failed authentication attempts."></app-page-header>
+
+  <app-card title="Filters">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label">From</label>
+        <input class="form-control" type="date" [(ngModel)]="filter.fromDate" name="loginFromDate">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">To</label>
+        <input class="form-control" type="date" [(ngModel)]="filter.toDate" name="loginToDate">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Username</label>
+        <input class="form-control" [(ngModel)]="filter.username" name="loginUsername">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Status</label>
+        <select class="form-select" [(ngModel)]="filter.action" name="loginStatus">
+          <option value="">All</option>
+          <option value="SUCCESS">SUCCESS</option>
+          <option value="FAILED">FAILED</option>
+        </select>
+      </div>
+      <div class="col-12 d-flex justify-content-end gap-2">
+        <button class="btn btn-success" type="button" (click)="load()">Filter</button>
+        <button class="btn btn-outline-secondary" type="button" (click)="reset()">Reset</button>
+      </div>
+    </div>
+  </app-card>
+
+  <app-card title="Login History List">
+    <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div class="text-muted py-4" *ngIf="loading">Loading login history...</div>
+    <div class="text-muted py-4" *ngIf="!loading && !rows.length">No login history found.</div>
+
+    <div class="table-responsive" *ngIf="!loading && rows.length">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Username</th>
+            <th>Status</th>
+            <th>IP</th>
+            <th>User Agent</th>
+            <th>Failure Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows">
+            <td>{{ row.createdAt | date:'short' }}</td>
+            <td>{{ row.username }}</td>
+            <td>
+              <span class="badge" [class.bg-success]="row.status === 'SUCCESS'" [class.bg-danger]="row.status === 'FAILED'">
+                {{ row.status }}
+              </span>
+            </td>
+            <td>{{ row.ipAddress || '-' }}</td>
+            <td class="text-break">{{ row.userAgent || '-' }}</td>
+            <td>{{ row.failureReason || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </app-card>
+</div>

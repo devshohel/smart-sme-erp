@@ -27,7 +27,8 @@ public class AuthDataSeeder implements CommandLineRunner {
             "SALES_VIEW", "SALES_CREATE", "SALES_EDIT", "SALES_DELETE",
             "DASHBOARD_VIEW", "REPORT_VIEW",
             "USER_VIEW", "USER_CREATE", "USER_EDIT", "USER_DELETE",
-            "ROLE_VIEW", "ROLE_EDIT");
+            "ROLE_VIEW", "ROLE_EDIT",
+            "AUDIT_VIEW", "ACTIVITY_VIEW");
 
     private static final List<String> MANAGER_PERMISSIONS = List.of(
             "DASHBOARD_VIEW",

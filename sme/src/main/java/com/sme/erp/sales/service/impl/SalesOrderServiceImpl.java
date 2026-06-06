@@ -4,6 +4,8 @@ import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
+import com.sme.erp.audit.service.ActivityLogService;
+import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.inventory.entity.Warehouse;
@@ -40,6 +42,8 @@ public class SalesOrderServiceImpl implements SalesOrderService {
     private final ProductRepository productRepository;
     private final UomRepository uomRepository;
     private final SalesOrderMapper salesOrderMapper;
+    private final ActivityLogService activityLogService;
+    private final AuditLogService auditLogService;
 
     public SalesOrderServiceImpl(
             SalesOrderRepository salesOrderRepository,
@@ -47,13 +51,17 @@ public class SalesOrderServiceImpl implements SalesOrderService {
             WarehouseRepository warehouseRepository,
             ProductRepository productRepository,
             UomRepository uomRepository,
-            SalesOrderMapper salesOrderMapper) {
+            SalesOrderMapper salesOrderMapper,
+            ActivityLogService activityLogService,
+            AuditLogService auditLogService) {
         this.salesOrderRepository = salesOrderRepository;
         this.customerRepository = customerRepository;
         this.warehouseRepository = warehouseRepository;
         this.productRepository = productRepository;
         this.uomRepository = uomRepository;
         this.salesOrderMapper = salesOrderMapper;
+        this.activityLogService = activityLogService;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -74,14 +82,20 @@ public class SalesOrderServiceImpl implements SalesOrderService {
     @Transactional
     public SalesOrderDTO create(SalesOrderDTO dto) {
         SalesOrder entity = new SalesOrder();
-        return save(dto, entity);
+        SalesOrderDTO saved = save(dto, entity);
+        activityLogService.log("SALES_CREATE", "SALES", "sales_orders", saved.getId(), "Created sales order " + saved.getOrderNo());
+        auditLogService.log("sales_orders", saved.getId(), null, auditLogService.toJson(saved), "CREATE");
+        return saved;
     }
 
     @Override
     @Transactional
     public SalesOrderDTO update(Long id, SalesOrderDTO dto) {
         SalesOrder entity = findOrderById(id);
-        return save(dto, entity);
+        SalesOrderDTO oldData = salesOrderMapper.toDTO(entity);
+        SalesOrderDTO saved = save(dto, entity);
+        auditLogService.log("sales_orders", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "UPDATE");
+        return saved;
     }
 
     private SalesOrderDTO save(SalesOrderDTO dto, SalesOrder entity) {

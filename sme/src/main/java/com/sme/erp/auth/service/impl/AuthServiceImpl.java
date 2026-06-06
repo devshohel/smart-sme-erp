@@ -7,6 +7,7 @@ import com.sme.erp.auth.repository.RolePermissionRepository;
 import com.sme.erp.auth.repository.UserRepository;
 import com.sme.erp.auth.security.JwtService;
 import com.sme.erp.auth.service.AuthService;
+import com.sme.erp.audit.service.LoginHistoryService;
 import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.enums.Status;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,30 +22,39 @@ public class AuthServiceImpl implements AuthService {
     private final RolePermissionRepository rolePermissionRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final LoginHistoryService loginHistoryService;
 
     public AuthServiceImpl(
             UserRepository userRepository,
             RolePermissionRepository rolePermissionRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
+            JwtService jwtService,
+            LoginHistoryService loginHistoryService) {
         this.userRepository = userRepository;
         this.rolePermissionRepository = rolePermissionRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.loginHistoryService = loginHistoryService;
     }
 
     @Override
     @Transactional
     public LoginResponseDTO login(LoginRequestDTO request) {
         User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new BadRequestException("Invalid username or password"));
+                .orElse(null);
+        if (user == null) {
+            loginHistoryService.failed(request.getUsername(), "Invalid username or password");
+            throw new BadRequestException("Invalid username or password");
+        }
         if (user.getStatus() != Status.ACTIVE || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            loginHistoryService.failed(request.getUsername(), "Invalid username or password");
             throw new BadRequestException("Invalid username or password");
         }
 
         LocalDateTime loginTime = LocalDateTime.now();
         user.setLastLogin(loginTime);
         userRepository.save(user);
+        loginHistoryService.success(user);
 
         return new LoginResponseDTO(
                 jwtService.generateToken(user),

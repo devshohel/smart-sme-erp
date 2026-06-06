@@ -178,7 +178,7 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item" *ngIf="hasPermission('USER_VIEW') || hasPermission('ROLE_VIEW')">
+    <div class="menu-dropdown-item" *ngIf="hasPermission('USER_VIEW') || hasPermission('ROLE_VIEW') || hasPermission('ACTIVITY_VIEW') || hasPermission('AUDIT_VIEW')">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          (click)="toggleSettings()"
          role="button"
@@ -193,6 +193,15 @@
         </a>
         <a *ngIf="hasPermission('ROLE_VIEW')" routerLink="/settings/roles-permissions" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-shield-lock me-2"></i> Roles & Permissions
+        </a>
+        <a *ngIf="hasPermission('ACTIVITY_VIEW')" routerLink="/settings/activity-logs" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-activity me-2"></i> Activity Logs
+        </a>
+        <a *ngIf="hasPermission('AUDIT_VIEW')" routerLink="/settings/audit-logs" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-journal-text me-2"></i> Audit Logs
+        </a>
+        <a *ngIf="hasPermission('AUDIT_VIEW')" routerLink="/settings/login-history" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-clock-history me-2"></i> Login History
         </a>
       </div>
     </div>

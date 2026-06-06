@@ -4,6 +4,8 @@ import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
+import com.sme.erp.audit.service.ActivityLogService;
+import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.customer.dto.CustomerDTO;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.mapper.CustomerMapper;
@@ -22,10 +24,18 @@ public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerRepository customerRepository;
     private final CustomerMapper customerMapper;
+    private final ActivityLogService activityLogService;
+    private final AuditLogService auditLogService;
 
-    public CustomerServiceImpl(CustomerRepository customerRepository, CustomerMapper customerMapper) {
+    public CustomerServiceImpl(
+            CustomerRepository customerRepository,
+            CustomerMapper customerMapper,
+            ActivityLogService activityLogService,
+            AuditLogService auditLogService) {
         this.customerRepository = customerRepository;
         this.customerMapper = customerMapper;
+        this.activityLogService = activityLogService;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -64,7 +74,10 @@ public class CustomerServiceImpl implements CustomerService {
 
         // TODO Customer ledger integration should own future balance movements instead of direct field mutation.
 
-        return customerMapper.toDTO(customerRepository.save(customer));
+        CustomerDTO saved = customerMapper.toDTO(customerRepository.save(customer));
+        activityLogService.log("CUSTOMER_CREATE", "CUSTOMER", "customers", saved.getId(), "Created customer " + saved.getName());
+        auditLogService.log("customers", saved.getId(), null, auditLogService.toJson(saved), "CREATE");
+        return saved;
     }
 
     @Override
@@ -74,6 +87,7 @@ public class CustomerServiceImpl implements CustomerService {
         validateFinancials(dto);
 
         Customer customer = findCustomerById(id);
+        CustomerDTO oldData = customerMapper.toDTO(customer);
         String requestedCustomerCode = dto.getCustomerCode();
         if (requestedCustomerCode != null) {
             validateCustomerCodeUnique(requestedCustomerCode, id);
@@ -97,13 +111,18 @@ public class CustomerServiceImpl implements CustomerService {
             customer.setStatus(Status.ACTIVE);
         }
 
-        return customerMapper.toDTO(customerRepository.save(customer));
+        CustomerDTO saved = customerMapper.toDTO(customerRepository.save(customer));
+        auditLogService.log("customers", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "UPDATE");
+        return saved;
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
-        customerRepository.delete(findCustomerById(id));
+        Customer customer = findCustomerById(id);
+        CustomerDTO oldData = customerMapper.toDTO(customer);
+        customerRepository.delete(customer);
+        auditLogService.log("customers", id, auditLogService.toJson(oldData), null, "DELETE");
     }
 
     private void normalizeDto(CustomerDTO dto) {

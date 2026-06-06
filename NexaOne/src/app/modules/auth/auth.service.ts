@@ -6,12 +6,13 @@ import { map, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Status } from '../../models/product.model';
 import { ApiResponse, unwrapApiResponse } from '../../shared/utils/api-response.util';
-import { LoginRequest, LoginResponse, Permission, Role, User } from './auth.model';
+import { ActivityLog, AuditFilter, AuditLog, LoginHistory, LoginRequest, LoginResponse, Permission, Role, User } from './auth.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly authUrl = `${environment.apiUrl}/auth`;
   private readonly usersUrl = `${environment.apiUrl}/users`;
+  private readonly auditUrl = `${environment.apiUrl}/audit`;
   private readonly tokenKey = 'sme_access_token';
   private readonly userKey = 'sme_auth_user';
 
@@ -27,6 +28,9 @@ export class AuthService {
   }
 
   logout(): void {
+    if (this.getToken()) {
+      this.http.post<void>(`${this.authUrl}/logout`, {}).subscribe({ error: () => undefined });
+    }
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.userKey);
     this.router.navigate(['/login']);
@@ -117,6 +121,24 @@ export class AuthService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
+  getActivityLogs(filter: AuditFilter): Observable<ActivityLog[]> {
+    return this.http
+      .get<ActivityLog[] | ApiResponse<ActivityLog[]>>(`${this.auditUrl}/activity-logs`, { params: this.buildAuditParams(filter) })
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  getAuditLogs(filter: AuditFilter): Observable<AuditLog[]> {
+    return this.http
+      .get<AuditLog[] | ApiResponse<AuditLog[]>>(`${this.auditUrl}/audit-logs`, { params: this.buildAuditParams(filter) })
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  getLoginHistory(filter: AuditFilter): Observable<LoginHistory[]> {
+    return this.http
+      .get<LoginHistory[] | ApiResponse<LoginHistory[]>>(`${this.auditUrl}/login-history`, { params: this.buildAuditParams(filter) })
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
   private storeSession(response: LoginResponse): void {
     localStorage.setItem(this.tokenKey, response.accessToken);
     localStorage.setItem(this.userKey, JSON.stringify({
@@ -125,5 +147,25 @@ export class AuthService {
       permissions: response.permissions || [],
       loginTimestamp: response.loginTimestamp
     }));
+  }
+
+  private buildAuditParams(filter: AuditFilter): HttpParams {
+    let params = new HttpParams();
+    if (filter.fromDate) {
+      params = params.set('fromDate', `${filter.fromDate}T00:00:00`);
+    }
+    if (filter.toDate) {
+      params = params.set('toDate', `${filter.toDate}T23:59:59`);
+    }
+    if (filter.username?.trim()) {
+      params = params.set('username', filter.username.trim());
+    }
+    if (filter.action?.trim()) {
+      params = params.set('action', filter.action.trim());
+    }
+    if (filter.module?.trim()) {
+      params = params.set('module', filter.module.trim());
+    }
+    return params;
   }
 }

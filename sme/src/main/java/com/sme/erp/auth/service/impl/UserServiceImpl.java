@@ -7,6 +7,8 @@ import com.sme.erp.auth.entity.User;
 import com.sme.erp.auth.repository.RoleRepository;
 import com.sme.erp.auth.repository.UserRepository;
 import com.sme.erp.auth.service.UserService;
+import com.sme.erp.audit.service.ActivityLogService;
+import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
@@ -24,11 +26,20 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ActivityLogService activityLogService;
+    private final AuditLogService auditLogService;
 
-    public UserServiceImpl(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(
+            UserRepository userRepository,
+            RoleRepository roleRepository,
+            PasswordEncoder passwordEncoder,
+            ActivityLogService activityLogService,
+            AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.activityLogService = activityLogService;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -59,7 +70,10 @@ public class UserServiceImpl implements UserService {
         apply(dto, user);
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setDeleted(false);
-        return toDto(userRepository.save(user));
+        UserDTO saved = toDto(userRepository.save(user));
+        activityLogService.log("USER_CREATE", "USER", "users", saved.getId(), "Created user " + saved.getUsername());
+        auditLogService.log("users", saved.getId(), null, auditLogService.toJson(saved), "CREATE");
+        return saved;
     }
 
     @Override
@@ -67,26 +81,38 @@ public class UserServiceImpl implements UserService {
     public UserDTO update(Long id, UserDTO dto) {
         normalize(dto);
         User user = findUser(id);
+        UserDTO oldData = toDto(user);
         validateUnique(dto, id);
         apply(dto, user);
         if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(dto.getPassword()));
         }
-        return toDto(userRepository.save(user));
+        UserDTO saved = toDto(userRepository.save(user));
+        activityLogService.log("USER_UPDATE", "USER", "users", saved.getId(), "Updated user " + saved.getUsername());
+        auditLogService.log("users", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "UPDATE");
+        return saved;
     }
 
     @Override
     @Transactional
     public UserDTO deactivate(Long id) {
         User user = findUser(id);
+        UserDTO oldData = toDto(user);
         user.setStatus(Status.INACTIVE);
-        return toDto(userRepository.save(user));
+        UserDTO saved = toDto(userRepository.save(user));
+        activityLogService.log("USER_UPDATE", "USER", "users", saved.getId(), "Deactivated user " + saved.getUsername());
+        auditLogService.log("users", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "UPDATE");
+        return saved;
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
-        userRepository.delete(findUser(id));
+        User user = findUser(id);
+        UserDTO oldData = toDto(user);
+        userRepository.delete(user);
+        activityLogService.log("USER_DELETE", "USER", "users", id, "Deleted user " + oldData.getUsername());
+        auditLogService.log("users", id, auditLogService.toJson(oldData), null, "DELETE");
     }
 
     @Override

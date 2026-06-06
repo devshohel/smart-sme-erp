@@ -4,6 +4,7 @@ import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
+import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.inventory.entity.Warehouse;
@@ -43,6 +44,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     private final UomRepository uomRepository;
     private final SalesInvoiceMapper salesInvoiceMapper;
     private final StockService stockService;
+    private final ActivityLogService activityLogService;
 
     public SalesInvoiceServiceImpl(
             SalesInvoiceRepository salesInvoiceRepository,
@@ -52,7 +54,8 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
             ProductRepository productRepository,
             UomRepository uomRepository,
             SalesInvoiceMapper salesInvoiceMapper,
-            StockService stockService) {
+            StockService stockService,
+            ActivityLogService activityLogService) {
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.salesOrderRepository = salesOrderRepository;
         this.customerRepository = customerRepository;
@@ -61,6 +64,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         this.uomRepository = uomRepository;
         this.salesInvoiceMapper = salesInvoiceMapper;
         this.stockService = stockService;
+        this.activityLogService = activityLogService;
     }
 
     @Override
@@ -81,7 +85,9 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     @Transactional
     public SalesInvoiceDTO create(SalesInvoiceDTO dto) {
         SalesInvoice entity = new SalesInvoice();
-        return save(dto, entity);
+        SalesInvoiceDTO saved = save(dto, entity);
+        activityLogService.log("SALES_INVOICE_CREATE", "SALES", "sales_invoices", saved.getId(), "Created sales invoice " + saved.getInvoiceNo());
+        return saved;
     }
 
     @Override

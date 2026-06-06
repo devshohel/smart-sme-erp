@@ -1,0 +1,67 @@
+<div class="container-fluid p-4">
+  <app-page-header title="Activity Logs" subtitle="Read-only record of important user actions."></app-page-header>
+
+  <app-card title="Filters">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-2">
+        <label class="form-label">From</label>
+        <input class="form-control" type="date" [(ngModel)]="filter.fromDate" name="activityFromDate">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">To</label>
+        <input class="form-control" type="date" [(ngModel)]="filter.toDate" name="activityToDate">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Username</label>
+        <input class="form-control" [(ngModel)]="filter.username" name="activityUsername">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Module</label>
+        <input class="form-control" [(ngModel)]="filter.module" name="activityModule">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Action</label>
+        <input class="form-control" [(ngModel)]="filter.action" name="activityAction">
+      </div>
+      <div class="col-md-2 d-flex gap-2">
+        <button class="btn btn-success flex-fill" type="button" (click)="load()">Filter</button>
+        <button class="btn btn-outline-secondary" type="button" (click)="reset()">Reset</button>
+      </div>
+    </div>
+  </app-card>
+
+  <app-card title="Activity Log List">
+    <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div class="text-muted py-4" *ngIf="loading">Loading activity logs...</div>
+    <div class="text-muted py-4" *ngIf="!loading && !logs.length">No activity logs found.</div>
+
+    <div class="table-responsive" *ngIf="!loading && logs.length">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>User</th>
+            <th>Module</th>
+            <th>Action</th>
+            <th>Table</th>
+            <th>Record</th>
+            <th>IP</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let log of logs">
+            <td>{{ log.createdAt | date:'short' }}</td>
+            <td>{{ log.username || '-' }}</td>
+            <td>{{ log.module }}</td>
+            <td><span class="badge bg-success">{{ log.action }}</span></td>
+            <td>{{ log.tableName || '-' }}</td>
+            <td>{{ log.recordId || '-' }}</td>
+            <td>{{ log.ipAddress || '-' }}</td>
+            <td>{{ log.details || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </app-card>
+</div>

@@ -27,6 +27,50 @@ export interface Permission {
   description?: string | null;
 }
 
+export interface AuditFilter {
+  fromDate: string;
+  toDate: string;
+  username: string;
+  action: string;
+  module: string;
+}
+
+export interface ActivityLog {
+  id: number;
+  userId?: number | null;
+  username?: string | null;
+  action: string;
+  module: string;
+  tableName?: string | null;
+  recordId?: number | null;
+  ipAddress?: string | null;
+  details?: string | null;
+  createdAt: string;
+}
+
+export interface AuditLog {
+  id: number;
+  userId?: number | null;
+  username?: string | null;
+  tableName: string;
+  recordId?: number | null;
+  oldData?: string | null;
+  newData?: string | null;
+  action: string;
+  createdAt: string;
+}
+
+export interface LoginHistory {
+  id: number;
+  userId?: number | null;
+  username: string;
+  status: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  failureReason?: string | null;
+  createdAt: string;
+}
+
 export interface User {
   id?: number;
   name: string;

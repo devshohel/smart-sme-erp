@@ -4,6 +4,8 @@ import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
+import com.sme.erp.audit.service.ActivityLogService;
+import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.enums.Status;
 import com.sme.erp.supplier.dto.SupplierDTO;
 import com.sme.erp.supplier.entity.Supplier;
@@ -22,10 +24,18 @@ public class SupplierServiceImpl implements SupplierService {
 
     private final SupplierRepository supplierRepository;
     private final SupplierMapper supplierMapper;
+    private final ActivityLogService activityLogService;
+    private final AuditLogService auditLogService;
 
-    public SupplierServiceImpl(SupplierRepository supplierRepository, SupplierMapper supplierMapper) {
+    public SupplierServiceImpl(
+            SupplierRepository supplierRepository,
+            SupplierMapper supplierMapper,
+            ActivityLogService activityLogService,
+            AuditLogService auditLogService) {
         this.supplierRepository = supplierRepository;
         this.supplierMapper = supplierMapper;
+        this.activityLogService = activityLogService;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -63,7 +73,10 @@ public class SupplierServiceImpl implements SupplierService {
 
         // TODO Supplier ledger integration should own future payable and advance balance movements.
 
-        return supplierMapper.toDTO(supplierRepository.save(supplier));
+        SupplierDTO saved = supplierMapper.toDTO(supplierRepository.save(supplier));
+        activityLogService.log("SUPPLIER_CREATE", "SUPPLIER", "suppliers", saved.getId(), "Created supplier " + saved.getName());
+        auditLogService.log("suppliers", saved.getId(), null, auditLogService.toJson(saved), "CREATE");
+        return saved;
     }
 
     @Override
@@ -73,6 +86,7 @@ public class SupplierServiceImpl implements SupplierService {
         validateFinancials(dto);
 
         Supplier supplier = findSupplierById(id);
+        SupplierDTO oldData = supplierMapper.toDTO(supplier);
         String requestedSupplierCode = dto.getSupplierCode();
         if (requestedSupplierCode != null) {
             validateSupplierCodeUnique(requestedSupplierCode, id);
@@ -95,13 +109,18 @@ public class SupplierServiceImpl implements SupplierService {
             supplier.setStatus(Status.ACTIVE);
         }
 
-        return supplierMapper.toDTO(supplierRepository.save(supplier));
+        SupplierDTO saved = supplierMapper.toDTO(supplierRepository.save(supplier));
+        auditLogService.log("suppliers", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "UPDATE");
+        return saved;
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
-        supplierRepository.delete(findSupplierById(id));
+        Supplier supplier = findSupplierById(id);
+        SupplierDTO oldData = supplierMapper.toDTO(supplier);
+        supplierRepository.delete(supplier);
+        auditLogService.log("suppliers", id, auditLogService.toJson(oldData), null, "DELETE");
     }
 
     private void normalizeDto(SupplierDTO dto) {

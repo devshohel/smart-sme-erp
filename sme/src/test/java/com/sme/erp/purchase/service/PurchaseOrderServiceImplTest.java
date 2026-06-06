@@ -1,5 +1,7 @@
 package com.sme.erp.purchase.service;
 
+import com.sme.erp.audit.service.ActivityLogService;
+import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.inventory.entity.Warehouse;
 import com.sme.erp.inventory.repository.WarehouseRepository;
 import com.sme.erp.inventory.service.StockService;
@@ -48,6 +50,10 @@ class PurchaseOrderServiceImplTest {
     private UomRepository uomRepository;
     @Mock
     private StockService stockService;
+    @Mock
+    private ActivityLogService activityLogService;
+    @Mock
+    private AuditLogService auditLogService;
 
     private PurchaseOrderServiceImpl service;
 
@@ -60,7 +66,9 @@ class PurchaseOrderServiceImplTest {
                 productRepository,
                 uomRepository,
                 new PurchaseOrderMapper(new PurchaseItemMapper()),
-                stockService);
+                stockService,
+                activityLogService,
+                auditLogService);
     }
 
     @Test

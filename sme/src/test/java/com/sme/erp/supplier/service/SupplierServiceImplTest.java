@@ -2,6 +2,8 @@ package com.sme.erp.supplier.service;
 
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
+import com.sme.erp.audit.service.ActivityLogService;
+import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.enums.Status;
 import com.sme.erp.supplier.dto.SupplierDTO;
 import com.sme.erp.supplier.entity.Supplier;
@@ -30,12 +32,16 @@ class SupplierServiceImplTest {
 
     @Mock
     private SupplierRepository supplierRepository;
+    @Mock
+    private ActivityLogService activityLogService;
+    @Mock
+    private AuditLogService auditLogService;
 
     private SupplierServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new SupplierServiceImpl(supplierRepository, new SupplierMapper());
+        service = new SupplierServiceImpl(supplierRepository, new SupplierMapper(), activityLogService, auditLogService);
     }
 
     @Test

@@ -2,6 +2,8 @@ package com.sme.erp.customer.service;
 
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
+import com.sme.erp.audit.service.ActivityLogService;
+import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.customer.dto.CustomerDTO;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.mapper.CustomerMapper;
@@ -30,12 +32,16 @@ class CustomerServiceImplTest {
 
     @Mock
     private CustomerRepository customerRepository;
+    @Mock
+    private ActivityLogService activityLogService;
+    @Mock
+    private AuditLogService auditLogService;
 
     private CustomerServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new CustomerServiceImpl(customerRepository, new CustomerMapper());
+        service = new CustomerServiceImpl(customerRepository, new CustomerMapper(), activityLogService, auditLogService);
     }
 
     @Test

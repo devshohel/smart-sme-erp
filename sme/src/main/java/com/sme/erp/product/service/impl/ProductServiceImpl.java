@@ -4,6 +4,8 @@ import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
+import com.sme.erp.audit.service.ActivityLogService;
+import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.product.dto.ProductDTO;
 import com.sme.erp.product.entity.*;
 import com.sme.erp.product.mapper.ProductMapper;
@@ -24,17 +26,23 @@ public class ProductServiceImpl implements ProductService {
     private final ProductCategoryRepository categoryRepository;
     private final ProductBrandRepository brandRepository;
     private final UomRepository uomRepository;
+    private final ActivityLogService activityLogService;
+    private final AuditLogService auditLogService;
 
     public ProductServiceImpl(ProductRepository repository,
                               ProductMapper mapper,
                               ProductCategoryRepository categoryRepository,
                               ProductBrandRepository brandRepository,
-                              UomRepository uomRepository) {
+                              UomRepository uomRepository,
+                              ActivityLogService activityLogService,
+                              AuditLogService auditLogService) {
         this.repository = repository;
         this.mapper = mapper;
         this.categoryRepository = categoryRepository;
         this.brandRepository = brandRepository;
         this.uomRepository = uomRepository;
+        this.activityLogService = activityLogService;
+        this.auditLogService = auditLogService;
     }
 
     @Override
@@ -47,6 +55,8 @@ public class ProductServiceImpl implements ProductService {
         dto.setSku(RequestValueUtils.normalizeRequired(dto.getSku(), "SKU"));
         dto.setProductName(RequestValueUtils.normalizeRequired(dto.getProductName(), "Product name"));
         Product product = getProductForSave(dto.getId());
+        boolean isCreate = product.getId() == null;
+        ProductDTO oldData = isCreate ? null : mapper.toDTO(product);
         validateSkuUnique(dto.getSku(), dto.getId());
         if (dto.getId() == null) {
             product.setProductCode(resolveProductCodeForCreate(normalizedProductCode));
@@ -80,7 +90,11 @@ public class ProductServiceImpl implements ProductService {
         }
 
         Product saved = repository.save(product);
-        return mapper.toDTO(saved);
+        ProductDTO savedDto = mapper.toDTO(saved);
+        String action = isCreate ? "CREATE" : "UPDATE";
+        activityLogService.log(isCreate ? "PRODUCT_CREATE" : "PRODUCT_UPDATE", "PRODUCT", "products", savedDto.getId(), "Saved product " + savedDto.getProductName());
+        auditLogService.log("products", savedDto.getId(), auditLogService.toJson(oldData), auditLogService.toJson(savedDto), action);
+        return savedDto;
     }
 
     @Override
@@ -101,7 +115,11 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public void delete(Long id) {
-        repository.delete(findProductById(id));
+        Product product = findProductById(id);
+        ProductDTO oldData = mapper.toDTO(product);
+        repository.delete(product);
+        activityLogService.log("PRODUCT_DELETE", "PRODUCT", "products", id, "Deleted product " + oldData.getProductName());
+        auditLogService.log("products", id, auditLogService.toJson(oldData), null, "DELETE");
     }
 
     private String resolveProductCodeForCreate(String requestedCode) {
