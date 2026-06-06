@@ -71,6 +71,58 @@ export interface LoginHistory {
   createdAt: string;
 }
 
+export interface CompanySettings {
+  id?: number;
+  companyName: string;
+  businessType?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  city?: string | null;
+  country?: string | null;
+  logoUrl?: string | null;
+  taxNumber?: string | null;
+  currency: string;
+  timezone: string;
+  status: Status;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface InvoiceSettings {
+  id?: number;
+  salesInvoicePrefix: string;
+  purchaseInvoicePrefix: string;
+  salesOrderPrefix: string;
+  purchaseOrderPrefix: string;
+  nextInvoiceNumber: number;
+  invoiceFooterText?: string | null;
+  defaultPaymentTerms?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TaxSettings {
+  id?: number;
+  taxName: string;
+  taxRate: number;
+  status: Status;
+  defaultTaxEnabled: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SystemSettings {
+  id?: number;
+  defaultCurrency: string;
+  dateFormat: string;
+  numberFormat: string;
+  lowStockAlertEnabled: boolean;
+  dashboardRefreshEnabled: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface User {
   id?: number;
   name: string;

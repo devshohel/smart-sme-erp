@@ -28,7 +28,8 @@ public class AuthDataSeeder implements CommandLineRunner {
             "DASHBOARD_VIEW", "REPORT_VIEW",
             "USER_VIEW", "USER_CREATE", "USER_EDIT", "USER_DELETE",
             "ROLE_VIEW", "ROLE_EDIT",
-            "AUDIT_VIEW", "ACTIVITY_VIEW");
+            "AUDIT_VIEW", "ACTIVITY_VIEW",
+            "SETTINGS_VIEW", "SETTINGS_EDIT");
 
     private static final List<String> MANAGER_PERMISSIONS = List.of(
             "DASHBOARD_VIEW",
@@ -38,7 +39,8 @@ public class AuthDataSeeder implements CommandLineRunner {
             "SUPPLIER_VIEW", "SUPPLIER_CREATE", "SUPPLIER_EDIT",
             "PURCHASE_VIEW", "PURCHASE_CREATE", "PURCHASE_EDIT",
             "SALES_VIEW", "SALES_CREATE", "SALES_EDIT",
-            "REPORT_VIEW");
+            "REPORT_VIEW",
+            "SETTINGS_VIEW");
 
     private static final List<String> STAFF_PERMISSIONS = List.of(
             "DASHBOARD_VIEW", "PRODUCT_VIEW", "INVENTORY_VIEW", "CUSTOMER_VIEW",

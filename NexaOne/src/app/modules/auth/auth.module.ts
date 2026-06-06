@@ -10,6 +10,10 @@ import { RolePermissionsComponent } from './role-permissions/role-permissions.co
 import { ActivityLogListComponent } from './activity-log-list/activity-log-list.component';
 import { AuditLogListComponent } from './audit-log-list/audit-log-list.component';
 import { LoginHistoryListComponent } from './login-history-list/login-history-list.component';
+import { CompanySettingsComponent } from './company-settings/company-settings.component';
+import { InvoiceSettingsComponent } from './invoice-settings/invoice-settings.component';
+import { TaxSettingsComponent } from './tax-settings/tax-settings.component';
+import { SystemSettingsComponent } from './system-settings/system-settings.component';
 
 @NgModule({
   declarations: [
@@ -19,7 +23,11 @@ import { LoginHistoryListComponent } from './login-history-list/login-history-li
     RolePermissionsComponent,
     ActivityLogListComponent,
     AuditLogListComponent,
-    LoginHistoryListComponent
+    LoginHistoryListComponent,
+    CompanySettingsComponent,
+    InvoiceSettingsComponent,
+    TaxSettingsComponent,
+    SystemSettingsComponent
   ],
   imports: [
     CommonModule,

@@ -69,6 +69,39 @@ export class SidebarComponent {
     return this.authService.hasPermission(permission);
   }
 
+  hasAnyPermission(permissions: string[]): boolean {
+    return this.authService.hasAnyPermission(permissions);
+  }
+
+  canViewSettingsMenu(): boolean {
+    return this.isAdmin() || this.hasAnyPermission(['SETTINGS_VIEW', 'USER_VIEW', 'ROLE_VIEW', 'ACTIVITY_VIEW', 'AUDIT_VIEW']);
+  }
+
+  canViewActivityLogs(): boolean {
+    return this.isAdmin() || this.hasPermission('ACTIVITY_VIEW');
+  }
+
+  canViewAuditLogs(): boolean {
+    return this.canShowAuditLogs();
+  }
+
+  canViewLoginHistory(): boolean {
+    return this.canShowLoginHistory();
+  }
+
+  canShowAuditLogs(): boolean {
+    return this.isAdmin() || this.hasPermission('AUDIT_VIEW');
+  }
+
+  canShowLoginHistory(): boolean {
+    return this.isAdmin() || this.hasAnyPermission(['AUDIT_VIEW', 'ACTIVITY_VIEW']);
+  }
+
+  private isAdmin(): boolean {
+    const role = this.authService.getCurrentUser()?.role;
+    return role === 'ADMIN' || role === 'ROLE_ADMIN';
+  }
+
   closeSidebar(): void {
     if (this.isMobileView) {
       this.closeRequested.emit();

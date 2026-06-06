@@ -50,7 +50,8 @@ public class SecurityConfig {
                                 "/api/v1/users", "/api/v1/users/**",
                                 "/api/v1/permissions", "/api/v1/permissions/**",
                                 "/api/v1/roles", "/api/v1/roles/**",
-                                "/api/v1/audit", "/api/v1/audit/**")
+                                "/api/v1/audit", "/api/v1/audit/**",
+                                "/api/v1/settings", "/api/v1/settings/**")
                         .hasAnyRole(ERP_ROLES)
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

@@ -1,0 +1,43 @@
+<div class="container-fluid p-4">
+  <app-page-header title="System Settings" subtitle="Default display and operational preferences."></app-page-header>
+
+  <app-card title="System Defaults">
+    <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
+    <div class="text-muted py-4" *ngIf="loading">Loading system settings...</div>
+
+    <form *ngIf="!loading" (ngSubmit)="save()">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Default Currency</label>
+          <input class="form-control" name="defaultCurrency" [(ngModel)]="settings.defaultCurrency" [disabled]="!canEdit()" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Date Format</label>
+          <input class="form-control" name="dateFormat" [(ngModel)]="settings.dateFormat" [disabled]="!canEdit()" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Number Format</label>
+          <input class="form-control" name="numberFormat" [(ngModel)]="settings.numberFormat" [disabled]="!canEdit()" required>
+        </div>
+        <div class="col-md-6">
+          <div class="form-check form-switch border rounded-2 p-3 ps-5 h-100">
+            <input class="form-check-input" type="checkbox" role="switch" id="lowStockAlertEnabled" name="lowStockAlertEnabled" [(ngModel)]="settings.lowStockAlertEnabled" [disabled]="!canEdit()">
+            <label class="form-check-label fw-semibold" for="lowStockAlertEnabled">Low Stock Alert Enabled</label>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-check form-switch border rounded-2 p-3 ps-5 h-100">
+            <input class="form-check-input" type="checkbox" role="switch" id="dashboardRefreshEnabled" name="dashboardRefreshEnabled" [(ngModel)]="settings.dashboardRefreshEnabled" [disabled]="!canEdit()">
+            <label class="form-check-label fw-semibold" for="dashboardRefreshEnabled">Dashboard Refresh Enabled</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-4">
+        <button class="btn btn-outline-secondary" type="button" (click)="load()" [disabled]="loading || saving">Reset</button>
+        <button class="btn btn-success" type="submit" [disabled]="!canEdit() || saving">{{ saving ? 'Saving...' : 'Save Settings' }}</button>
+      </div>
+    </form>
+  </app-card>
+</div>
