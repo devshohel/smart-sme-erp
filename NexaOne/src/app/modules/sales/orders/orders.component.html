@@ -31,7 +31,7 @@
                 <td class="text-end">{{ order.grandTotal | number:'1.2-2' }}</td>
                 <td><app-sales-status-badge [label]="order.status"></app-sales-status-badge></td>
                 <td class="text-center">
-                  <button type="button" class="btn btn-sm btn-outline-primary" (click)="editOrder(order)">
+                  <button *ngIf="hasPermission('SALES_EDIT')" type="button" class="btn btn-sm btn-outline-primary" (click)="editOrder(order)">
                     <i class="bi bi-pencil"></i>
                   </button>
                 </td>
@@ -60,7 +60,7 @@
     </div>
 
     <div class="col-12">
-      <app-card [title]="editingOrderId ? 'Edit Sales Order' : 'Create Sales Order'" subtitle="Create customer order requests before invoice confirmation.">
+      <app-card *ngIf="hasPermission(editingOrderId ? 'SALES_EDIT' : 'SALES_CREATE')" [title]="editingOrderId ? 'Edit Sales Order' : 'Create Sales Order'" subtitle="Create customer order requests before invoice confirmation.">
         <form [formGroup]="orderForm" (ngSubmit)="saveOrder()" novalidate>
           <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
 
@@ -105,7 +105,7 @@
 
           <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
             <div class="section-title mb-0">Item Table</div>
-            <button type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
+            <button *ngIf="hasPermission(editingOrderId ? 'SALES_EDIT' : 'SALES_CREATE')" type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
               <i class="bi bi-plus-lg me-1"></i>Add Row
             </button>
           </div>
@@ -155,7 +155,7 @@
             <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">
               {{ editingOrderId ? 'Cancel Edit' : 'Reset' }}
             </button>
-            <button type="submit" class="btn btn-success px-4" [disabled]="submitting">
+            <button type="submit" class="btn btn-success px-4" [disabled]="submitting || !hasPermission(editingOrderId ? 'SALES_EDIT' : 'SALES_CREATE')">
               {{ submitting ? 'Saving...' : (editingOrderId ? 'Update Order' : 'Save Order') }}
             </button>
           </div>

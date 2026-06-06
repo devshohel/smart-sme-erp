@@ -3,12 +3,14 @@ import { RouterModule, Routes } from '@angular/router';
 import { LoginComponent } from './login/login.component';
 import { UserFormComponent } from './user-form/user-form.component';
 import { UsersListComponent } from './users-list/users-list.component';
+import { RolePermissionsComponent } from './role-permissions/role-permissions.component';
 
 const routes: Routes = [
   { path: '', component: LoginComponent },
   { path: 'users', component: UsersListComponent },
   { path: 'users/create', component: UserFormComponent },
-  { path: 'users/edit/:id', component: UserFormComponent }
+  { path: 'users/edit/:id', component: UserFormComponent },
+  { path: 'roles-permissions', component: RolePermissionsComponent }
 ];
 
 @NgModule({

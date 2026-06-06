@@ -4,6 +4,7 @@ import com.sme.erp.product.dto.ProductCategoryDTO;
 import com.sme.erp.product.service.ProductCategoryService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,11 +22,13 @@ public class ProductCategoryController {
 
     // CREATE / UPDATE
     @PostMapping
+    @PreAuthorize("hasAuthority('PRODUCT_CREATE')")
     public ResponseEntity<ProductCategoryDTO> save(@Valid @RequestBody ProductCategoryDTO dto) {
         return ResponseEntity.ok(service.save(dto));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('PRODUCT_EDIT')")
     public ResponseEntity<ProductCategoryDTO> update(@PathVariable Long id, @Valid @RequestBody ProductCategoryDTO dto) {
         dto.setId(id);
         return ResponseEntity.ok(service.save(dto));
@@ -33,12 +36,14 @@ public class ProductCategoryController {
 
     // GET ALL
     @GetMapping
+    @PreAuthorize("hasAuthority('PRODUCT_VIEW')")
     public ResponseEntity<List<ProductCategoryDTO>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
 
     // DELETE
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('PRODUCT_DELETE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();

@@ -1,0 +1,42 @@
+<div class="container-fluid p-4">
+  <app-page-header title="Roles & Permissions" subtitle="Assign module and action permissions by role."></app-page-header>
+
+  <app-card title="Role Permission Matrix" subtitle="Only administrators can update role permissions.">
+    <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-5">
+        <label class="form-label">Role</label>
+        <select class="form-select" [(ngModel)]="selectedRoleId" name="roleId" (ngModelChange)="onRoleChange()">
+          <option *ngFor="let role of roles" [ngValue]="role.id">{{ role.roleName }}</option>
+        </select>
+      </div>
+      <div class="col-md-7 d-flex align-items-end justify-content-md-end">
+        <button class="btn btn-success" type="button" (click)="save()" [disabled]="saving || loading || !selectedRoleId">
+          {{ saving ? 'Saving...' : 'Save Permissions' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="text-muted py-4" *ngIf="loading">Loading permissions...</div>
+
+    <div class="row g-3" *ngIf="!loading">
+      <div class="col-lg-4 col-md-6" *ngFor="let group of groupedPermissions()">
+        <div class="border rounded-2 p-3 h-100">
+          <h6 class="fw-bold mb-3">{{ group.module }}</h6>
+          <div class="form-check mb-2" *ngFor="let permission of group.permissions">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              [id]="'permission-' + permission.id"
+              [checked]="isChecked(permission)"
+              (change)="togglePermission(permission, $any($event.target).checked)">
+            <label class="form-check-label" [for]="'permission-' + permission.id">
+              {{ permission.name }}
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </app-card>
+</div>

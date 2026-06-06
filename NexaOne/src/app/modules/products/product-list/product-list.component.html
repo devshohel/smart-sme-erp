@@ -6,7 +6,7 @@
     </div>
     <div class="d-flex gap-2">
       <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i> Export</button>
-      <button class="btn btn-success btn-sm px-3" routerLink="/products/add-product">
+      <button *ngIf="hasPermission('PRODUCT_CREATE')" class="btn btn-success btn-sm px-3" routerLink="/products/add-product">
         <i class="bi bi-plus me-1"></i> New Product
       </button>
     </div>
@@ -57,10 +57,10 @@
                   <button class="btn-action btn-view" (click)="viewProduct(product)">
                     <i class="bi bi-eye"></i>
                   </button>
-                  <button class="btn-action btn-edit" (click)="editProduct(product)">
+                  <button *ngIf="hasPermission('PRODUCT_EDIT')" class="btn-action btn-edit" (click)="editProduct(product)">
                     <i class="bi bi-pencil-square"></i>
                   </button>
-                  <button class="btn-action btn-delete" (click)="deleteProduct(product.id)">
+                  <button *ngIf="hasPermission('PRODUCT_DELETE')" class="btn-action btn-delete" (click)="deleteProduct(product.id)">
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>

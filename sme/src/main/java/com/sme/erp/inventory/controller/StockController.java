@@ -5,6 +5,7 @@ import com.sme.erp.inventory.dto.StockDTO;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import com.sme.erp.inventory.service.StockService;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,7 @@ public class StockController {
 
     // STOCK IN
     @PostMapping("/in")
+    @PreAuthorize("hasAuthority('INVENTORY_CREATE')")
     public ResponseEntity<StockDTO> stockIn(@RequestParam @NotNull @Positive Long productId,
                                             @RequestParam @NotNull @Positive Long warehouseId,
                                             @RequestParam @NotNull @Positive BigDecimal qty,
@@ -34,6 +36,7 @@ public class StockController {
 
     // STOCK OUT
     @PostMapping("/out")
+    @PreAuthorize("hasAuthority('INVENTORY_CREATE')")
     public ResponseEntity<StockDTO> stockOut(@RequestParam @NotNull @Positive Long productId,
                                              @RequestParam @NotNull @Positive Long warehouseId,
                                              @RequestParam @NotNull @Positive BigDecimal qty) {
@@ -42,12 +45,14 @@ public class StockController {
 
     // GET STOCK
     @GetMapping
+    @PreAuthorize("hasAuthority('INVENTORY_VIEW')")
     public ResponseEntity<StockDTO> getStock(@RequestParam @NotNull @Positive Long productId,
                                              @RequestParam @NotNull @Positive Long warehouseId) {
         return ResponseEntity.ok(service.getStock(productId, warehouseId));
     }
 
     @GetMapping("/all")
+    @PreAuthorize("hasAuthority('INVENTORY_VIEW')")
     public ResponseEntity<List<StockDTO>> getAllStock() {
         return ResponseEntity.ok(service.getAllStock());
     }

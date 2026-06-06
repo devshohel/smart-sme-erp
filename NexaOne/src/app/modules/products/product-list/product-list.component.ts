@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { Product } from '../../../models/product.model';
 import { ProductService } from '../../../services/product.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-product-list',
@@ -16,6 +17,7 @@ export class ProductListComponent implements OnInit {
 
   constructor(
     private productService: ProductService,
+    private authService: AuthService,
     private router: Router
   ) {}
 
@@ -65,5 +67,9 @@ export class ProductListComponent implements OnInit {
         }
       });
     }
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
   }
 }

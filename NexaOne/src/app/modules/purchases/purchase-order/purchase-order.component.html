@@ -35,7 +35,7 @@
                   </span>
                 </td>
                 <td class="text-center">
-                  <button type="button" class="btn btn-sm btn-outline-primary" (click)="editOrder(order)">
+                  <button *ngIf="hasPermission('PURCHASE_EDIT')" type="button" class="btn btn-sm btn-outline-primary" (click)="editOrder(order)">
                     <i class="bi bi-pencil"></i>
                   </button>
                 </td>
@@ -68,6 +68,7 @@
 
     <div class="col-12">
       <app-card
+        *ngIf="hasPermission(editingOrderId ? 'PURCHASE_EDIT' : 'PURCHASE_CREATE')"
         [title]="editingOrderId ? 'Edit Purchase Order' : 'Create Purchase Order'"
         subtitle="Use Purchase Invoices for goods receive, stock update, and supplier payment.">
         <div class="purchase-form-shell">
@@ -117,7 +118,7 @@
 
           <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
             <div class="section-title mb-0">Item Table Section</div>
-            <button type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
+            <button *ngIf="hasPermission(editingOrderId ? 'PURCHASE_EDIT' : 'PURCHASE_CREATE')" type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
               <i class="bi bi-plus-lg me-1"></i>Add Row
             </button>
           </div>
@@ -177,7 +178,7 @@
             <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">
               {{ editingOrderId ? 'Cancel Edit' : 'Reset' }}
             </button>
-            <button type="submit" class="btn btn-success px-4" [disabled]="submitting">
+            <button type="submit" class="btn btn-success px-4" [disabled]="submitting || !hasPermission(editingOrderId ? 'PURCHASE_EDIT' : 'PURCHASE_CREATE')">
               {{ submitting ? 'Saving...' : (editingOrderId ? 'Update Order' : 'Save Order') }}
             </button>
           </div>

@@ -6,7 +6,7 @@ import { map, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Status } from '../../models/product.model';
 import { ApiResponse, unwrapApiResponse } from '../../shared/utils/api-response.util';
-import { LoginRequest, LoginResponse, Role, User } from './auth.model';
+import { LoginRequest, LoginResponse, Permission, Role, User } from './auth.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -43,6 +43,18 @@ export class AuthService {
   getCurrentUser(): Partial<LoginResponse> | null {
     const value = localStorage.getItem(this.userKey);
     return value ? JSON.parse(value) : null;
+  }
+
+  getPermissions(): string[] {
+    return this.getCurrentUser()?.permissions || [];
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.getPermissions().includes(permission);
+  }
+
+  hasAnyPermission(permissions: string[]): boolean {
+    return permissions.some(permission => this.hasPermission(permission));
   }
 
   getUsers(keyword?: string, status?: Status | ''): Observable<User[]> {
@@ -87,11 +99,30 @@ export class AuthService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
+  getPermissionsCatalog(): Observable<Permission[]> {
+    return this.http
+      .get<Permission[] | ApiResponse<Permission[]>>(`${environment.apiUrl}/permissions`)
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  getRolePermissions(roleId: number): Observable<Permission[]> {
+    return this.http
+      .get<Permission[] | ApiResponse<Permission[]>>(`${environment.apiUrl}/roles/${roleId}/permissions`)
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  updateRolePermissions(roleId: number, permissionIds: number[]): Observable<Permission[]> {
+    return this.http
+      .put<Permission[] | ApiResponse<Permission[]>>(`${environment.apiUrl}/roles/${roleId}/permissions`, { permissionIds })
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
   private storeSession(response: LoginResponse): void {
     localStorage.setItem(this.tokenKey, response.accessToken);
     localStorage.setItem(this.userKey, JSON.stringify({
       username: response.username,
       role: response.role,
+      permissions: response.permissions || [],
       loginTimestamp: response.loginTimestamp
     }));
   }

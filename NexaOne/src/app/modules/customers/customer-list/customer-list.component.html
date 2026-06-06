@@ -2,7 +2,7 @@
   <app-page-header
     title="Customers"
     subtitle="Manage customer records, balances, and account status.">
-    <button class="btn btn-success" (click)="createCustomer()">
+    <button *ngIf="hasPermission('CUSTOMER_CREATE')" class="btn btn-success" (click)="createCustomer()">
       <i class="bi bi-person-plus me-1"></i>
       New Customer
     </button>
@@ -81,10 +81,10 @@
               </span>
             </td>
             <td class="text-center">
-              <button type="button" class="btn btn-sm btn-outline-primary me-1" (click)="editCustomer(customer)">
+              <button *ngIf="hasPermission('CUSTOMER_EDIT')" type="button" class="btn btn-sm btn-outline-primary me-1" (click)="editCustomer(customer)">
                 <i class="bi bi-pencil"></i>
               </button>
-              <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteCustomer(customer)">
+              <button *ngIf="hasPermission('CUSTOMER_DELETE')" type="button" class="btn btn-sm btn-outline-danger" (click)="deleteCustomer(customer)">
                 <i class="bi bi-trash"></i>
               </button>
             </td>

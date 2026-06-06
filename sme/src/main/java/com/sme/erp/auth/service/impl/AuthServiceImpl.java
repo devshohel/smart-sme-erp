@@ -3,6 +3,7 @@ package com.sme.erp.auth.service.impl;
 import com.sme.erp.auth.dto.LoginRequestDTO;
 import com.sme.erp.auth.dto.LoginResponseDTO;
 import com.sme.erp.auth.entity.User;
+import com.sme.erp.auth.repository.RolePermissionRepository;
 import com.sme.erp.auth.repository.UserRepository;
 import com.sme.erp.auth.security.JwtService;
 import com.sme.erp.auth.service.AuthService;
@@ -17,11 +18,17 @@ import java.time.LocalDateTime;
 @Service
 public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
+    private final RolePermissionRepository rolePermissionRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public AuthServiceImpl(
+            UserRepository userRepository,
+            RolePermissionRepository rolePermissionRepository,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService) {
         this.userRepository = userRepository;
+        this.rolePermissionRepository = rolePermissionRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
     }
@@ -43,6 +50,7 @@ public class AuthServiceImpl implements AuthService {
                 jwtService.generateToken(user),
                 user.getUsername(),
                 user.getRole().getRoleName(),
+                rolePermissionRepository.findPermissionNamesByRoleId(user.getRole().getId()),
                 loginTime);
     }
 }

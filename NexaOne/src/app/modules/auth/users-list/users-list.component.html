@@ -1,6 +1,6 @@
 <div class="container-fluid p-4">
   <app-page-header title="Users" subtitle="Manage ERP user accounts and access roles.">
-    <button class="btn btn-success" (click)="createUser()">
+    <button *ngIf="hasPermission('USER_CREATE')" class="btn btn-success" (click)="createUser()">
       <i class="bi bi-person-plus me-1"></i>
       New User
     </button>
@@ -45,9 +45,9 @@
             <td>{{ user.lastLogin ? (user.lastLogin | date:'medium') : 'Never' }}</td>
             <td><span class="badge px-3 py-2" [ngClass]="statusClass(user.status)">{{ user.status }}</span></td>
             <td class="text-center">
-              <button class="btn btn-sm btn-outline-primary me-1" type="button" (click)="editUser(user)"><i class="bi bi-pencil"></i></button>
-              <button class="btn btn-sm btn-outline-warning me-1" type="button" (click)="deactivateUser(user)"><i class="bi bi-person-dash"></i></button>
-              <button class="btn btn-sm btn-outline-danger" type="button" (click)="deleteUser(user)"><i class="bi bi-trash"></i></button>
+              <button *ngIf="hasPermission('USER_EDIT')" class="btn btn-sm btn-outline-primary me-1" type="button" (click)="editUser(user)"><i class="bi bi-pencil"></i></button>
+              <button *ngIf="hasPermission('USER_EDIT')" class="btn btn-sm btn-outline-warning me-1" type="button" (click)="deactivateUser(user)"><i class="bi bi-person-dash"></i></button>
+              <button *ngIf="hasPermission('USER_DELETE')" class="btn btn-sm btn-outline-danger" type="button" (click)="deleteUser(user)"><i class="bi bi-trash"></i></button>
             </td>
           </tr>
           <tr *ngIf="!loading && users.length === 0"><td colspan="6" class="text-center text-muted py-5">No users found.</td></tr>

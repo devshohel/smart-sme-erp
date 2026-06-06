@@ -4,6 +4,7 @@ import com.sme.erp.sales.dto.SalesInvoiceDTO;
 import com.sme.erp.sales.service.SalesInvoiceService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,21 +28,25 @@ public class SalesInvoiceController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('SALES_VIEW')")
     public ResponseEntity<List<SalesInvoiceDTO>> getAll() {
         return ResponseEntity.ok(salesInvoiceService.getAll());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('SALES_VIEW')")
     public ResponseEntity<SalesInvoiceDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(salesInvoiceService.getById(id));
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('SALES_CREATE')")
     public ResponseEntity<SalesInvoiceDTO> create(@Valid @RequestBody SalesInvoiceDTO dto) {
         return ResponseEntity.ok(salesInvoiceService.create(dto));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('SALES_EDIT')")
     public ResponseEntity<SalesInvoiceDTO> update(@PathVariable Long id, @Valid @RequestBody SalesInvoiceDTO dto) {
         return ResponseEntity.ok(salesInvoiceService.update(id, dto));
     }

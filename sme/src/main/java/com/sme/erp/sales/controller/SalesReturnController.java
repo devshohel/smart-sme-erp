@@ -4,6 +4,7 @@ import com.sme.erp.sales.dto.SalesReturnDTO;
 import com.sme.erp.sales.service.SalesReturnService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,16 +27,19 @@ public class SalesReturnController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('SALES_VIEW')")
     public ResponseEntity<List<SalesReturnDTO>> getAll() {
         return ResponseEntity.ok(salesReturnService.getAll());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('SALES_VIEW')")
     public ResponseEntity<SalesReturnDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(salesReturnService.getById(id));
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('SALES_CREATE')")
     public ResponseEntity<SalesReturnDTO> create(@Valid @RequestBody SalesReturnDTO dto) {
         return ResponseEntity.ok(salesReturnService.create(dto));
     }

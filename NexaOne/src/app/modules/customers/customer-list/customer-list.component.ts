@@ -4,6 +4,7 @@ import { Customer } from '../../../models/customer.model';
 import { Status } from '../../../models/product.model';
 import { CustomerService } from '../../../services/customer.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-customer-list',
@@ -24,6 +25,7 @@ export class CustomerListComponent implements OnInit {
 
   constructor(
     private customerService: CustomerService,
+    private authService: AuthService,
     private router: Router
   ) {}
 
@@ -95,5 +97,9 @@ export class CustomerListComponent implements OnInit {
       return 'bg-secondary-subtle text-secondary';
     }
     return 'bg-light text-dark';
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
   }
 }

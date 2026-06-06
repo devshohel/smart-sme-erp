@@ -9,12 +9,21 @@ export interface LoginResponse {
   accessToken: string;
   username: string;
   role: string;
+  permissions: string[];
   loginTimestamp: string;
 }
 
 export interface Role {
   id: number;
   roleName: string;
+  description?: string | null;
+}
+
+export interface Permission {
+  id: number;
+  name: string;
+  module: string;
+  action: string;
   description?: string | null;
 }
 

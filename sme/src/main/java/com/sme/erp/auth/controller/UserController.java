@@ -6,6 +6,7 @@ import com.sme.erp.auth.service.UserService;
 import com.sme.erp.enums.Status;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +31,7 @@ public class UserController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('USER_VIEW')")
     public ResponseEntity<List<UserDTO>> getAll(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Status status) {
@@ -37,32 +39,38 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('USER_VIEW')")
     public ResponseEntity<UserDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getById(id));
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('USER_CREATE')")
     public ResponseEntity<UserDTO> create(@Valid @RequestBody UserDTO dto) {
         return ResponseEntity.ok(userService.create(dto));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('USER_EDIT')")
     public ResponseEntity<UserDTO> update(@PathVariable Long id, @Valid @RequestBody UserDTO dto) {
         return ResponseEntity.ok(userService.update(id, dto));
     }
 
     @PutMapping("/{id}/deactivate")
+    @PreAuthorize("hasAuthority('USER_EDIT')")
     public ResponseEntity<UserDTO> deactivate(@PathVariable Long id) {
         return ResponseEntity.ok(userService.deactivate(id));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('USER_DELETE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         userService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/roles")
+    @PreAuthorize("hasAuthority('ROLE_VIEW') or hasAuthority('USER_VIEW')")
     public ResponseEntity<List<RoleDTO>> getRoles() {
         return ResponseEntity.ok(userService.getRoles());
     }

@@ -2,7 +2,7 @@
   <app-page-header
     title="Suppliers"
     subtitle="Manage supplier records, payable balances, and payment terms.">
-    <button class="btn btn-success" (click)="createSupplier()">
+    <button *ngIf="hasPermission('SUPPLIER_CREATE')" class="btn btn-success" (click)="createSupplier()">
       <i class="bi bi-person-plus me-1"></i>
       New Supplier
     </button>
@@ -81,10 +81,10 @@
               </span>
             </td>
             <td class="text-center">
-              <button type="button" class="btn btn-sm btn-outline-primary me-1" (click)="editSupplier(supplier)">
+              <button *ngIf="hasPermission('SUPPLIER_EDIT')" type="button" class="btn btn-sm btn-outline-primary me-1" (click)="editSupplier(supplier)">
                 <i class="bi bi-pencil"></i>
               </button>
-              <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteSupplier(supplier)">
+              <button *ngIf="hasPermission('SUPPLIER_DELETE')" type="button" class="btn btn-sm btn-outline-danger" (click)="deleteSupplier(supplier)">
                 <i class="bi bi-trash"></i>
               </button>
             </td>

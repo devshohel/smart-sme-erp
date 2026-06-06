@@ -65,6 +65,10 @@ export class SidebarComponent {
     this.authService.logout();
   }
 
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
+  }
+
   closeSidebar(): void {
     if (this.isMobileView) {
       this.closeRequested.emit();

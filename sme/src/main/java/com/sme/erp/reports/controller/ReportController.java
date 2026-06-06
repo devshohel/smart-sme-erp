@@ -9,6 +9,7 @@ import com.sme.erp.reports.dto.SupplierDueReportDTO;
 import com.sme.erp.reports.service.ReportService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,6 +30,7 @@ public class ReportController {
     }
 
     @GetMapping("/sales")
+    @PreAuthorize("hasAuthority('REPORT_VIEW')")
     public ResponseEntity<SalesReportDTO> getSalesReport(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
@@ -38,6 +40,7 @@ public class ReportController {
     }
 
     @GetMapping("/purchases")
+    @PreAuthorize("hasAuthority('REPORT_VIEW')")
     public ResponseEntity<PurchaseReportDTO> getPurchaseReport(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
@@ -46,6 +49,7 @@ public class ReportController {
     }
 
     @GetMapping("/stock")
+    @PreAuthorize("hasAuthority('REPORT_VIEW')")
     public ResponseEntity<StockReportDTO> getStockReport(
             @RequestParam(required = false) Long warehouseId,
             @RequestParam(required = false) Long productId) {
@@ -53,16 +57,19 @@ public class ReportController {
     }
 
     @GetMapping("/customer-dues")
+    @PreAuthorize("hasAuthority('REPORT_VIEW')")
     public ResponseEntity<CustomerDueReportDTO> getCustomerDueReport() {
         return ResponseEntity.ok(reportService.getCustomerDueReport());
     }
 
     @GetMapping("/supplier-dues")
+    @PreAuthorize("hasAuthority('REPORT_VIEW')")
     public ResponseEntity<SupplierDueReportDTO> getSupplierDueReport() {
         return ResponseEntity.ok(reportService.getSupplierDueReport());
     }
 
     @GetMapping("/profit-loss")
+    @PreAuthorize("hasAuthority('REPORT_VIEW')")
     public ResponseEntity<ProfitLossSummaryDTO> getProfitLossSummary(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import com.sme.erp.inventory.service.StockService;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +25,7 @@ public class AdjustmentController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('INVENTORY_EDIT')")
     public ResponseEntity<StockDTO> adjustStock(@RequestParam @NotNull @Positive Long productId,
                                                 @RequestParam @NotNull @Positive Long warehouseId,
                                                 @RequestParam @NotNull BigDecimal qty,

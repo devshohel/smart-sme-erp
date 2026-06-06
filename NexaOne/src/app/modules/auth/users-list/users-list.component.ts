@@ -77,4 +77,8 @@ export class UsersListComponent implements OnInit {
   statusClass(status?: Status): string {
     return status === 'ACTIVE' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary';
   }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
+  }
 }

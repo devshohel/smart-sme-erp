@@ -4,6 +4,7 @@ import com.sme.erp.purchase.dto.PurchaseOrderDTO;
 import com.sme.erp.purchase.service.PurchaseOrderService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,21 +28,25 @@ public class PurchaseOrderController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('PURCHASE_VIEW')")
     public ResponseEntity<List<PurchaseOrderDTO>> getAll() {
         return ResponseEntity.ok(purchaseOrderService.getAll());
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('PURCHASE_VIEW')")
     public ResponseEntity<PurchaseOrderDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(purchaseOrderService.getById(id));
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('PURCHASE_CREATE')")
     public ResponseEntity<PurchaseOrderDTO> create(@Valid @RequestBody PurchaseOrderDTO dto) {
         return ResponseEntity.ok(purchaseOrderService.create(dto));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('PURCHASE_EDIT')")
     public ResponseEntity<PurchaseOrderDTO> update(@PathVariable Long id, @Valid @RequestBody PurchaseOrderDTO dto) {
         return ResponseEntity.ok(purchaseOrderService.update(id, dto));
     }

@@ -4,6 +4,7 @@ import { Status } from '../../../models/product.model';
 import { Supplier } from '../../../models/supplier.model';
 import { SupplierService } from '../../../services/supplier.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-supplier-list',
@@ -24,6 +25,7 @@ export class SupplierListComponent implements OnInit {
 
   constructor(
     private supplierService: SupplierService,
+    private authService: AuthService,
     private router: Router
   ) {}
 
@@ -95,5 +97,9 @@ export class SupplierListComponent implements OnInit {
       return 'bg-secondary-subtle text-secondary';
     }
     return 'bg-light text-dark';
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
   }
 }

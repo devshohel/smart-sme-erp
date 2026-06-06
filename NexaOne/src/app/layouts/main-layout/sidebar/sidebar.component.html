@@ -7,12 +7,12 @@
   </div>
 
   <div class="nav-links-wrapper flex-grow-1 overflow-y-auto py-3">
-    <a routerLink="/dashboard" routerLinkActive="active" class="side-link d-flex align-items-center px-3 py-2 my-1" (click)="closeSidebar()">
+    <a *ngIf="hasPermission('DASHBOARD_VIEW')" routerLink="/dashboard" routerLinkActive="active" class="side-link d-flex align-items-center px-3 py-2 my-1" (click)="closeSidebar()">
       <i class="bi bi-grid-1x2-fill icon fs-5 me-3"></i>
       <span>Dashboard</span>
     </a>
 
-    <div class="menu-dropdown-item">
+    <div class="menu-dropdown-item" *ngIf="hasPermission('PRODUCT_VIEW')">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          (click)="toggleProducts()"
          role="button"
@@ -40,7 +40,7 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item">
+    <div class="menu-dropdown-item" *ngIf="hasPermission('INVENTORY_VIEW')">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          (click)="toggleInventory()"
          role="button"
@@ -65,7 +65,7 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item">
+    <div class="menu-dropdown-item" *ngIf="hasPermission('SALES_VIEW')">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          (click)="toggleSales()"
          role="button"
@@ -87,7 +87,7 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item">
+    <div class="menu-dropdown-item" *ngIf="hasPermission('CUSTOMER_VIEW')">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          (click)="toggleCustomers()"
          role="button"
@@ -106,7 +106,7 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item">
+    <div class="menu-dropdown-item" *ngIf="hasPermission('SUPPLIER_VIEW')">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          (click)="toggleSuppliers()"
          role="button"
@@ -125,7 +125,7 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item">
+    <div class="menu-dropdown-item" *ngIf="hasPermission('PURCHASE_VIEW')">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          (click)="togglePurchases()"
          role="button"
@@ -147,7 +147,7 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item">
+    <div class="menu-dropdown-item" *ngIf="hasPermission('REPORT_VIEW')">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          (click)="toggleReports()"
          role="button"
@@ -178,7 +178,7 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item">
+    <div class="menu-dropdown-item" *ngIf="hasPermission('USER_VIEW') || hasPermission('ROLE_VIEW')">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          (click)="toggleSettings()"
          role="button"
@@ -188,8 +188,11 @@
       </a>
 
       <div class="submenu" [class.show]="isSettingsOpen">
-        <a routerLink="/settings/users" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a *ngIf="hasPermission('USER_VIEW')" routerLink="/settings/users" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-people me-2"></i> Users
+        </a>
+        <a *ngIf="hasPermission('ROLE_VIEW')" routerLink="/settings/roles-permissions" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-shield-lock me-2"></i> Roles & Permissions
         </a>
       </div>
     </div>

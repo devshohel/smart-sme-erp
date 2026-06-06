@@ -9,6 +9,7 @@ import { ProductService } from '../../../services/product.service';
 import { SalesCustomerService } from '../../../services/sales-customer.service';
 import { SalesOrderService } from '../../../services/sales-order.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-orders',
@@ -35,7 +36,8 @@ export class OrdersComponent implements OnInit {
     private orderService: SalesOrderService,
     private customerService: SalesCustomerService,
     private productService: ProductService,
-    private warehouseService: InventoryWarehouseService
+    private warehouseService: InventoryWarehouseService,
+    private authService: AuthService
   ) {
     this.orderForm = this.fb.group({
       customerId: [null, Validators.required],
@@ -218,6 +220,10 @@ export class OrdersComponent implements OnInit {
   hasError(path: string, errorName: string): boolean {
     const control = this.orderForm.get(path);
     return !!control && control.touched && control.hasError(errorName);
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
   }
 
   private buildOrderPayload(): SalesOrder {

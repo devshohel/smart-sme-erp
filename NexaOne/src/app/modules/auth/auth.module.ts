@@ -6,12 +6,14 @@ import { AuthRoutingModule } from './auth-routing.module';
 import { LoginComponent } from './login/login.component';
 import { UsersListComponent } from './users-list/users-list.component';
 import { UserFormComponent } from './user-form/user-form.component';
+import { RolePermissionsComponent } from './role-permissions/role-permissions.component';
 
 @NgModule({
   declarations: [
     LoginComponent,
     UsersListComponent,
-    UserFormComponent
+    UserFormComponent,
+    RolePermissionsComponent
   ],
   imports: [
     CommonModule,
