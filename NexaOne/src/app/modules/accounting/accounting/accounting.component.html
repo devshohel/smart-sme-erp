@@ -1,0 +1,186 @@
+<div class="container-fluid p-4 accounting-page">
+  <app-page-header
+    [title]="section === 'cash-book' ? 'Cash Book' : section === 'bank-book' ? 'Bank Book' : section === 'categories' ? 'Expense Categories' : section === 'accounts' ? 'Chart of Accounts' : section === 'journals' ? 'Journal Entries' : 'Expenses'"
+    subtitle="Manual accounting foundation and expense tracking.">
+  </app-page-header>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
+
+  <ng-container *ngIf="section === 'categories'">
+    <app-card title="Category Form" subtitle="Create or update operating expense categories.">
+      <form (ngSubmit)="saveCategory()" class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Name</label>
+          <input class="form-control" [(ngModel)]="categoryForm.name" name="categoryName" required>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label">Description</label>
+          <input class="form-control" [(ngModel)]="categoryForm.description" name="categoryDescription">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Status</label>
+          <select class="form-select" [(ngModel)]="categoryForm.status" name="categoryStatus">
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="INACTIVE">INACTIVE</option>
+          </select>
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+          <button *ngIf="hasPermission(categoryForm.id ? 'ACCOUNTING_EDIT' : 'ACCOUNTING_CREATE')" class="btn btn-success w-100" [disabled]="saving" type="submit">
+            <i class="bi bi-save"></i>
+          </button>
+        </div>
+      </form>
+    </app-card>
+
+    <app-card title="Category List">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light"><tr><th>Name</th><th>Description</th><th>Status</th><th class="text-center">Actions</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let category of categories">
+              <td class="fw-semibold">{{ category.name }}</td>
+              <td>{{ category.description || 'N/A' }}</td>
+              <td><span class="badge px-3 py-2" [ngClass]="badgeClass(category.status)">{{ category.status }}</span></td>
+              <td class="text-center">
+                <button *ngIf="hasPermission('ACCOUNTING_EDIT')" class="btn btn-sm btn-outline-primary me-1" (click)="editCategory(category)"><i class="bi bi-pencil"></i></button>
+                <button *ngIf="hasPermission('ACCOUNTING_DELETE')" class="btn btn-sm btn-outline-danger" (click)="deactivateCategory(category)"><i class="bi bi-slash-circle"></i></button>
+              </td>
+            </tr>
+            <tr *ngIf="!loading && categories.length === 0"><td colspan="4" class="text-center text-muted py-5">No categories found.</td></tr>
+            <tr *ngIf="loading"><td colspan="4" class="text-center text-muted py-5">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </app-card>
+  </ng-container>
+
+  <ng-container *ngIf="section === 'expenses'">
+    <div class="row g-3 mb-3">
+      <div class="col-md-4"><div class="summary-card"><span>Total Expenses</span><strong>{{ expenseTotal() | number:'1.2-2' }}</strong></div></div>
+      <div class="col-md-4"><div class="summary-card"><span>Records</span><strong>{{ expenses.length }}</strong></div></div>
+      <div class="col-md-4"><div class="summary-card"><span>Payment Methods</span><strong>{{ paymentMethods.length }}</strong></div></div>
+    </div>
+
+    <app-card title="Expense Filters">
+      <form (ngSubmit)="loadCurrentSection()" class="row g-3">
+        <div class="col-md-3"><label class="form-label">From</label><input type="date" class="form-control" [(ngModel)]="expenseFilters.fromDate" name="fromDate"></div>
+        <div class="col-md-3"><label class="form-label">To</label><input type="date" class="form-control" [(ngModel)]="expenseFilters.toDate" name="toDate"></div>
+        <div class="col-md-3">
+          <label class="form-label">Category</label>
+          <select class="form-select" [(ngModel)]="expenseFilters.categoryId" name="filterCategory"><option value="">All</option><option *ngFor="let c of categories" [ngValue]="c.id">{{ c.name }}</option></select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Payment</label>
+          <select class="form-select" [(ngModel)]="expenseFilters.paymentMethod" name="filterPayment"><option value="">All</option><option *ngFor="let method of paymentMethods" [value]="method">{{ method }}</option></select>
+        </div>
+        <div class="col-md-1 d-flex align-items-end"><button class="btn btn-outline-success w-100" type="submit"><i class="bi bi-search"></i></button></div>
+      </form>
+    </app-card>
+
+    <app-card title="Expense Form">
+      <form (ngSubmit)="saveExpense()" class="row g-3">
+        <div class="col-md-3"><label class="form-label">Date</label><input type="date" class="form-control" [(ngModel)]="expenseForm.expenseDate" name="expenseDate" required></div>
+        <div class="col-md-3"><label class="form-label">Category</label><select class="form-select" [(ngModel)]="expenseForm.categoryId" name="expenseCategory" required><option [ngValue]="null">Select</option><option *ngFor="let c of categories" [ngValue]="c.id">{{ c.name }}</option></select></div>
+        <div class="col-md-2"><label class="form-label">Amount</label><input type="number" min="0.01" step="0.01" class="form-control text-end" [(ngModel)]="expenseForm.amount" name="expenseAmount" required></div>
+        <div class="col-md-2"><label class="form-label">Payment</label><select class="form-select" [(ngModel)]="expenseForm.paymentMethod" name="expensePayment"><option *ngFor="let method of paymentMethods" [value]="method">{{ method }}</option></select></div>
+        <div class="col-md-2"><label class="form-label">Reference</label><input class="form-control" [(ngModel)]="expenseForm.referenceNo" name="expenseReference"></div>
+        <div class="col-md-10"><label class="form-label">Notes</label><input class="form-control" [(ngModel)]="expenseForm.notes" name="expenseNotes"></div>
+        <div class="col-md-2 d-flex align-items-end"><button *ngIf="hasPermission(expenseForm.id ? 'ACCOUNTING_EDIT' : 'ACCOUNTING_CREATE')" class="btn btn-success w-100" [disabled]="saving" type="submit"><i class="bi bi-save me-1"></i>Save</button></div>
+      </form>
+    </app-card>
+
+    <app-card title="Expense List">
+      <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>No</th><th>Date</th><th>Category</th><th>Payment</th><th>Reference</th><th class="text-end">Amount</th><th>Status</th><th class="text-center">Actions</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let expense of expenses">
+            <td class="fw-semibold">{{ expense.expenseNo }}</td><td>{{ expense.expenseDate }}</td><td>{{ expense.categoryName }}</td><td>{{ expense.paymentMethod }}</td><td>{{ expense.referenceNo || 'N/A' }}</td><td class="text-end">{{ expense.amount | number:'1.2-2' }}</td>
+            <td><span class="badge px-3 py-2" [ngClass]="badgeClass(expense.status)">{{ expense.status }}</span></td>
+            <td class="text-center"><button *ngIf="hasPermission('ACCOUNTING_EDIT') && expense.status !== 'CANCELLED'" class="btn btn-sm btn-outline-primary me-1" (click)="editExpense(expense)"><i class="bi bi-pencil"></i></button><button *ngIf="hasPermission('ACCOUNTING_DELETE') && expense.status !== 'CANCELLED'" class="btn btn-sm btn-outline-danger" (click)="cancelExpense(expense)"><i class="bi bi-x-circle"></i></button></td>
+          </tr>
+          <tr *ngIf="!loading && expenses.length === 0"><td colspan="8" class="text-center text-muted py-5">No expenses found.</td></tr>
+          <tr *ngIf="loading"><td colspan="8" class="text-center text-muted py-5">Loading...</td></tr>
+        </tbody>
+      </table></div>
+    </app-card>
+  </ng-container>
+
+  <ng-container *ngIf="section === 'accounts'">
+    <app-card title="Account Form">
+      <form (ngSubmit)="saveAccount()" class="row g-3">
+        <div class="col-md-2"><label class="form-label">Code</label><input class="form-control" [(ngModel)]="accountForm.accountCode" name="accountCode" required></div>
+        <div class="col-md-3"><label class="form-label">Name</label><input class="form-control" [(ngModel)]="accountForm.accountName" name="accountName" required></div>
+        <div class="col-md-2"><label class="form-label">Type</label><select class="form-select" [(ngModel)]="accountForm.accountType" name="accountType"><option *ngFor="let type of accountTypes" [value]="type">{{ type }}</option></select></div>
+        <div class="col-md-3"><label class="form-label">Parent</label><select class="form-select" [(ngModel)]="accountForm.parentAccountId" name="parentAccount"><option [ngValue]="null">None</option><option *ngFor="let account of accounts" [ngValue]="account.id">{{ account.accountCode }} - {{ account.accountName }}</option></select></div>
+        <div class="col-md-1"><label class="form-label">Status</label><select class="form-select" [(ngModel)]="accountForm.status" name="accountStatus"><option value="ACTIVE">ACTIVE</option><option value="INACTIVE">INACTIVE</option></select></div>
+        <div class="col-md-1 d-flex align-items-end"><button *ngIf="hasPermission(accountForm.id ? 'ACCOUNTING_EDIT' : 'ACCOUNTING_CREATE')" class="btn btn-success w-100" type="submit"><i class="bi bi-save"></i></button></div>
+      </form>
+    </app-card>
+    <app-card title="Chart of Accounts">
+      <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>Code</th><th>Name</th><th>Type</th><th>Parent</th><th>Status</th><th class="text-center">Actions</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let account of accounts"><td class="fw-semibold">{{ account.accountCode }}</td><td>{{ account.accountName }}</td><td>{{ account.accountType }}</td><td>{{ account.parentAccountName || 'N/A' }}</td><td><span class="badge px-3 py-2" [ngClass]="badgeClass(account.status)">{{ account.status }}</span></td><td class="text-center"><button *ngIf="hasPermission('ACCOUNTING_EDIT')" class="btn btn-sm btn-outline-primary" (click)="editAccount(account)"><i class="bi bi-pencil"></i></button></td></tr>
+          <tr *ngIf="!loading && accounts.length === 0"><td colspan="6" class="text-center text-muted py-5">No accounts found.</td></tr>
+          <tr *ngIf="loading"><td colspan="6" class="text-center text-muted py-5">Loading...</td></tr>
+        </tbody>
+      </table></div>
+    </app-card>
+  </ng-container>
+
+  <ng-container *ngIf="section === 'journals'">
+    <app-card title="Journal Header Information">
+      <form (ngSubmit)="saveJournal()" class="row g-3">
+        <div class="col-md-3"><label class="form-label">Date</label><input type="date" class="form-control" [(ngModel)]="journalForm.journalDate" name="journalDate" required></div>
+        <div class="col-md-3"><label class="form-label">Reference</label><input class="form-control" [(ngModel)]="journalForm.referenceNo" name="journalReference"></div>
+        <div class="col-md-6"><label class="form-label">Description</label><input class="form-control" [(ngModel)]="journalForm.description" name="journalDescription"></div>
+        <div class="col-12"><div class="section-title">Lines / Details</div></div>
+        <div class="col-12 table-responsive">
+          <table class="table align-middle">
+            <thead class="table-light"><tr><th>Account</th><th>Description</th><th class="text-end">Debit</th><th class="text-end">Credit</th><th></th></tr></thead>
+            <tbody><tr *ngFor="let line of journalForm.lines; let i = index">
+              <td><select class="form-select" [(ngModel)]="line.accountId" [name]="'lineAccount' + i" required><option [ngValue]="null">Select account</option><option *ngFor="let account of accounts" [ngValue]="account.id">{{ account.accountCode }} - {{ account.accountName }}</option></select></td>
+              <td><input class="form-control" [(ngModel)]="line.description" [name]="'lineDescription' + i"></td>
+              <td><input type="number" min="0" step="0.01" class="form-control text-end" [(ngModel)]="line.debit" [name]="'lineDebit' + i"></td>
+              <td><input type="number" min="0" step="0.01" class="form-control text-end" [(ngModel)]="line.credit" [name]="'lineCredit' + i"></td>
+              <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" (click)="removeJournalLine(i)" [disabled]="journalForm.lines.length <= 2"><i class="bi bi-trash"></i></button></td>
+            </tr></tbody>
+          </table>
+        </div>
+        <div class="col-md-4"><button type="button" class="btn btn-outline-secondary" (click)="addJournalLine()"><i class="bi bi-plus-circle me-1"></i>Add Line</button></div>
+        <div class="col-md-6 ms-auto"><div class="journal-summary"><span>Total Debit: {{ totalDebit() | number:'1.2-2' }}</span><span>Total Credit: {{ totalCredit() | number:'1.2-2' }}</span></div></div>
+        <div class="col-12 text-end"><button *ngIf="hasPermission('ACCOUNTING_CREATE')" class="btn btn-success" type="submit" [disabled]="saving"><i class="bi bi-save me-1"></i>Save Draft</button></div>
+      </form>
+    </app-card>
+
+    <app-card title="Journal Entry List">
+      <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>No</th><th>Date</th><th>Reference</th><th>Description</th><th>Status</th><th class="text-center">Actions</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let journal of journals"><td class="fw-semibold">{{ journal.journalNo }}</td><td>{{ journal.journalDate }}</td><td>{{ journal.referenceNo || 'N/A' }}</td><td>{{ journal.description || 'N/A' }}</td><td><span class="badge px-3 py-2" [ngClass]="badgeClass(journal.status)">{{ journal.status }}</span></td><td class="text-center"><button *ngIf="hasPermission('ACCOUNTING_POST') && journal.status === 'DRAFT'" class="btn btn-sm btn-outline-success me-1" (click)="postJournal(journal)"><i class="bi bi-check2-circle"></i></button><button *ngIf="hasPermission('ACCOUNTING_DELETE') && journal.status !== 'CANCELLED'" class="btn btn-sm btn-outline-danger" (click)="cancelJournal(journal)"><i class="bi bi-x-circle"></i></button></td></tr>
+          <tr *ngIf="!loading && journals.length === 0"><td colspan="6" class="text-center text-muted py-5">No journal entries found.</td></tr>
+          <tr *ngIf="loading"><td colspan="6" class="text-center text-muted py-5">Loading...</td></tr>
+        </tbody>
+      </table></div>
+    </app-card>
+  </ng-container>
+
+  <ng-container *ngIf="section === 'cash-book' || section === 'bank-book'">
+    <div class="row g-3 mb-3">
+      <div class="col-md-4"><div class="summary-card"><span>{{ section === 'cash-book' ? 'Cash In' : 'Bank In' }}</span><strong>{{ bookInTotal() | number:'1.2-2' }}</strong></div></div>
+      <div class="col-md-4"><div class="summary-card"><span>{{ section === 'cash-book' ? 'Cash Out' : 'Bank Out' }}</span><strong>{{ bookOutTotal() | number:'1.2-2' }}</strong></div></div>
+      <div class="col-md-4"><div class="summary-card"><span>Balance</span><strong>{{ finalBalance() | number:'1.2-2' }}</strong></div></div>
+    </div>
+    <app-card [title]="section === 'cash-book' ? 'Cash Book' : 'Bank Book'">
+      <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>Date</th><th>Reference</th><th>Description</th><th class="text-end">{{ section === 'cash-book' ? 'Cash In' : 'Bank In' }}</th><th class="text-end">{{ section === 'cash-book' ? 'Cash Out' : 'Bank Out' }}</th><th class="text-end">Balance</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of bookEntries"><td>{{ row.date }}</td><td class="fw-semibold">{{ row.reference }}</td><td>{{ row.description }}</td><td class="text-end">{{ row.moneyIn | number:'1.2-2' }}</td><td class="text-end">{{ row.moneyOut | number:'1.2-2' }}</td><td class="text-end fw-semibold">{{ row.balance | number:'1.2-2' }}</td></tr>
+          <tr *ngIf="!loading && bookEntries.length === 0"><td colspan="6" class="text-center text-muted py-5">No book entries found.</td></tr>
+          <tr *ngIf="loading"><td colspan="6" class="text-center text-muted py-5">Loading...</td></tr>
+        </tbody>
+      </table></div>
+    </app-card>
+  </ng-container>
+</div>

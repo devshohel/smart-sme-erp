@@ -1,5 +1,6 @@
 package com.sme.erp.dashboard.service.impl;
 
+import com.sme.erp.accounting.repository.ExpenseRepository;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.dashboard.dto.DashboardSummaryDTO;
 import com.sme.erp.dashboard.dto.DashboardSummaryDTO.DueAlertDTO;
@@ -46,6 +47,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final StockRepository stockRepository;
     private final CustomerRepository customerRepository;
     private final SupplierRepository supplierRepository;
+    private final ExpenseRepository expenseRepository;
 
     public DashboardServiceImpl(
             SalesInvoiceRepository salesInvoiceRepository,
@@ -53,13 +55,15 @@ public class DashboardServiceImpl implements DashboardService {
             PurchaseOrderRepository purchaseOrderRepository,
             StockRepository stockRepository,
             CustomerRepository customerRepository,
-            SupplierRepository supplierRepository) {
+            SupplierRepository supplierRepository,
+            ExpenseRepository expenseRepository) {
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.salesItemRepository = salesItemRepository;
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.stockRepository = stockRepository;
         this.customerRepository = customerRepository;
         this.supplierRepository = supplierRepository;
+        this.expenseRepository = expenseRepository;
     }
 
     @Override
@@ -71,8 +75,8 @@ public class DashboardServiceImpl implements DashboardService {
 
         LocalDate today = LocalDate.now();
         YearMonth currentMonth = YearMonth.from(today);
-        BigDecimal todayExpense = BigDecimal.ZERO;
-        BigDecimal totalExpense = BigDecimal.ZERO;
+        BigDecimal todayExpense = safe(expenseRepository.sumActiveAmountBetween(today, today));
+        BigDecimal totalExpense = safe(expenseRepository.sumActiveAmountBetween(null, null));
 
         BigDecimal todaySales = salesInvoices.stream()
                 .filter(this::isCompletedSale)
@@ -121,7 +125,8 @@ public class DashboardServiceImpl implements DashboardService {
         summary.setTotalSuppliers(supplierRepository.count());
         summary.setLowStockAlerts(buildLowStockAlerts(stocks));
         summary.setLowStockItemsCount(summary.getLowStockAlerts().size());
-        summary.setThisMonthProfit(thisMonthSales.subtract(thisMonthPurchase));
+        BigDecimal thisMonthExpense = safe(expenseRepository.sumActiveAmountBetween(currentMonth.atDay(1), currentMonth.atEndOfMonth()));
+        summary.setThisMonthProfit(thisMonthSales.subtract(thisMonthPurchase).subtract(thisMonthExpense));
         summary.setMonthlySalesPurchase(buildMonthlySalesPurchase(salesInvoices, purchaseOrders));
         summary.setTopSellingProducts(buildTopSellingProducts());
         summary.setDueAlerts(buildDueAlerts(salesInvoices, purchaseOrders));

@@ -1,5 +1,6 @@
 package com.sme.erp.reports.service.impl;
 
+import com.sme.erp.accounting.repository.ExpenseRepository;
 import com.sme.erp.inventory.repository.StockMovementRepository;
 import com.sme.erp.inventory.repository.StockRepository;
 import com.sme.erp.purchase.repository.PurchaseOrderRepository;
@@ -32,15 +33,18 @@ public class ReportServiceImpl implements ReportService {
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final StockRepository stockRepository;
     private final StockMovementRepository stockMovementRepository;
+    private final ExpenseRepository expenseRepository;
 
     public ReportServiceImpl(SalesInvoiceRepository salesInvoiceRepository,
                              PurchaseOrderRepository purchaseOrderRepository,
                              StockRepository stockRepository,
-                             StockMovementRepository stockMovementRepository) {
+                             StockMovementRepository stockMovementRepository,
+                             ExpenseRepository expenseRepository) {
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.stockRepository = stockRepository;
         this.stockMovementRepository = stockMovementRepository;
+        this.expenseRepository = expenseRepository;
     }
 
     @Override
@@ -113,7 +117,7 @@ public class ReportServiceImpl implements ReportService {
         return new ProfitLossSummaryDTO(
                 safe(salesReport.getTotalSales()),
                 safe(purchaseReport.getTotalPurchase()),
-                BigDecimal.ZERO);
+                safe(expenseRepository.sumActiveAmountBetween(startDate, endDate)));
     }
 
     private LocalDateTime startOfDay(LocalDate date) {

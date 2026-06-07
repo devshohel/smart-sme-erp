@@ -17,6 +17,7 @@ export class SidebarComponent {
   isCustomersOpen = true;
   isSuppliersOpen = true;
   isPurchasesOpen = true;
+  isAccountingOpen = true;
   isReportsOpen = true;
   isSettingsOpen = true;
 
@@ -51,6 +52,10 @@ export class SidebarComponent {
 
   togglePurchases(): void {
     this.isPurchasesOpen = !this.isPurchasesOpen;
+  }
+
+  toggleAccounting(): void {
+    this.isAccountingOpen = !this.isAccountingOpen;
   }
 
   toggleReports(): void {

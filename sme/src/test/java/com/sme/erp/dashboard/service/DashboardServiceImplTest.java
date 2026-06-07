@@ -1,5 +1,6 @@
 package com.sme.erp.dashboard.service;
 
+import com.sme.erp.accounting.repository.ExpenseRepository;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.dashboard.dto.DashboardSummaryDTO;
@@ -42,6 +43,7 @@ class DashboardServiceImplTest {
     @Mock private StockRepository stockRepository;
     @Mock private CustomerRepository customerRepository;
     @Mock private SupplierRepository supplierRepository;
+    @Mock private ExpenseRepository expenseRepository;
 
     private DashboardServiceImpl service;
 
@@ -53,7 +55,8 @@ class DashboardServiceImplTest {
                 purchaseOrderRepository,
                 stockRepository,
                 customerRepository,
-                supplierRepository);
+                supplierRepository,
+                expenseRepository);
     }
 
     @Test
@@ -69,6 +72,9 @@ class DashboardServiceImplTest {
         when(salesItemRepository.findAll()).thenReturn(List.of(item));
         when(customerRepository.count()).thenReturn(1L);
         when(supplierRepository.count()).thenReturn(1L);
+        when(expenseRepository.sumActiveAmountBetween(LocalDate.now(), LocalDate.now())).thenReturn(BigDecimal.ZERO);
+        when(expenseRepository.sumActiveAmountBetween(null, null)).thenReturn(BigDecimal.ZERO);
+        when(expenseRepository.sumActiveAmountBetween(LocalDate.now().withDayOfMonth(1), LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth()))).thenReturn(BigDecimal.ZERO);
 
         DashboardSummaryDTO summary = service.getSummary();
 

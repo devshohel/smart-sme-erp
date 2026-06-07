@@ -1,0 +1,51 @@
+.accounting-page .summary-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  min-height: 86px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.summary-card span {
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.summary-card strong {
+  color: #111827;
+  font-size: 1.45rem;
+  line-height: 1.4;
+}
+
+.badge {
+  min-width: 92px;
+  text-align: center;
+}
+
+.section-title {
+  font-weight: 700;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 8px;
+}
+
+.journal-summary {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .journal-summary {
+    flex-direction: column;
+  }
+}

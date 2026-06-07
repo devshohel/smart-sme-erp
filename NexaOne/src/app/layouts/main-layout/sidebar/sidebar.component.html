@@ -147,6 +147,37 @@
       </div>
     </div>
 
+    <div class="menu-dropdown-item" *ngIf="hasPermission('ACCOUNTING_VIEW')">
+      <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         (click)="toggleAccounting()"
+         role="button"
+         [attr.aria-expanded]="isAccountingOpen">
+        <i class="bi bi-calculator icon fs-5 me-3"></i>
+        <span>Accounting</span>
+      </a>
+
+      <div class="submenu" [class.show]="isAccountingOpen">
+        <a routerLink="/accounting/expenses" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-cash-stack me-2"></i> Expenses
+        </a>
+        <a routerLink="/accounting/expense-categories" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-tags me-2"></i> Expense Categories
+        </a>
+        <a routerLink="/accounting/cash-book" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-wallet2 me-2"></i> Cash Book
+        </a>
+        <a routerLink="/accounting/bank-book" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-bank me-2"></i> Bank Book
+        </a>
+        <a routerLink="/accounting/journal-entries" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-journal-check me-2"></i> Journal Entries
+        </a>
+        <a routerLink="/accounting/accounts" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-diagram-3 me-2"></i> Chart of Accounts
+        </a>
+      </div>
+    </div>
+
     <div class="menu-dropdown-item" *ngIf="hasPermission('REPORT_VIEW')">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          (click)="toggleReports()"
