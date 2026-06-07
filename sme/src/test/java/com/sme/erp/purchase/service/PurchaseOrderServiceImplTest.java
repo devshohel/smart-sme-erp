@@ -31,6 +31,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -126,15 +127,14 @@ class PurchaseOrderServiceImplTest {
     }
 
     @Test
-    void update_doesNotReceiveStockAgainWhenAlreadyReceived() {
+    void update_receivedPurchaseIsRejected() {
         PurchaseOrder existing = purchaseOrder(PurchaseStatus.RECEIVED);
         PurchaseOrderDTO dto = purchaseOrderDto(PurchaseStatus.RECEIVED);
 
-        mockReferences(existing, dto);
-        when(purchaseOrderRepository.existsByPurchaseCodeAndIdNot("PO-0010", 10L)).thenReturn(false);
-        when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(purchaseOrderRepository.findById(10L)).thenReturn(Optional.of(existing));
 
-        service.update(10L, dto);
+        assertThatThrownBy(() -> service.update(10L, dto))
+                .hasMessage("Received purchase cannot be edited");
 
         verify(stockService, never()).stockIn(any(), any(), any(), any());
         verify(stockService, never()).stockIn(any(), any(), any(), any(), any(), any());

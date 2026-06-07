@@ -71,7 +71,7 @@ public class SupplierServiceImpl implements SupplierService {
         supplier.setCurrentBalance(supplier.getOpeningBalance());
         supplier.setIsDeleted(false);
 
-        // TODO Supplier ledger integration should own future payable and advance balance movements.
+        // Supplier balance movements remain isolated from accounting ledger postings in this phase.
 
         SupplierDTO saved = supplierMapper.toDTO(supplierRepository.save(supplier));
         activityLogService.log("SUPPLIER_CREATE", "SUPPLIER", "suppliers", saved.getId(), "Created supplier " + saved.getName());

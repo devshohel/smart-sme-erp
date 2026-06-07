@@ -72,7 +72,7 @@ public class CustomerServiceImpl implements CustomerService {
         customer.setCurrentBalance(customer.getOpeningBalance());
         customer.setIsDeleted(false);
 
-        // TODO Customer ledger integration should own future balance movements instead of direct field mutation.
+        // Customer balance movements remain isolated from accounting ledger postings in this phase.
 
         CustomerDTO saved = customerMapper.toDTO(customerRepository.save(customer));
         activityLogService.log("CUSTOMER_CREATE", "CUSTOMER", "customers", saved.getId(), "Created customer " + saved.getName());

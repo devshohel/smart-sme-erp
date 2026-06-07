@@ -41,7 +41,7 @@ public class AccountingPostingServiceImpl implements AccountingPostingService {
         }
         Account paymentAccount = paymentAccount(expense.getPaymentMethod());
         if (paymentAccount == null) {
-            // TODO Add posting support for OTHER payment method once a clearing account exists.
+            // OTHER payments are skipped until a clearing account is configured.
             return;
         }
         JournalEntry entry = baseEntry("EXPENSE", expense.getId(), expense.getExpenseNo(), expense.getExpenseDate(), "Expense posting " + expense.getExpenseNo());
@@ -66,7 +66,7 @@ public class AccountingPostingServiceImpl implements AccountingPostingService {
         addLine(entry, account("Sales Income"), BigDecimal.ZERO, netTotal, "Sales income");
         BigDecimal paid = safe(invoice.getPaidAmount()).min(netTotal);
         if (paid.signum() > 0) {
-            // TODO Sales invoices do not currently store payment method, so paid amount posts to Cash by default.
+            // Sales invoices do not currently store payment method, so paid amount posts to Cash by default.
             addLine(entry, account("Cash"), paid, BigDecimal.ZERO, "Customer payment");
             addLine(entry, account("Accounts Receivable"), BigDecimal.ZERO, paid, "Receivable collection");
         }
@@ -89,7 +89,7 @@ public class AccountingPostingServiceImpl implements AccountingPostingService {
         addLine(entry, account("Accounts Payable"), BigDecimal.ZERO, netTotal, "Supplier payable");
         BigDecimal paid = safe(purchaseOrder.getPaidAmount()).min(netTotal);
         if (paid.signum() > 0) {
-            // TODO Purchases do not currently store payment method, so paid amount posts to Cash by default.
+            // Purchases do not currently store payment method, so paid amount posts to Cash by default.
             addLine(entry, account("Accounts Payable"), paid, BigDecimal.ZERO, "Supplier payment");
             addLine(entry, account("Cash"), BigDecimal.ZERO, paid, "Purchase payment");
         }

@@ -1,6 +1,4 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { environment } from '../../../environments/environment';
-
 interface ErrorBody {
   message?: string;
   error?: string;
@@ -38,7 +36,6 @@ export function extractApiErrorMessage(error: unknown, fallback: string): string
 }
 
 export function debugApiError(context: string, error: unknown): void {
-  if (!environment.production) {
-    console.error(`[${context}]`, error);
-  }
+  void context;
+  void error;
 }

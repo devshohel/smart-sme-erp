@@ -97,6 +97,9 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Transactional
     public PurchaseOrderDTO update(Long id, PurchaseOrderDTO dto) {
         PurchaseOrder entity = findPurchaseOrderById(id);
+        if (isReceivedStatus(entity.getStatus())) {
+            throw new BadRequestException("Received purchase cannot be edited");
+        }
         PurchaseOrderDTO oldData = purchaseOrderMapper.toDTO(entity);
         PurchaseOrderDTO saved = save(dto, entity);
         auditLogService.log("purchase_orders", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "UPDATE");
@@ -134,12 +137,12 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
         PurchaseOrder saved = purchaseOrderRepository.save(entity);
 
-        if (previousStatus != PurchaseStatus.RECEIVED && saved.getStatus() == PurchaseStatus.RECEIVED) {
+        if (!isReceivedStatus(previousStatus) && isReceivedStatus(saved.getStatus())) {
             receiveStock(saved);
             activityLogService.log("PURCHASE_RECEIVE", "PURCHASE", "purchase_orders", saved.getId(), "Received purchase order " + saved.getPurchaseCode());
         }
 
-        if (saved.getStatus() == PurchaseStatus.RECEIVED) {
+        if (isReceivedStatus(saved.getStatus())) {
             accountingPostingService.postPurchase(saved);
         }
 
@@ -229,6 +232,10 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         if (exists) {
             throw new DuplicateResourceException("Purchase code already exists: " + purchaseCode);
         }
+    }
+
+    private boolean isReceivedStatus(PurchaseStatus status) {
+        return status == PurchaseStatus.RECEIVED || status == PurchaseStatus.PARTIAL_PAID || status == PurchaseStatus.PAID;
     }
 
     private void validateItems(List<PurchaseItemDTO> items) {

@@ -98,6 +98,9 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     @Transactional
     public SalesInvoiceDTO update(Long id, SalesInvoiceDTO dto) {
         SalesInvoice entity = findInvoiceById(id);
+        if (isPostedStatus(entity.getStatus())) {
+            throw new BadRequestException("Posted sales invoice cannot be edited");
+        }
         return save(dto, entity);
     }
 
@@ -132,10 +135,10 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
         SalesInvoice saved = salesInvoiceRepository.save(entity);
 
-        if (previousStatus != SalesInvoiceStatus.CONFIRMED && saved.getStatus() == SalesInvoiceStatus.CONFIRMED) {
+        if (!isPostedStatus(previousStatus) && isPostedStatus(saved.getStatus())) {
             deductStock(saved);
         }
-        if (saved.getStatus() == SalesInvoiceStatus.CONFIRMED || saved.getStatus() == SalesInvoiceStatus.COMPLETED) {
+        if (isPostedStatus(saved.getStatus())) {
             accountingPostingService.postSalesInvoice(saved);
         }
 
@@ -204,6 +207,10 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
             return SalesPaymentStatus.PARTIAL;
         }
         return SalesPaymentStatus.DUE;
+    }
+
+    private boolean isPostedStatus(SalesInvoiceStatus status) {
+        return status == SalesInvoiceStatus.CONFIRMED || status == SalesInvoiceStatus.COMPLETED;
     }
 
     private String resolveInvoiceNo(Long currentId, String requestedInvoiceNo) {

@@ -31,7 +31,11 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
             where (:startDate is null or p.purchaseDate >= :startDate)
               and (:endDate is null or p.purchaseDate < :endDate)
               and (:supplierId is null or s.id = :supplierId)
-              and p.status <> com.sme.erp.purchase.enums.PurchaseStatus.CANCELLED
+              and p.status in (
+                com.sme.erp.purchase.enums.PurchaseStatus.RECEIVED,
+                com.sme.erp.purchase.enums.PurchaseStatus.PARTIAL_PAID,
+                com.sme.erp.purchase.enums.PurchaseStatus.PAID
+              )
             order by p.purchaseDate desc, p.id desc
             """)
     List<PurchaseReportRowDTO> findPurchaseReportRows(
@@ -48,7 +52,11 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
             )
             from PurchaseOrder p
             join p.supplier s
-            where p.status <> com.sme.erp.purchase.enums.PurchaseStatus.CANCELLED
+            where p.status in (
+                com.sme.erp.purchase.enums.PurchaseStatus.RECEIVED,
+                com.sme.erp.purchase.enums.PurchaseStatus.PARTIAL_PAID,
+                com.sme.erp.purchase.enums.PurchaseStatus.PAID
+            )
             group by s.id, s.name
             having coalesce(sum(p.dueAmount), 0) > 0
             order by coalesce(sum(p.dueAmount), 0) desc

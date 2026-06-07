@@ -29,6 +29,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -79,7 +80,7 @@ class SalesInvoiceServiceImplTest {
     }
 
     @Test
-    void update_alreadyConfirmedInvoiceDoesNotDeductStockAgain() {
+    void update_alreadyConfirmedInvoiceIsRejected() {
         SalesInvoice existing = new SalesInvoice();
         existing.setId(8L);
         existing.setInvoiceNo("INV-0008");
@@ -89,11 +90,9 @@ class SalesInvoiceServiceImplTest {
         dto.setInvoiceNo("INV-0008");
 
         when(salesInvoiceRepository.findById(8L)).thenReturn(Optional.of(existing));
-        when(salesInvoiceRepository.existsByInvoiceNoAndIdNot("INV-0008", 8L)).thenReturn(false);
-        mockReferences();
-        when(salesInvoiceRepository.save(any(SalesInvoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.update(8L, dto);
+        assertThatThrownBy(() -> service.update(8L, dto))
+                .hasMessage("Posted sales invoice cannot be edited");
 
         verify(stockService, never()).stockOut(any(), any(), any());
         verify(stockService, never()).stockOut(any(), any(), any(), any(), any());

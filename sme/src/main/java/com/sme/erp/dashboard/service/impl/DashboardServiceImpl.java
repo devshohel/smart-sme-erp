@@ -298,7 +298,9 @@ public class DashboardServiceImpl implements DashboardService {
     private boolean isActivePurchase(PurchaseOrder order) {
         return order != null
                 && order.getPurchaseDate() != null
-                && order.getStatus() != PurchaseStatus.CANCELLED;
+                && (order.getStatus() == PurchaseStatus.RECEIVED
+                || order.getStatus() == PurchaseStatus.PARTIAL_PAID
+                || order.getStatus() == PurchaseStatus.PAID);
     }
 
     private boolean isLowStock(Stock stock) {

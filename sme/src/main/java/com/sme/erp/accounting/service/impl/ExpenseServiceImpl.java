@@ -8,6 +8,7 @@ import com.sme.erp.accounting.enums.ExpenseStatus;
 import com.sme.erp.accounting.mapper.AccountingMapper;
 import com.sme.erp.accounting.repository.ExpenseCategoryRepository;
 import com.sme.erp.accounting.repository.ExpenseRepository;
+import com.sme.erp.accounting.repository.JournalEntryRepository;
 import com.sme.erp.accounting.service.AccountingPostingService;
 import com.sme.erp.accounting.service.ExpenseService;
 import com.sme.erp.audit.service.ActivityLogService;
@@ -33,14 +34,16 @@ public class ExpenseServiceImpl implements ExpenseService {
     private final ActivityLogService activityLogService;
     private final AuditLogService auditLogService;
     private final AccountingPostingService accountingPostingService;
+    private final JournalEntryRepository journalEntryRepository;
 
-    public ExpenseServiceImpl(ExpenseRepository repository, ExpenseCategoryRepository categoryRepository, AccountingMapper mapper, ActivityLogService activityLogService, AuditLogService auditLogService, AccountingPostingService accountingPostingService) {
+    public ExpenseServiceImpl(ExpenseRepository repository, ExpenseCategoryRepository categoryRepository, AccountingMapper mapper, ActivityLogService activityLogService, AuditLogService auditLogService, AccountingPostingService accountingPostingService, JournalEntryRepository journalEntryRepository) {
         this.repository = repository;
         this.categoryRepository = categoryRepository;
         this.mapper = mapper;
         this.activityLogService = activityLogService;
         this.auditLogService = auditLogService;
         this.accountingPostingService = accountingPostingService;
+        this.journalEntryRepository = journalEntryRepository;
     }
 
     @Override
@@ -77,6 +80,9 @@ public class ExpenseServiceImpl implements ExpenseService {
         if (expense.getStatus() == ExpenseStatus.CANCELLED) {
             throw new BadRequestException("Cancelled expense cannot be edited");
         }
+        if (journalEntryRepository.existsBySourceTypeAndSourceId("EXPENSE", id)) {
+            throw new BadRequestException("Posted expense cannot be edited");
+        }
         ExpenseDTO oldData = mapper.toDTO(expense);
         apply(dto, expense);
         ExpenseDTO saved = mapper.toDTO(repository.save(expense));
@@ -89,6 +95,9 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Transactional
     public ExpenseDTO cancel(Long id) {
         Expense expense = find(id);
+        if (journalEntryRepository.existsBySourceTypeAndSourceId("EXPENSE", id)) {
+            throw new BadRequestException("Posted expense cannot be cancelled");
+        }
         ExpenseDTO oldData = mapper.toDTO(expense);
         expense.setStatus(ExpenseStatus.CANCELLED);
         ExpenseDTO saved = mapper.toDTO(repository.save(expense));
