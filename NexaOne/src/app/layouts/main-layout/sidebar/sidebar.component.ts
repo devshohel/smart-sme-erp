@@ -102,7 +102,7 @@ export class SidebarComponent {
     return this.isAdmin() || this.hasAnyPermission(['AUDIT_VIEW', 'ACTIVITY_VIEW']);
   }
 
-  private isAdmin(): boolean {
+  isAdmin(): boolean {
     const role = this.authService.getCurrentUser()?.role;
     return role === 'ADMIN' || role === 'ROLE_ADMIN';
   }

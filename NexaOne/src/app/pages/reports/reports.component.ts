@@ -109,10 +109,6 @@ export class ReportsComponent implements OnInit {
     });
   }
 
-  exportPlaceholder(format: 'PDF' | 'Excel'): void {
-    window.alert(`${format} export will be available in a future release.`);
-  }
-
   get title(): string {
     return this.reportTitles[this.reportType];
   }

@@ -6,7 +6,7 @@ import { map, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Status } from '../../models/product.model';
 import { ApiResponse, unwrapApiResponse } from '../../shared/utils/api-response.util';
-import { ActivityLog, AuditFilter, AuditLog, LoginHistory, LoginRequest, LoginResponse, Permission, Role, User } from './auth.model';
+import { ActivityLog, AuditFilter, AuditLog, ChangePasswordRequest, LoginHistory, LoginRequest, LoginResponse, Permission, Role, User } from './auth.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -25,6 +25,10 @@ export class AuthService {
         map(response => unwrapApiResponse(response)),
         tap(response => this.storeSession(response))
       );
+  }
+
+  changePassword(request: ChangePasswordRequest): Observable<void> {
+    return this.http.post<void>(`${this.authUrl}/change-password`, request);
   }
 
   logout(): void {

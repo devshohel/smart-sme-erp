@@ -14,6 +14,7 @@ import { CompanySettingsComponent } from './company-settings/company-settings.co
 import { InvoiceSettingsComponent } from './invoice-settings/invoice-settings.component';
 import { TaxSettingsComponent } from './tax-settings/tax-settings.component';
 import { SystemSettingsComponent } from './system-settings/system-settings.component';
+import { ChangePasswordComponent } from './change-password/change-password.component';
 
 @NgModule({
   declarations: [
@@ -27,7 +28,8 @@ import { SystemSettingsComponent } from './system-settings/system-settings.compo
     CompanySettingsComponent,
     InvoiceSettingsComponent,
     TaxSettingsComponent,
-    SystemSettingsComponent
+    SystemSettingsComponent,
+    ChangePasswordComponent
   ],
   imports: [
     CommonModule,

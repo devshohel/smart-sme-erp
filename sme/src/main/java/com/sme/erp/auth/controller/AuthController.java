@@ -1,5 +1,6 @@
 package com.sme.erp.auth.controller;
 
+import com.sme.erp.auth.dto.ChangePasswordRequestDTO;
 import com.sme.erp.auth.dto.LoginRequestDTO;
 import com.sme.erp.auth.dto.LoginResponseDTO;
 import com.sme.erp.auth.service.AuthService;
@@ -28,6 +29,14 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/change-password")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequestDTO request) {
+        authService.changePassword(request);
+        activityLogService.log("CHANGE_PASSWORD", "AUTH", "users", null, "User changed own password");
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/logout")

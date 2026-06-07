@@ -234,22 +234,22 @@
       </a>
 
       <div class="submenu" [class.show]="isSettingsOpen">
-        <a *ngIf="hasPermission('SETTINGS_VIEW')" routerLink="/settings/company" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a *ngIf="isAdmin() || hasPermission('SETTINGS_VIEW')" routerLink="/settings/company" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-building me-2"></i> Company Settings
         </a>
-        <a *ngIf="hasPermission('SETTINGS_VIEW')" routerLink="/settings/invoice" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a *ngIf="isAdmin() || hasPermission('SETTINGS_VIEW')" routerLink="/settings/invoice" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-receipt me-2"></i> Invoice Settings
         </a>
-        <a *ngIf="hasPermission('SETTINGS_VIEW')" routerLink="/settings/tax" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a *ngIf="isAdmin() || hasPermission('SETTINGS_VIEW')" routerLink="/settings/tax" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-percent me-2"></i> Tax Settings
         </a>
-        <a *ngIf="hasPermission('SETTINGS_VIEW')" routerLink="/settings/system" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a *ngIf="isAdmin() || hasPermission('SETTINGS_VIEW')" routerLink="/settings/system" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-sliders me-2"></i> System Settings
         </a>
-        <a *ngIf="hasPermission('USER_VIEW')" routerLink="/settings/users" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a *ngIf="isAdmin() || hasPermission('USER_VIEW')" routerLink="/settings/users" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-people me-2"></i> Users
         </a>
-        <a *ngIf="hasPermission('ROLE_VIEW')" routerLink="/settings/roles-permissions" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a *ngIf="isAdmin() || hasPermission('ROLE_VIEW')" routerLink="/settings/roles-permissions" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-shield-lock me-2"></i> Roles & Permissions
         </a>
         <a *ngIf="canViewActivityLogs()" routerLink="/settings/activity-logs" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">

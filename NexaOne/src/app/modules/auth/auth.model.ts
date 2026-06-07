@@ -5,6 +5,12 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
 export interface LoginResponse {
   accessToken: string;
   username: string;

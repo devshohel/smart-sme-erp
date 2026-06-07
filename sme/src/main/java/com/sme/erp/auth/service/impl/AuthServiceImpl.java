@@ -1,5 +1,6 @@
 package com.sme.erp.auth.service.impl;
 
+import com.sme.erp.auth.dto.ChangePasswordRequestDTO;
 import com.sme.erp.auth.dto.LoginRequestDTO;
 import com.sme.erp.auth.dto.LoginResponseDTO;
 import com.sme.erp.auth.entity.User;
@@ -10,6 +11,8 @@ import com.sme.erp.auth.service.AuthService;
 import com.sme.erp.audit.service.LoginHistoryService;
 import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.enums.Status;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,5 +65,28 @@ public class AuthServiceImpl implements AuthService {
                 user.getRole().getRoleName(),
                 rolePermissionRepository.findPermissionNamesByRoleId(user.getRole().getId()),
                 loginTime);
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(ChangePasswordRequestDTO request) {
+        if (request.getNewPassword() == null || !request.getNewPassword().equals(request.getConfirmNewPassword())) {
+            throw new BadRequestException("New password and confirmation do not match");
+        }
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null || authentication.getName().isBlank()) {
+            throw new BadRequestException("User is not authenticated");
+        }
+
+        User user = userRepository.findByUsername(authentication.getName())
+                .orElseThrow(() -> new BadRequestException("User not found"));
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new BadRequestException("Old password is incorrect");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 }
