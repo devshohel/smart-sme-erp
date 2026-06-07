@@ -1,5 +1,6 @@
 package com.sme.erp.sales.service;
 
+import com.sme.erp.accounting.service.AccountingPostingService;
 import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.repository.CustomerRepository;
@@ -44,6 +45,7 @@ class SalesInvoiceServiceImplTest {
     @Mock private UomRepository uomRepository;
     @Mock private StockService stockService;
     @Mock private ActivityLogService activityLogService;
+    @Mock private AccountingPostingService accountingPostingService;
 
     private SalesInvoiceServiceImpl service;
 
@@ -58,7 +60,8 @@ class SalesInvoiceServiceImplTest {
                 uomRepository,
                 new SalesInvoiceMapper(new SalesItemMapper()),
                 stockService,
-                activityLogService);
+                activityLogService,
+                accountingPostingService);
     }
 
     @Test

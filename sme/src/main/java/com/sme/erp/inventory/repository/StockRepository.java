@@ -12,6 +12,7 @@ import com.sme.erp.reports.dto.StockReportRowDTO;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
+import java.math.BigDecimal;
 
 public interface StockRepository extends JpaRepository<Stock, Long> {
 
@@ -38,4 +39,7 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
     List<StockReportRowDTO> findStockReportRows(
             @Param("warehouseId") Long warehouseId,
             @Param("productId") Long productId);
+
+    @Query("select coalesce(sum(s.quantity * p.purchasePrice), 0) from Stock s join s.product p")
+    BigDecimal sumInventoryValue();
 }

@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { ApiResponse, unwrapApiResponse } from '../../shared/utils/api-response.util';
-import { Account, AccountType, BookEntry, Expense, ExpenseCategory, JournalEntry, JournalStatus, PaymentMethod } from './accounting.model';
+import { Account, AccountType, BalanceSheet, BookEntry, Expense, ExpenseCategory, JournalEntry, JournalStatus, LedgerEntry, PaymentMethod, TrialBalance } from './accounting.model';
 
 @Injectable({ providedIn: 'root' })
 export class AccountingService {
@@ -91,6 +91,40 @@ export class AccountingService {
 
   getBankBook(): Observable<BookEntry[]> {
     return this.http.get<BookEntry[] | ApiResponse<BookEntry[]>>(`${this.baseUrl}/bank-book`)
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  getCustomerLedger(filters: { customerId?: number | ''; fromDate?: string; toDate?: string }): Observable<LedgerEntry[]> {
+    return this.getLedger(`${this.baseUrl}/customer-ledger`, filters, 'customerId');
+  }
+
+  getSupplierLedger(filters: { supplierId?: number | ''; fromDate?: string; toDate?: string }): Observable<LedgerEntry[]> {
+    return this.getLedger(`${this.baseUrl}/supplier-ledger`, filters, 'supplierId');
+  }
+
+  getGeneralLedger(filters: { accountId?: number | ''; fromDate?: string; toDate?: string }): Observable<LedgerEntry[]> {
+    return this.getLedger(`${this.baseUrl}/general-ledger`, filters, 'accountId');
+  }
+
+  getTrialBalance(filters: { fromDate?: string; toDate?: string }): Observable<TrialBalance> {
+    let params = new HttpParams();
+    if (filters.fromDate) params = params.set('fromDate', filters.fromDate);
+    if (filters.toDate) params = params.set('toDate', filters.toDate);
+    return this.http.get<TrialBalance | ApiResponse<TrialBalance>>(`${this.baseUrl}/trial-balance`, { params })
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  getBalanceSheet(): Observable<BalanceSheet> {
+    return this.http.get<BalanceSheet | ApiResponse<BalanceSheet>>(`${this.baseUrl}/balance-sheet`)
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  private getLedger(url: string, filters: Record<string, number | string | undefined>, idKey: string): Observable<LedgerEntry[]> {
+    let params = new HttpParams();
+    if (filters[idKey]) params = params.set(idKey, String(filters[idKey]));
+    if (filters['fromDate']) params = params.set('fromDate', String(filters['fromDate']));
+    if (filters['toDate']) params = params.set('toDate', String(filters['toDate']));
+    return this.http.get<LedgerEntry[] | ApiResponse<LedgerEntry[]>>(url, { params })
       .pipe(map(response => unwrapApiResponse(response)));
   }
 }

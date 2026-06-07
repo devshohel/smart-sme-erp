@@ -1,5 +1,6 @@
 package com.sme.erp.sales.service;
 
+import com.sme.erp.accounting.service.AccountingPostingService;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.inventory.entity.Warehouse;
@@ -36,6 +37,7 @@ class SalesReturnServiceImplTest {
     @Mock private CustomerRepository customerRepository;
     @Mock private ProductRepository productRepository;
     @Mock private StockService stockService;
+    @Mock private AccountingPostingService accountingPostingService;
 
     private SalesReturnServiceImpl service;
 
@@ -47,7 +49,8 @@ class SalesReturnServiceImplTest {
                 customerRepository,
                 productRepository,
                 new SalesReturnMapper(new SalesReturnItemMapper()),
-                stockService);
+                stockService,
+                accountingPostingService);
     }
 
     @Test

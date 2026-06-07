@@ -9,7 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "accounting_journal_entries")
+@Table(name = "accounting_journal_entries",
+        uniqueConstraints = @UniqueConstraint(name = "uk_accounting_journal_source", columnNames = {"source_type", "source_id"}))
 public class JournalEntry {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,6 +24,15 @@ public class JournalEntry {
 
     private String referenceNo;
     private String description;
+
+    @Column(name = "source_type")
+    private String sourceType;
+
+    @Column(name = "source_id")
+    private Long sourceId;
+
+    @Column(name = "source_no")
+    private String sourceNo;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -60,6 +70,12 @@ public class JournalEntry {
     public void setReferenceNo(String referenceNo) { this.referenceNo = referenceNo; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public String getSourceType() { return sourceType; }
+    public void setSourceType(String sourceType) { this.sourceType = sourceType; }
+    public Long getSourceId() { return sourceId; }
+    public void setSourceId(Long sourceId) { this.sourceId = sourceId; }
+    public String getSourceNo() { return sourceNo; }
+    public void setSourceNo(String sourceNo) { this.sourceNo = sourceNo; }
     public JournalStatus getStatus() { return status; }
     public void setStatus(JournalStatus status) { this.status = status; }
     public LocalDateTime getCreatedAt() { return createdAt; }

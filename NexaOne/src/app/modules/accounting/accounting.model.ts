@@ -69,3 +69,42 @@ export interface BookEntry {
   moneyOut: number;
   balance: number;
 }
+
+export interface LedgerEntry {
+  date: string;
+  account: string;
+  referenceNo: string;
+  description: string;
+  debit: number;
+  credit: number;
+  balance: number;
+}
+
+export interface TrialBalanceRow {
+  accountCode: string;
+  accountName: string;
+  accountType: AccountType;
+  totalDebit: number;
+  totalCredit: number;
+  balance: number;
+}
+
+export interface TrialBalance {
+  rows: TrialBalanceRow[];
+  totalDebit: number;
+  totalCredit: number;
+}
+
+export interface BalanceSheet {
+  cash: number;
+  bank: number;
+  accountsReceivable: number;
+  inventoryValue: number;
+  totalAssets: number;
+  accountsPayable: number;
+  totalLiabilities: number;
+  ownerEquity: number;
+  retainedEarnings: number;
+  totalEquity: number;
+  liabilitiesAndEquity: number;
+}

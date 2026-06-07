@@ -3,10 +3,10 @@ import { ActivatedRoute } from '@angular/router';
 import { Observable } from 'rxjs';
 import { AuthService } from '../../auth/auth.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
-import { Account, AccountType, BookEntry, Expense, ExpenseCategory, JournalEntry, JournalLine, JournalStatus, PaymentMethod } from '../accounting.model';
+import { Account, AccountType, BalanceSheet, BookEntry, Expense, ExpenseCategory, JournalEntry, JournalLine, JournalStatus, LedgerEntry, PaymentMethod, TrialBalance } from '../accounting.model';
 import { AccountingService } from '../accounting.service';
 
-type Section = 'categories' | 'expenses' | 'accounts' | 'journals' | 'cash-book' | 'bank-book';
+type Section = 'categories' | 'expenses' | 'accounts' | 'journals' | 'cash-book' | 'bank-book' | 'customer-ledger' | 'supplier-ledger' | 'general-ledger' | 'trial-balance' | 'balance-sheet';
 
 @Component({
   selector: 'app-accounting',
@@ -25,6 +25,9 @@ export class AccountingComponent implements OnInit {
   accounts: Account[] = [];
   journals: JournalEntry[] = [];
   bookEntries: BookEntry[] = [];
+  ledgerEntries: LedgerEntry[] = [];
+  trialBalance: TrialBalance | null = null;
+  balanceSheet: BalanceSheet | null = null;
 
   categoryForm: ExpenseCategory = this.emptyCategory();
   expenseForm: Expense = this.emptyExpense();
@@ -32,6 +35,7 @@ export class AccountingComponent implements OnInit {
   journalForm: JournalEntry = this.emptyJournal();
 
   expenseFilters = { fromDate: '', toDate: '', categoryId: '' as number | '', paymentMethod: '' as PaymentMethod | '' };
+  ledgerFilters = { customerId: '' as number | '', supplierId: '' as number | '', accountId: '' as number | '', fromDate: '', toDate: '' };
   accountTypeFilter: AccountType | '' = '';
   journalStatusFilter: JournalStatus | '' = '';
 
@@ -61,6 +65,11 @@ export class AccountingComponent implements OnInit {
     if (this.section === 'journals') this.loadJournals();
     if (this.section === 'cash-book') this.loadBook(true);
     if (this.section === 'bank-book') this.loadBook(false);
+    if (this.section === 'customer-ledger') this.loadCustomerLedger();
+    if (this.section === 'supplier-ledger') this.loadSupplierLedger();
+    if (this.section === 'general-ledger') this.loadGeneralLedger();
+    if (this.section === 'trial-balance') this.loadTrialBalance();
+    if (this.section === 'balance-sheet') this.loadBalanceSheet();
   }
 
   saveCategory(): void {
@@ -160,6 +169,18 @@ export class AccountingComponent implements OnInit {
     return this.bookEntries.length ? this.bookEntries[this.bookEntries.length - 1].balance : 0;
   }
 
+  ledgerDebitTotal(): number {
+    return this.ledgerEntries.reduce((sum, row) => sum + this.toNumber(row.debit), 0);
+  }
+
+  ledgerCreditTotal(): number {
+    return this.ledgerEntries.reduce((sum, row) => sum + this.toNumber(row.credit), 0);
+  }
+
+  ledgerBalance(): number {
+    return this.ledgerEntries.length ? this.ledgerEntries[this.ledgerEntries.length - 1].balance : 0;
+  }
+
   hasPermission(permission: string): boolean {
     return this.authService.hasPermission(permission);
   }
@@ -194,6 +215,26 @@ export class AccountingComponent implements OnInit {
 
   private loadBook(cash: boolean): void {
     this.fetch(true, cash ? this.accountingService.getCashBook() : this.accountingService.getBankBook(), rows => this.bookEntries = rows, 'Book entries could not be loaded.');
+  }
+
+  private loadCustomerLedger(): void {
+    this.fetch(true, this.accountingService.getCustomerLedger(this.ledgerFilters), rows => this.ledgerEntries = rows, 'Customer ledger could not be loaded.');
+  }
+
+  private loadSupplierLedger(): void {
+    this.fetch(true, this.accountingService.getSupplierLedger(this.ledgerFilters), rows => this.ledgerEntries = rows, 'Supplier ledger could not be loaded.');
+  }
+
+  private loadGeneralLedger(): void {
+    this.fetch(true, this.accountingService.getGeneralLedger(this.ledgerFilters), rows => this.ledgerEntries = rows, 'General ledger could not be loaded.');
+  }
+
+  private loadTrialBalance(): void {
+    this.fetch(true, this.accountingService.getTrialBalance(this.ledgerFilters), report => this.trialBalance = report, 'Trial balance could not be loaded.');
+  }
+
+  private loadBalanceSheet(): void {
+    this.fetch(true, this.accountingService.getBalanceSheet(), report => this.balanceSheet = report, 'Balance sheet could not be loaded.');
   }
 
   private fetch<T>(showLoading: boolean, request: Observable<T>, next: (value: T) => void, fallback: string): void {

@@ -4,6 +4,7 @@ import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
+import com.sme.erp.accounting.service.AccountingPostingService;
 import com.sme.erp.inventory.service.StockService;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.repository.ProductRepository;
@@ -35,6 +36,7 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
     private final ProductRepository productRepository;
     private final PurchaseReturnMapper purchaseReturnMapper;
     private final StockService stockService;
+    private final AccountingPostingService accountingPostingService;
 
     public PurchaseReturnServiceImpl(
             PurchaseReturnRepository purchaseReturnRepository,
@@ -42,13 +44,15 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
             SupplierRepository supplierRepository,
             ProductRepository productRepository,
             PurchaseReturnMapper purchaseReturnMapper,
-            StockService stockService) {
+            StockService stockService,
+            AccountingPostingService accountingPostingService) {
         this.purchaseReturnRepository = purchaseReturnRepository;
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.supplierRepository = supplierRepository;
         this.productRepository = productRepository;
         this.purchaseReturnMapper = purchaseReturnMapper;
         this.stockService = stockService;
+        this.accountingPostingService = accountingPostingService;
     }
 
     @Override
@@ -90,8 +94,7 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
         PurchaseReturn saved = purchaseReturnRepository.save(entity);
 
         deductReturnedStock(saved);
-
-        // TODO Supplier ledger or payment integration should own future payable and advance balance movements.
+        accountingPostingService.postPurchaseReturn(saved);
 
         return purchaseReturnMapper.toDTO(saved);
     }

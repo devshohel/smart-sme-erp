@@ -44,6 +44,21 @@
   font-weight: 700;
 }
 
+.statement-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.statement-row.total {
+  margin-top: 8px;
+  border-top: 2px solid #d1d5db;
+  border-bottom: 0;
+  font-weight: 700;
+}
+
 @media (max-width: 768px) {
   .journal-summary {
     flex-direction: column;

@@ -4,6 +4,7 @@ import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
+import com.sme.erp.accounting.service.AccountingPostingService;
 import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.repository.CustomerRepository;
@@ -45,6 +46,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     private final SalesInvoiceMapper salesInvoiceMapper;
     private final StockService stockService;
     private final ActivityLogService activityLogService;
+    private final AccountingPostingService accountingPostingService;
 
     public SalesInvoiceServiceImpl(
             SalesInvoiceRepository salesInvoiceRepository,
@@ -55,7 +57,8 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
             UomRepository uomRepository,
             SalesInvoiceMapper salesInvoiceMapper,
             StockService stockService,
-            ActivityLogService activityLogService) {
+            ActivityLogService activityLogService,
+            AccountingPostingService accountingPostingService) {
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.salesOrderRepository = salesOrderRepository;
         this.customerRepository = customerRepository;
@@ -65,6 +68,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         this.salesInvoiceMapper = salesInvoiceMapper;
         this.stockService = stockService;
         this.activityLogService = activityLogService;
+        this.accountingPostingService = accountingPostingService;
     }
 
     @Override
@@ -130,6 +134,9 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
         if (previousStatus != SalesInvoiceStatus.CONFIRMED && saved.getStatus() == SalesInvoiceStatus.CONFIRMED) {
             deductStock(saved);
+        }
+        if (saved.getStatus() == SalesInvoiceStatus.CONFIRMED || saved.getStatus() == SalesInvoiceStatus.COMPLETED) {
+            accountingPostingService.postSalesInvoice(saved);
         }
 
         return salesInvoiceMapper.toDTO(saved);

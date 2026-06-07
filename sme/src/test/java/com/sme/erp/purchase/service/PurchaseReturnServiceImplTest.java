@@ -1,5 +1,6 @@
 package com.sme.erp.purchase.service;
 
+import com.sme.erp.accounting.service.AccountingPostingService;
 import com.sme.erp.inventory.entity.Warehouse;
 import com.sme.erp.inventory.service.StockService;
 import com.sme.erp.product.entity.Product;
@@ -41,6 +42,8 @@ class PurchaseReturnServiceImplTest {
     private ProductRepository productRepository;
     @Mock
     private StockService stockService;
+    @Mock
+    private AccountingPostingService accountingPostingService;
 
     private PurchaseReturnServiceImpl service;
 
@@ -52,7 +55,8 @@ class PurchaseReturnServiceImplTest {
                 supplierRepository,
                 productRepository,
                 new PurchaseReturnMapper(new PurchaseReturnItemMapper()),
-                stockService);
+                stockService,
+                accountingPostingService);
     }
 
     @Test

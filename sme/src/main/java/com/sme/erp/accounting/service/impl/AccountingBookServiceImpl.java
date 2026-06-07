@@ -50,7 +50,7 @@ public class AccountingBookServiceImpl implements AccountingBookService {
                 .orElseThrow(() -> new ResourceNotFoundException(accountName + " account not found"));
         List<BookSource> sources = new ArrayList<>();
 
-        for (Expense expense : expenseRepository.findByStatusAndPaymentMethodForBook(ExpenseStatus.ACTIVE, method)) {
+        for (Expense expense : expenseRepository.findUnpostedByStatusAndPaymentMethodForBook(ExpenseStatus.ACTIVE, method)) {
             sources.add(new BookSource(expense.getExpenseDate(), expense.getExpenseNo(),
                     "Expense: " + (expense.getCategory() == null ? "" : expense.getCategory().getName()),
                     BigDecimal.ZERO, safe(expense.getAmount())));

@@ -4,6 +4,7 @@ import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
+import com.sme.erp.accounting.service.AccountingPostingService;
 import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.inventory.entity.Warehouse;
@@ -43,6 +44,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final StockService stockService;
     private final ActivityLogService activityLogService;
     private final AuditLogService auditLogService;
+    private final AccountingPostingService accountingPostingService;
 
     public PurchaseOrderServiceImpl(
             PurchaseOrderRepository purchaseOrderRepository,
@@ -53,7 +55,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             PurchaseOrderMapper purchaseOrderMapper,
             StockService stockService,
             ActivityLogService activityLogService,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService,
+            AccountingPostingService accountingPostingService) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.supplierRepository = supplierRepository;
         this.warehouseRepository = warehouseRepository;
@@ -63,6 +66,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         this.stockService = stockService;
         this.activityLogService = activityLogService;
         this.auditLogService = auditLogService;
+        this.accountingPostingService = accountingPostingService;
     }
 
     @Override
@@ -135,7 +139,9 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             activityLogService.log("PURCHASE_RECEIVE", "PURCHASE", "purchase_orders", saved.getId(), "Received purchase order " + saved.getPurchaseCode());
         }
 
-        // TODO Supplier ledger or payment integration should own future payable and advance balance movements.
+        if (saved.getStatus() == PurchaseStatus.RECEIVED) {
+            accountingPostingService.postPurchase(saved);
+        }
 
         return purchaseOrderMapper.toDTO(saved);
     }

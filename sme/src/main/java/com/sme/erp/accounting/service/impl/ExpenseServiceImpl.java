@@ -8,6 +8,7 @@ import com.sme.erp.accounting.enums.ExpenseStatus;
 import com.sme.erp.accounting.mapper.AccountingMapper;
 import com.sme.erp.accounting.repository.ExpenseCategoryRepository;
 import com.sme.erp.accounting.repository.ExpenseRepository;
+import com.sme.erp.accounting.service.AccountingPostingService;
 import com.sme.erp.accounting.service.ExpenseService;
 import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.audit.service.AuditLogService;
@@ -31,13 +32,15 @@ public class ExpenseServiceImpl implements ExpenseService {
     private final AccountingMapper mapper;
     private final ActivityLogService activityLogService;
     private final AuditLogService auditLogService;
+    private final AccountingPostingService accountingPostingService;
 
-    public ExpenseServiceImpl(ExpenseRepository repository, ExpenseCategoryRepository categoryRepository, AccountingMapper mapper, ActivityLogService activityLogService, AuditLogService auditLogService) {
+    public ExpenseServiceImpl(ExpenseRepository repository, ExpenseCategoryRepository categoryRepository, AccountingMapper mapper, ActivityLogService activityLogService, AuditLogService auditLogService, AccountingPostingService accountingPostingService) {
         this.repository = repository;
         this.categoryRepository = categoryRepository;
         this.mapper = mapper;
         this.activityLogService = activityLogService;
         this.auditLogService = auditLogService;
+        this.accountingPostingService = accountingPostingService;
     }
 
     @Override
@@ -59,7 +62,9 @@ public class ExpenseServiceImpl implements ExpenseService {
         expense.setExpenseNo(nextExpenseNo());
         expense.setCreatedBy(currentUsername());
         apply(dto, expense);
-        ExpenseDTO saved = mapper.toDTO(repository.save(expense));
+        Expense savedEntity = repository.save(expense);
+        accountingPostingService.postExpense(savedEntity);
+        ExpenseDTO saved = mapper.toDTO(savedEntity);
         activityLogService.log("EXPENSE_CREATE", "ACCOUNTING", "accounting_expenses", saved.getId(), "Created expense " + saved.getExpenseNo());
         auditLogService.log("accounting_expenses", saved.getId(), null, auditLogService.toJson(saved), "CREATE");
         return saved;

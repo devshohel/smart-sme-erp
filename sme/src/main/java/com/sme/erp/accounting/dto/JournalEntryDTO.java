@@ -16,6 +16,9 @@ public class JournalEntryDTO {
     private LocalDate journalDate;
     private String referenceNo;
     private String description;
+    private String sourceType;
+    private Long sourceId;
+    private String sourceNo;
     private JournalStatus status;
     @Valid
     private List<JournalEntryLineDTO> lines = new ArrayList<>();
@@ -32,6 +35,12 @@ public class JournalEntryDTO {
     public void setReferenceNo(String referenceNo) { this.referenceNo = referenceNo; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public String getSourceType() { return sourceType; }
+    public void setSourceType(String sourceType) { this.sourceType = sourceType; }
+    public Long getSourceId() { return sourceId; }
+    public void setSourceId(Long sourceId) { this.sourceId = sourceId; }
+    public String getSourceNo() { return sourceNo; }
+    public void setSourceNo(String sourceNo) { this.sourceNo = sourceNo; }
     public JournalStatus getStatus() { return status; }
     public void setStatus(JournalStatus status) { this.status = status; }
     public List<JournalEntryLineDTO> getLines() { return lines; }

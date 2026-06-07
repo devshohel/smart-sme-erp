@@ -64,6 +64,9 @@ public class AccountingMapper {
         dto.setJournalDate(entity.getJournalDate());
         dto.setReferenceNo(entity.getReferenceNo());
         dto.setDescription(entity.getDescription());
+        dto.setSourceType(entity.getSourceType());
+        dto.setSourceId(entity.getSourceId());
+        dto.setSourceNo(entity.getSourceNo());
         dto.setStatus(entity.getStatus());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());

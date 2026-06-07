@@ -1,6 +1,6 @@
 <div class="container-fluid p-4 accounting-page">
   <app-page-header
-    [title]="section === 'cash-book' ? 'Cash Book' : section === 'bank-book' ? 'Bank Book' : section === 'categories' ? 'Expense Categories' : section === 'accounts' ? 'Chart of Accounts' : section === 'journals' ? 'Journal Entries' : 'Expenses'"
+    [title]="section === 'cash-book' ? 'Cash Book' : section === 'bank-book' ? 'Bank Book' : section === 'categories' ? 'Expense Categories' : section === 'accounts' ? 'Chart of Accounts' : section === 'journals' ? 'Journal Entries' : section === 'customer-ledger' ? 'Customer Ledger' : section === 'supplier-ledger' ? 'Supplier Ledger' : section === 'general-ledger' ? 'General Ledger' : section === 'trial-balance' ? 'Trial Balance' : section === 'balance-sheet' ? 'Balance Sheet' : 'Expenses'"
     subtitle="Manual accounting foundation and expense tracking.">
   </app-page-header>
 
@@ -181,6 +181,88 @@
           <tr *ngIf="loading"><td colspan="6" class="text-center text-muted py-5">Loading...</td></tr>
         </tbody>
       </table></div>
+    </app-card>
+  </ng-container>
+
+  <ng-container *ngIf="section === 'customer-ledger' || section === 'supplier-ledger' || section === 'general-ledger'">
+    <div class="row g-3 mb-3">
+      <div class="col-md-4"><div class="summary-card"><span>Total Debit</span><strong>{{ ledgerDebitTotal() | number:'1.2-2' }}</strong></div></div>
+      <div class="col-md-4"><div class="summary-card"><span>Total Credit</span><strong>{{ ledgerCreditTotal() | number:'1.2-2' }}</strong></div></div>
+      <div class="col-md-4"><div class="summary-card"><span>Balance</span><strong>{{ ledgerBalance() | number:'1.2-2' }}</strong></div></div>
+    </div>
+
+    <app-card title="Ledger Filters">
+      <form (ngSubmit)="loadCurrentSection()" class="row g-3">
+        <div class="col-md-3" *ngIf="section === 'customer-ledger'">
+          <label class="form-label">Customer ID</label>
+          <input type="number" class="form-control" [(ngModel)]="ledgerFilters.customerId" name="customerId" placeholder="All customers">
+        </div>
+        <div class="col-md-3" *ngIf="section === 'supplier-ledger'">
+          <label class="form-label">Supplier ID</label>
+          <input type="number" class="form-control" [(ngModel)]="ledgerFilters.supplierId" name="supplierId" placeholder="All suppliers">
+        </div>
+        <div class="col-md-3" *ngIf="section === 'general-ledger'">
+          <label class="form-label">Account</label>
+          <select class="form-select" [(ngModel)]="ledgerFilters.accountId" name="ledgerAccountId">
+            <option value="">All accounts</option>
+            <option *ngFor="let account of accounts" [ngValue]="account.id">{{ account.accountCode }} - {{ account.accountName }}</option>
+          </select>
+        </div>
+        <div class="col-md-3"><label class="form-label">From</label><input type="date" class="form-control" [(ngModel)]="ledgerFilters.fromDate" name="ledgerFromDate"></div>
+        <div class="col-md-3"><label class="form-label">To</label><input type="date" class="form-control" [(ngModel)]="ledgerFilters.toDate" name="ledgerToDate"></div>
+        <div class="col-md-2 d-flex align-items-end"><button class="btn btn-outline-success w-100" type="submit"><i class="bi bi-search me-1"></i>Search</button></div>
+      </form>
+    </app-card>
+
+    <app-card [title]="section === 'customer-ledger' ? 'Customer Ledger' : section === 'supplier-ledger' ? 'Supplier Ledger' : 'General Ledger'">
+      <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>Date</th><th>Account</th><th>Reference</th><th>Description</th><th class="text-end">Debit</th><th class="text-end">Credit</th><th class="text-end">Balance</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of ledgerEntries"><td>{{ row.date }}</td><td>{{ row.account }}</td><td class="fw-semibold">{{ row.referenceNo }}</td><td>{{ row.description }}</td><td class="text-end">{{ row.debit | number:'1.2-2' }}</td><td class="text-end">{{ row.credit | number:'1.2-2' }}</td><td class="text-end fw-semibold">{{ row.balance | number:'1.2-2' }}</td></tr>
+          <tr *ngIf="!loading && ledgerEntries.length === 0"><td colspan="7" class="text-center text-muted py-5">No ledger entries found.</td></tr>
+          <tr *ngIf="loading"><td colspan="7" class="text-center text-muted py-5">Loading...</td></tr>
+        </tbody>
+      </table></div>
+    </app-card>
+  </ng-container>
+
+  <ng-container *ngIf="section === 'trial-balance'">
+    <app-card title="Trial Balance Filters">
+      <form (ngSubmit)="loadCurrentSection()" class="row g-3">
+        <div class="col-md-4"><label class="form-label">From</label><input type="date" class="form-control" [(ngModel)]="ledgerFilters.fromDate" name="tbFromDate"></div>
+        <div class="col-md-4"><label class="form-label">To</label><input type="date" class="form-control" [(ngModel)]="ledgerFilters.toDate" name="tbToDate"></div>
+        <div class="col-md-2 d-flex align-items-end"><button class="btn btn-outline-success w-100" type="submit"><i class="bi bi-search me-1"></i>Search</button></div>
+      </form>
+    </app-card>
+    <div class="row g-3 mb-3" *ngIf="trialBalance">
+      <div class="col-md-6"><div class="summary-card"><span>Total Debit</span><strong>{{ trialBalance.totalDebit | number:'1.2-2' }}</strong></div></div>
+      <div class="col-md-6"><div class="summary-card"><span>Total Credit</span><strong>{{ trialBalance.totalCredit | number:'1.2-2' }}</strong></div></div>
+    </div>
+    <app-card title="Trial Balance">
+      <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>Code</th><th>Account</th><th>Type</th><th class="text-end">Debit</th><th class="text-end">Credit</th><th class="text-end">Balance</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of trialBalance?.rows"><td class="fw-semibold">{{ row.accountCode }}</td><td>{{ row.accountName }}</td><td>{{ row.accountType }}</td><td class="text-end">{{ row.totalDebit | number:'1.2-2' }}</td><td class="text-end">{{ row.totalCredit | number:'1.2-2' }}</td><td class="text-end fw-semibold">{{ row.balance | number:'1.2-2' }}</td></tr>
+          <tr *ngIf="!loading && (!trialBalance || trialBalance.rows.length === 0)"><td colspan="6" class="text-center text-muted py-5">No trial balance rows found.</td></tr>
+          <tr *ngIf="loading"><td colspan="6" class="text-center text-muted py-5">Loading...</td></tr>
+        </tbody>
+      </table></div>
+    </app-card>
+  </ng-container>
+
+  <ng-container *ngIf="section === 'balance-sheet'">
+    <div class="row g-3 mb-3" *ngIf="balanceSheet">
+      <div class="col-md-4"><div class="summary-card"><span>Total Assets</span><strong>{{ balanceSheet.totalAssets | number:'1.2-2' }}</strong></div></div>
+      <div class="col-md-4"><div class="summary-card"><span>Total Liabilities</span><strong>{{ balanceSheet.totalLiabilities | number:'1.2-2' }}</strong></div></div>
+      <div class="col-md-4"><div class="summary-card"><span>Total Equity</span><strong>{{ balanceSheet.totalEquity | number:'1.2-2' }}</strong></div></div>
+    </div>
+    <app-card title="Balance Sheet">
+      <div *ngIf="loading" class="text-center text-muted py-5">Loading...</div>
+      <div *ngIf="!loading && balanceSheet" class="row g-4">
+        <div class="col-md-4"><h6 class="section-title">Assets</h6><div class="statement-row"><span>Cash</span><strong>{{ balanceSheet.cash | number:'1.2-2' }}</strong></div><div class="statement-row"><span>Bank</span><strong>{{ balanceSheet.bank | number:'1.2-2' }}</strong></div><div class="statement-row"><span>Accounts Receivable</span><strong>{{ balanceSheet.accountsReceivable | number:'1.2-2' }}</strong></div><div class="statement-row"><span>Inventory Value</span><strong>{{ balanceSheet.inventoryValue | number:'1.2-2' }}</strong></div><div class="statement-row total"><span>Total Assets</span><strong>{{ balanceSheet.totalAssets | number:'1.2-2' }}</strong></div></div>
+        <div class="col-md-4"><h6 class="section-title">Liabilities</h6><div class="statement-row"><span>Accounts Payable</span><strong>{{ balanceSheet.accountsPayable | number:'1.2-2' }}</strong></div><div class="statement-row total"><span>Total Liabilities</span><strong>{{ balanceSheet.totalLiabilities | number:'1.2-2' }}</strong></div></div>
+        <div class="col-md-4"><h6 class="section-title">Equity</h6><div class="statement-row"><span>Owner Equity</span><strong>{{ balanceSheet.ownerEquity | number:'1.2-2' }}</strong></div><div class="statement-row"><span>Retained Earnings / Net Profit</span><strong>{{ balanceSheet.retainedEarnings | number:'1.2-2' }}</strong></div><div class="statement-row total"><span>Total Equity</span><strong>{{ balanceSheet.totalEquity | number:'1.2-2' }}</strong></div><div class="statement-row total"><span>Liabilities + Equity</span><strong>{{ balanceSheet.liabilitiesAndEquity | number:'1.2-2' }}</strong></div></div>
+      </div>
     </app-card>
   </ng-container>
 </div>

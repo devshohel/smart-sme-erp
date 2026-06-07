@@ -45,4 +45,16 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
             """)
     List<Expense> findByStatusAndPaymentMethodForBook(@Param("status") ExpenseStatus status,
                                                        @Param("paymentMethod") AccountingPaymentMethod paymentMethod);
+
+    @Query("""
+            select e from Expense e
+            where e.status = :status and e.paymentMethod = :paymentMethod
+              and not exists (
+                select 1 from JournalEntry j
+                where j.sourceType = 'EXPENSE' and j.sourceId = e.id
+              )
+            order by e.expenseDate, e.id
+            """)
+    List<Expense> findUnpostedByStatusAndPaymentMethodForBook(@Param("status") ExpenseStatus status,
+                                                               @Param("paymentMethod") AccountingPaymentMethod paymentMethod);
 }

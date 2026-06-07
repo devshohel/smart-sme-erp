@@ -4,6 +4,7 @@ import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
+import com.sme.erp.accounting.service.AccountingPostingService;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.inventory.service.StockService;
@@ -35,6 +36,7 @@ public class SalesReturnServiceImpl implements SalesReturnService {
     private final ProductRepository productRepository;
     private final SalesReturnMapper salesReturnMapper;
     private final StockService stockService;
+    private final AccountingPostingService accountingPostingService;
 
     public SalesReturnServiceImpl(
             SalesReturnRepository salesReturnRepository,
@@ -42,13 +44,15 @@ public class SalesReturnServiceImpl implements SalesReturnService {
             CustomerRepository customerRepository,
             ProductRepository productRepository,
             SalesReturnMapper salesReturnMapper,
-            StockService stockService) {
+            StockService stockService,
+            AccountingPostingService accountingPostingService) {
         this.salesReturnRepository = salesReturnRepository;
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.customerRepository = customerRepository;
         this.productRepository = productRepository;
         this.salesReturnMapper = salesReturnMapper;
         this.stockService = stockService;
+        this.accountingPostingService = accountingPostingService;
     }
 
     @Override
@@ -91,6 +95,7 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         SalesReturn saved = salesReturnRepository.save(entity);
 
         restockReturnedItems(saved);
+        accountingPostingService.postSalesReturn(saved);
 
         return salesReturnMapper.toDTO(saved);
     }
