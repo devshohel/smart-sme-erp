@@ -252,6 +252,9 @@
         <a *ngIf="isAdmin() || hasPermission('ROLE_VIEW')" routerLink="/settings/roles-permissions" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-shield-lock me-2"></i> Roles & Permissions
         </a>
+        <a routerLink="/settings/change-password" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-key me-2"></i> Change Password
+        </a>
         <a *ngIf="canViewActivityLogs()" routerLink="/settings/activity-logs" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-activity me-2"></i> Activity Logs
         </a>

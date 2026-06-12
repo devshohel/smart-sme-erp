@@ -1,265 +1,104 @@
-📦 Smart SME ERP
-Subtitle: A Modular Enterprise Resource Planning System
-for Small and Medium Enterprises.
+# Smart SME ERP - Implemented Features
 
-🎯 Complete Feature List (Final – Production Ready)
-________________________________________
-🔐 1. CORE (Authentication & Authorization)
-📁 core/
-Authentication
-•	User Login / Logout
-•	Change Password
-•	Reset Password (Email / OTP ভিত্তিক)
-•	Last Login Tracking
-•	Failed Login Attempt Tracking
-Authorization (RBAC)
-•	Role-based Access Control (RBAC)
-•	Module-wise Permission
-•	Feature-wise Permission (Create / Edit / Delete / View)
-•	Backend API Security Enforcement
-User Management
-•	Create / Edit / Delete User
-•	User Status (Active / Inactive)
-•	Soft Delete Support (➕ Added)
-Role Management
-•	Roles (Admin, Manager, Staff)
-•	Assign Permissions to Roles
-Activity & Security
-•	User Activity Log
-•	Login History
-•	Audit Trail (Who changed what & when)
-________________________________________
-📊 2. DASHBOARD
-📁 modules/dashboard/
-System Overview
-•	Today Sales
-•	Today Purchase
-•	Today Expense
-•	Total Stock Value
-Business Summary
-•	Total Customers
-•	Total Suppliers
-•	Customer Due
-•	Supplier Due
-Alerts & Insights
-•	Low Stock Alert
-•	Recent Transactions
-•	Top Selling Products (➕ Added)
-•	Monthly Sales Chart (➕ Added)
-•	Quick Summary Cards
-Notifications (➕ Added)
-•	Due Alerts 
-•	Low Stock Alerts
-________________________________________
-📦 3. PRODUCT MODULE
-📁 modules/products/
-________________________________________
-🛍️ All Products (products/)
-• Create / Edit / Delete Product (Soft Delete)
-• SKU / Barcode Management
-• Product Image Upload
-• Product Status (Active / Inactive)
-• Purchase Price / Sale Price
-• Price History Tracking
-• Product Variants (Size, Color)
-________________________________________
-🗂️ Categories (categories/)
-• Create / Edit / Delete Category
-• Category Hierarchy (Parent / Child)
-________________________________________
-🏷️ Brands (brands/)
-• Create / Edit / Delete Brand
-________________________________________
-⚖️ Unit of Measures (uom-settings/)
-• Unit of Measurement (PCS, KG, Litre)
-• Conversion Support
-________________________________________
-📦 4. INVENTORY MODULE
-📁 modules/inventory/
-________________________________________
-  Current Stock (stock/)
-Stock Core
-•	Real-time Stock Quantity
-•	Reorder Level Setup
-•	Low Stock Alert
-Stock Operations
-•	Stock In (Purchase Auto)
-•	Stock Out (Sales Auto)
-•	Stock Adjustment (Damage / Loss)
-•	Stock Transfer (Warehouse to Warehouse)
-Tracking
-•	Stock Movement History
-•	Batch-wise Stock (➕ future scalable)
-________________________________________
-📜 Stock Movement (stock-movement/)
-• Complete Stock In / Out History
-• Purchase, Sales, Transfer & Adjustment Tracking
-________________________________________
-➕ Stock Adjustment (stock-adjustments/)
-• Manual Stock Correction
-• Damage / Loss / Correction Entry
-________________________________________
-🏬 Warehouses (warehouses/)
-•	Create / Edit / Delete Warehouse
-•	Multi-Warehouse Support
-________________________________________
+This document describes the current implemented scope. It avoids listing planned items as completed features.
 
-💰 5. SALES MODULE
-📁 modules/sales/
-Orders (orders/)
-•	Create Sales Order
-•	Order Status Tracking
-Invoices (invoices/)
-•	Generate Sales Invoice
-•	Auto Invoice Numbering (Configurable ➕)
-•	Discount System
-•	Tax/VAT Calculation (Advanced ➕)
-•	Auto Stock Deduction
-Returns (returns/)
-•	Sales Return
-•	Refund / Adjustment
-Payment Features
-•	Full / Partial Payment
-•	Customer Due / Advance Tracking
-•	Payment Reference Linking
-________________________________________
-🛒 6. PURCHASE MODULE
-📁 modules/purchases/
-Purchase Orders (purchase-orders/)
-•	Create Purchase Order
-•	Approval Flow
-Purchase Invoices (purchase-invoices/)
-•	Goods Receive
-•	Purchase Invoice তৈরি
-•	Auto Stock Increase
-Purchase Returns (purchase-returns/)
-•	Return to Supplier
-•	Stock Deduction
-Payment Features
-•	Supplier Payment
-•	Supplier Due / Advance
-________________________________________
-👥 7. CUSTOMER MODULE
-📁 modules/customers/
-Customer List
-•	View All Customers
-•	Search / Filter
-Customer Form
-•	Create / Edit / Delete Customer (Soft Delete)
-Core Features
-•	Customer Profile
-•	Contact Info (Phone, Email, Address)
-•	Opening Balance
-Financial Tracking
-•	Customer Ledger
-•	Transaction History
-•	Due / Advance Balance
-________________________________________
-🏭 8. SUPPLIER MODULE
-📁 modules/suppliers/
-Supplier List
-•	View All Suppliers
-•	Search / Filter
-Supplier Form
-•	Create / Edit / Delete Supplier
-Core Features
-•	Supplier Profile
-•	Company Info
-•	Contact Info
-Financial Tracking
-•	Supplier Ledger
-•	Transaction History
-•	Payable / Advance Balance
-________________________________________
-💳 9. ACCOUNTING MODULE
-📁 modules/accounting/
-________________________________________
-💸 Transactions (transactions/)
-•	All Financial Transactions
-•	Customer & Supplier Transactions
-•	Reference Linking (Sales/Purchase/Expense)
-________________________________________
-📘 Journal (journal/)
-•	Create Journal Entry
-•	Auto Journal (Sales / Purchase / Expense)
-•	Debit / Credit System
-•	Transaction Reference
-________________________________________
-💵 Expenses (expenses/)
-•	Expense Category
-•	Add / Edit / Delete Expense
-•	Expense History
-________________________________________
-🧾 Payments (payments/)
-Payment Methods
-•	Cash
-•	Bank
-•	MFS (bKash, Nagad, Rocket)
-Features
-•	Receive Payment
-•	Make Payment
-•	Payment History
-•	Multi-payment Support
-________________________________________
-🏦 Chart of Accounts (Sidebar aligned)
-•	Account Head Create (Assets, Liabilities, Income, Expense)
-•	Cash / Bank / Expense Accounts
-•	Account Hierarchy
-________________________________________
-📊 10. REPORTS MODULE
-📁 modules/reports/
-________________________________________
-📈 Sales Report
-•	Daily / Monthly / Custom(Date Range Filter)
-•	Product-wise Sales
-•	Customer-wise
-📦 Inventory Report
-•	Stock Report
-•	Stock Movement Report
-•	Low Stock Report
-💰 Finance Report
-•	Expense Report
-•	Customer Due Report
-•	Supplier Due Report
-•	Cash Flow Report
-•	Profit & Loss
-•	Balance Sheet
-Export & Filters (➕ Added)
-•	PDF Export 
-•	Excel Export 
-•	Advanced Filters
-________________________________________
-⚙️ 11. SETTINGS MODULE
-📁 modules/settings/
-________________________________________
-🏢 Company
-•	Company Info
-•	Logo Upload
-👤 Users
-•	Manage Users (linked with core)
-🔐 Roles & Permissions
-•	Role Management
-•	Permission সেট করা
-________________________________________
-⚙️ System Configuration
-•	Currency Setting
-•	Tax Settings (Advanced rules ➕)
-•	Invoice Template
-•	Numbering System (Invoice সিরিয়াল ➕ Added)
-•	Date & Number Format (➕)
-________________________________________
-📎 Attachments (➕ Added)
-•	Upload Files (Invoice, Expense proof)
-________________________________________
-💾 Backup & Security
-•	Database Backup
-•	Restore System
-•	Auto Backup Scheduler (➕)________________________________________
-🔄 12. SYSTEM CORE LOGIC (Hidden but Critical)
-👉 এগুলো UI তে সরাসরি দেখা না গেলেও ERP এর backbone:
-•	Real-time Stock Update Engine
-•	Transaction-based Balance Calculation
-•	Double Entry Accounting Logic
-•	Reference Linking System (Sales ↔ Payment ↔ Ledger)
-•	Soft Delete Handling
-•	Audit Log Engine
+## Implemented Modules
+
+### Authentication, Users, Roles, and Permissions
+- Login and logout
+- Change password
+- JWT based API authentication
+- Role based access control
+- Permission based sidebar visibility
+- Users list and user form
+- Roles and permissions screen
+- Activity logs, audit logs, and login history
+
+### Dashboard
+- Summary cards for sales, purchases, expenses, profit, stock value, customer due, supplier due, and entity counts
+- Monthly sales/purchase/profit data
+- Top selling products
+- Low stock alerts
+- Due alerts
+- Recent transactions
+
+### Products and Inventory
+- Products
+- Categories
+- Brands
+- UOM
+- Warehouses
+- Stock levels
+- Stock movements
+- Stock adjustments
+
+### Customers and Suppliers
+- Customer list, create, edit, delete
+- Supplier list, create, edit, delete
+- Search/filter support
+
+### Purchases
+- Purchase orders
+- Purchase invoice/receive screen
+- Purchase returns
+- Stock update integration is handled by backend services where implemented
+
+### Sales
+- Sales orders
+- Sales invoices
+- Sales returns
+- Shared sales status badge component
+
+### Reports
+- Sales report
+- Purchase report
+- Stock report
+- Customer due report
+- Supplier due report
+- Profit and loss summary
+- Filter controls for supported reports
+
+### Accounting
+- Expense categories
+- Expenses
+- Chart of accounts
+- Journal entries
+- Cash book
+- Bank book
+- Customer ledger
+- Supplier ledger
+- General ledger
+- Trial balance
+- Balance sheet
+
+### Settings
+- Company settings
+- Invoice settings
+- Tax settings
+- System settings
+- Users
+- Roles and permissions
+- Change password
+- Activity logs
+- Audit logs
+- Login history
+
+## Deferred / Future Enhancements
+
+- Stock transfer module
+- Product variants
+- Full payment module with payment methods, customer receipts, supplier payments, and payment allocation
+- Real PDF export
+- Real Excel export
+- OTP/reset-password flow
+- Attachments and document upload
+- Notifications
+- Backup/restore UI
+- Advanced approval workflows
+
+## Known Limitations
+
+- `environment.prod.ts` still points to `http://localhost:8080/api/v1`; change it before deploying to a hosted backend.
+- Some auxiliary dropdown loaders log or silently ignore failures, so permission/API errors can appear as empty option lists.
+- Reports currently render data in the UI but do not perform real PDF/Excel export.
+- Payment handling is represented through amounts/statuses in sales, purchases, and accounting, but a full payment module is deferred.

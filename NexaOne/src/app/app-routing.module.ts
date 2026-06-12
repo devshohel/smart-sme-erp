@@ -19,7 +19,7 @@ const routes: Routes = [
       { path: 'suppliers', loadChildren: () => import('./modules/suppliers/suppliers.module').then(m => m.SuppliersModule) },
       { path: 'purchases', loadChildren: () => import('./modules/purchases/purchases.module').then(m => m.PurchasesModule) },
       { path: 'accounting', loadChildren: () => import('./modules/accounting/accounting.module').then(m => m.AccountingModule) },
-      { path: 'reports', loadChildren: () => import('./pages/reports/reports.module').then(m => m.ReportsModule) },
+      { path: 'reports', loadChildren: () => import('./modules/reports/reports.module').then(m => m.ReportsModule) },
       { path: 'settings', redirectTo: 'settings/company', pathMatch: 'full' },
       { path: 'settings', loadChildren: () => import('./modules/auth/auth.module').then(m => m.AuthModule) },
     ]
