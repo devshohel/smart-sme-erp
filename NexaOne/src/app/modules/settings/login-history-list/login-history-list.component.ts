@@ -1,14 +1,14 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivityLog, AuditFilter } from '../auth.model';
-import { AuthService } from '../auth.service';
+import { AuditFilter, LoginHistory } from '../../auth/auth.model';
+import { AuthService } from '../../auth/auth.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
 @Component({
-  selector: 'app-activity-log-list',
-  templateUrl: './activity-log-list.component.html'
+  selector: 'app-login-history-list',
+  templateUrl: './login-history-list.component.html'
 })
-export class ActivityLogListComponent implements OnInit {
-  logs: ActivityLog[] = [];
+export class LoginHistoryListComponent implements OnInit {
+  rows: LoginHistory[] = [];
   filter: AuditFilter = this.emptyFilter();
   loading = false;
   errorMessage = '';
@@ -22,15 +22,15 @@ export class ActivityLogListComponent implements OnInit {
   load(): void {
     this.loading = true;
     this.errorMessage = '';
-    this.authService.getActivityLogs(this.filter).subscribe({
-      next: logs => {
-        this.logs = logs;
+    this.authService.getLoginHistory(this.filter).subscribe({
+      next: rows => {
+        this.rows = rows;
         this.loading = false;
       },
       error: error => {
         this.loading = false;
-        this.errorMessage = extractApiErrorMessage(error, 'Activity logs could not be loaded.');
-        debugApiError('ActivityLogListComponent.load', error);
+        this.errorMessage = extractApiErrorMessage(error, 'Login history could not be loaded.');
+        debugApiError('LoginHistoryListComponent.load', error);
       }
     });
   }

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { AuditFilter, AuditLog } from '../auth.model';
-import { AuthService } from '../auth.service';
+import { AuditFilter, AuditLog } from '../../auth/auth.model';
+import { AuthService } from '../../auth/auth.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
 type AuditData = Record<string, unknown>;

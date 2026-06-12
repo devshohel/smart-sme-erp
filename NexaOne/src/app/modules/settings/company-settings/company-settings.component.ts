@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { Status } from '../../../models/product.model';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
-import { AuthService } from '../auth.service';
-import { CompanySettings } from '../auth.model';
+import { AuthService } from '../../auth/auth.service';
+import { CompanySettings } from '../../auth/auth.model';
 import { SettingsService } from '../settings.service';
 
 @Component({

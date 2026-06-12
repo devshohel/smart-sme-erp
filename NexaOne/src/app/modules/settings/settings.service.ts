@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { ApiResponse, unwrapApiResponse } from '../../shared/utils/api-response.util';
-import { CompanySettings, InvoiceSettings, SystemSettings, TaxSettings } from './auth.model';
+import { CompanySettings, InvoiceSettings, SystemSettings, TaxSettings } from '../auth/auth.model';
 
 @Injectable({ providedIn: 'root' })
 export class SettingsService {

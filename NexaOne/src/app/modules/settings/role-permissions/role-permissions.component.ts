@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { Permission, Role } from '../auth.model';
-import { AuthService } from '../auth.service';
+import { Permission, Role } from '../../auth/auth.model';
+import { AuthService } from '../../auth/auth.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
 @Component({

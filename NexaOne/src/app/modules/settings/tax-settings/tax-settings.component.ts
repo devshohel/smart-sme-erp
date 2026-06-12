@@ -1,15 +1,17 @@
 import { Component, OnInit } from '@angular/core';
+import { Status } from '../../../models/product.model';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
-import { AuthService } from '../auth.service';
-import { SystemSettings } from '../auth.model';
+import { AuthService } from '../../auth/auth.service';
+import { TaxSettings } from '../../auth/auth.model';
 import { SettingsService } from '../settings.service';
 
 @Component({
-  selector: 'app-system-settings',
-  templateUrl: './system-settings.component.html'
+  selector: 'app-tax-settings',
+  templateUrl: './tax-settings.component.html'
 })
-export class SystemSettingsComponent implements OnInit {
-  settings: SystemSettings = this.emptySettings();
+export class TaxSettingsComponent implements OnInit {
+  settings: TaxSettings = this.emptySettings();
+  readonly statusList: Status[] = ['ACTIVE', 'INACTIVE'];
   loading = false;
   saving = false;
   errorMessage = '';
@@ -24,15 +26,15 @@ export class SystemSettingsComponent implements OnInit {
   load(): void {
     this.loading = true;
     this.errorMessage = '';
-    this.settingsService.getSystem().subscribe({
+    this.settingsService.getTax().subscribe({
       next: settings => {
         this.settings = settings;
         this.loading = false;
       },
       error: error => {
         this.loading = false;
-        this.errorMessage = extractApiErrorMessage(error, 'System settings could not be loaded.');
-        debugApiError('SystemSettingsComponent.load', error);
+        this.errorMessage = extractApiErrorMessage(error, 'Tax settings could not be loaded.');
+        debugApiError('TaxSettingsComponent.load', error);
       }
     });
   }
@@ -44,16 +46,16 @@ export class SystemSettingsComponent implements OnInit {
     this.saving = true;
     this.errorMessage = '';
     this.successMessage = '';
-    this.settingsService.updateSystem(this.settings).subscribe({
+    this.settingsService.updateTax(this.settings).subscribe({
       next: settings => {
         this.settings = settings;
         this.saving = false;
-        this.successMessage = 'System settings saved.';
+        this.successMessage = 'Tax settings saved.';
       },
       error: error => {
         this.saving = false;
-        this.errorMessage = extractApiErrorMessage(error, 'System settings could not be saved.');
-        debugApiError('SystemSettingsComponent.save', error);
+        this.errorMessage = extractApiErrorMessage(error, 'Tax settings could not be saved.');
+        debugApiError('TaxSettingsComponent.save', error);
       }
     });
   }
@@ -62,13 +64,7 @@ export class SystemSettingsComponent implements OnInit {
     return this.authService.hasPermission('SETTINGS_EDIT');
   }
 
-  private emptySettings(): SystemSettings {
-    return {
-      defaultCurrency: 'BDT',
-      dateFormat: 'yyyy-MM-dd',
-      numberFormat: '#,##0.00',
-      lowStockAlertEnabled: true,
-      dashboardRefreshEnabled: true
-    };
+  private emptySettings(): TaxSettings {
+    return { taxName: 'VAT', taxRate: 0, status: 'ACTIVE', defaultTaxEnabled: false };
   }
 }

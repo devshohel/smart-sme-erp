@@ -2,8 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Status } from '../../../models/product.model';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
-import { Role, User } from '../auth.model';
-import { AuthService } from '../auth.service';
+import { Role, User } from '../../auth/auth.model';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-user-form',

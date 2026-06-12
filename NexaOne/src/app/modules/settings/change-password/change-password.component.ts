@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
-import { AuthService } from '../auth.service';
-import { ChangePasswordRequest } from '../auth.model';
+import { AuthService } from '../../auth/auth.service';
+import { ChangePasswordRequest } from '../../auth/auth.model';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
 @Component({

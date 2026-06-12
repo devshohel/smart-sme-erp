@@ -21,7 +21,7 @@ const routes: Routes = [
       { path: 'accounting', loadChildren: () => import('./modules/accounting/accounting.module').then(m => m.AccountingModule) },
       { path: 'reports', loadChildren: () => import('./modules/reports/reports.module').then(m => m.ReportsModule) },
       { path: 'settings', redirectTo: 'settings/company', pathMatch: 'full' },
-      { path: 'settings', loadChildren: () => import('./modules/auth/auth.module').then(m => m.AuthModule) },
+      { path: 'settings', loadChildren: () => import('./modules/settings/settings.module').then(m => m.SettingsModule) },
     ]
   }
 

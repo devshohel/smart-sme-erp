@@ -1,15 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
-import { AuthService } from '../auth.service';
-import { InvoiceSettings } from '../auth.model';
+import { AuthService } from '../../auth/auth.service';
+import { SystemSettings } from '../../auth/auth.model';
 import { SettingsService } from '../settings.service';
 
 @Component({
-  selector: 'app-invoice-settings',
-  templateUrl: './invoice-settings.component.html'
+  selector: 'app-system-settings',
+  templateUrl: './system-settings.component.html'
 })
-export class InvoiceSettingsComponent implements OnInit {
-  settings: InvoiceSettings = this.emptySettings();
+export class SystemSettingsComponent implements OnInit {
+  settings: SystemSettings = this.emptySettings();
   loading = false;
   saving = false;
   errorMessage = '';
@@ -24,15 +24,15 @@ export class InvoiceSettingsComponent implements OnInit {
   load(): void {
     this.loading = true;
     this.errorMessage = '';
-    this.settingsService.getInvoice().subscribe({
+    this.settingsService.getSystem().subscribe({
       next: settings => {
         this.settings = settings;
         this.loading = false;
       },
       error: error => {
         this.loading = false;
-        this.errorMessage = extractApiErrorMessage(error, 'Invoice settings could not be loaded.');
-        debugApiError('InvoiceSettingsComponent.load', error);
+        this.errorMessage = extractApiErrorMessage(error, 'System settings could not be loaded.');
+        debugApiError('SystemSettingsComponent.load', error);
       }
     });
   }
@@ -44,16 +44,16 @@ export class InvoiceSettingsComponent implements OnInit {
     this.saving = true;
     this.errorMessage = '';
     this.successMessage = '';
-    this.settingsService.updateInvoice(this.settings).subscribe({
+    this.settingsService.updateSystem(this.settings).subscribe({
       next: settings => {
         this.settings = settings;
         this.saving = false;
-        this.successMessage = 'Invoice settings saved.';
+        this.successMessage = 'System settings saved.';
       },
       error: error => {
         this.saving = false;
-        this.errorMessage = extractApiErrorMessage(error, 'Invoice settings could not be saved.');
-        debugApiError('InvoiceSettingsComponent.save', error);
+        this.errorMessage = extractApiErrorMessage(error, 'System settings could not be saved.');
+        debugApiError('SystemSettingsComponent.save', error);
       }
     });
   }
@@ -62,15 +62,13 @@ export class InvoiceSettingsComponent implements OnInit {
     return this.authService.hasPermission('SETTINGS_EDIT');
   }
 
-  private emptySettings(): InvoiceSettings {
+  private emptySettings(): SystemSettings {
     return {
-      salesInvoicePrefix: 'INV',
-      purchaseInvoicePrefix: 'PINV',
-      salesOrderPrefix: 'SO',
-      purchaseOrderPrefix: 'PO',
-      nextInvoiceNumber: 1,
-      invoiceFooterText: '',
-      defaultPaymentTerms: ''
+      defaultCurrency: 'BDT',
+      dateFormat: 'yyyy-MM-dd',
+      numberFormat: '#,##0.00',
+      lowStockAlertEnabled: true,
+      dashboardRefreshEnabled: true
     };
   }
 }
