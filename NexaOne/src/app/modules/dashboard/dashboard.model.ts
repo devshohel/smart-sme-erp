@@ -52,6 +52,7 @@ export interface RecentTransaction {
   type: string;
   referenceNo: string;
   partyName: string;
+  description?: string | null;
   amount: number;
   status: string;
   date: string;

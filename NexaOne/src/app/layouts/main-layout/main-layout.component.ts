@@ -9,6 +9,7 @@ export class MainLayoutComponent implements OnInit {
 
   isSidebarMobileOpen = false;
   isMobileView = false;
+  isSidebarCollapsed = false;
 
   ngOnInit(): void {
     this.updateViewportState();
@@ -22,7 +23,10 @@ export class MainLayoutComponent implements OnInit {
   toggleSidebar(): void {
     if (this.isMobileView) {
       this.isSidebarMobileOpen = !this.isSidebarMobileOpen;
+      return;
     }
+
+    this.isSidebarCollapsed = !this.isSidebarCollapsed;
   }
 
   closeSidebar(): void {

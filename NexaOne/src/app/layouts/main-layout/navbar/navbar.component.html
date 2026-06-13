@@ -1,35 +1,88 @@
-<nav class="navbar top-navbar">
-  <div class="d-flex align-items-center gap-3">
+<nav class="navbar top-navbar" [class.sidebar-collapsed]="isSidebarCollapsed">
+  <div class="navbar-left">
     <button
       type="button"
-      class="btn sidebar-toggle-btn d-lg-none"
-      (click)="toggleSidebar()">
+      class="btn sidebar-toggle-btn"
+      (click)="toggleSidebar()"
+      aria-label="Toggle sidebar">
       <i class="bi bi-list"></i>
     </button>
 
-    <div class="brand-area">
-      <span class="brand-text">
-        NexaOne ERP
-      </span>
+    <div class="search-wrap d-none d-md-block" (click)="keepSearchOpen($event)">
+      <div class="search-box">
+        <button type="button" class="search-btn" (click)="runSearch(searchInput.value)" aria-label="Search">
+          <i class="bi bi-search"></i>
+        </button>
+      <input
+        #searchInput
+        type="text"
+        class="form-control"
+        placeholder="Search..."
+          (input)="onSearchInput(searchInput.value)"
+          (keydown.enter)="runSearch(searchInput.value)"
+      />
+      </div>
+      <div class="search-suggestions" *ngIf="isSearchOpen && filteredSuggestions.length">
+        <button type="button" *ngFor="let item of filteredSuggestions" (click)="navigateSearch(item.route)">
+          <i class="bi bi-search"></i>
+          <span>{{ item.label }}</span>
+        </button>
+      </div>
+      <div class="search-message" *ngIf="searchMessage">{{ searchMessage }}</div>
     </div>
   </div>
 
   <div class="d-flex align-items-center gap-2 gap-md-3 ms-auto nav-actions">
-    <div class="search-box d-none d-md-flex">
-      <i class="bi bi-search"></i>
-      <input
-        type="text"
-        class="form-control"
-        placeholder="Search..."
-      />
-    </div>
-
-    <button class="btn nav-icon-btn position-relative">
+    <div class="notification-wrap" (click)="keepNotificationsOpen($event)">
+    <button class="btn nav-icon-btn position-relative" type="button" aria-label="Notifications" (click)="toggleNotifications($event)">
       <i class="bi bi-bell"></i>
-      <span class="notification-badge">
-        3
-      </span>
+        <span class="notification-badge" *ngIf="notificationCount > 0">{{ notificationCount }}</span>
     </button>
+
+      <div class="notification-menu" *ngIf="isNotificationOpen">
+        <div class="notification-header">
+          <strong>Notifications</strong>
+          <span>{{ notificationCount }} alerts</span>
+        </div>
+
+        <div class="notification-empty" *ngIf="!hasNotifications">No notifications</div>
+
+        <ng-container *ngIf="hasNotifications">
+          <div class="notification-group" *ngIf="lowStockAlerts.length">
+            <h4>Low Stock Alerts</h4>
+            <button type="button" class="notification-item" *ngFor="let item of lowStockAlerts | slice:0:4" (click)="navigateFromNotification('/inventory/stocks')">
+              <i class="bi bi-exclamation-triangle"></i>
+              <span>
+                <strong>{{ item.productName }}</strong>
+                <small>{{ item.warehouseName }} - Qty {{ item.quantity | number:'1.0-2' }}</small>
+              </span>
+            </button>
+          </div>
+
+          <div class="notification-group" *ngIf="dueAlerts.length">
+            <h4>Due Alerts</h4>
+            <button type="button" class="notification-item" *ngFor="let item of dueAlerts | slice:0:4" (click)="navigateFromNotification(dueAlertRoute(item))">
+              <i class="bi bi-cash-coin"></i>
+              <span>
+                <strong>{{ item.partyName }}</strong>
+                <small>{{ item.type }} - BDT {{ item.dueAmount | number:'1.2-2' }}</small>
+              </span>
+            </button>
+          </div>
+
+          <div class="notification-group" *ngIf="recentTransactions.length">
+            <h4>Recent Activity</h4>
+            <button type="button" class="notification-item" *ngFor="let item of recentTransactions" (click)="navigateFromNotification(recentTransactionRoute(item))">
+              <i class="bi bi-clock-history"></i>
+              <span>
+                <strong>{{ item.referenceNo }}</strong>
+                <small>{{ item.type }} - {{ item.partyName }}</small>
+              </span>
+            </button>
+          </div>
+        </ng-container>
+      </div>
+    </div>
 
     <div class="dropdown">
       <button
@@ -37,12 +90,12 @@
         type="button"
         data-bs-toggle="dropdown"
       >
-        <div class="user-avatar">
-          {{ username.charAt(0).toUpperCase() }}
-        </div>
-        <span class="d-none d-md-inline">
-          {{ username }}
+        <span class="user-info d-none d-sm-flex">
+          <strong>{{ displayName }}</strong>
+          <small>{{ role }}</small>
         </span>
+        <!-- Future: show uploaded user photo from user profile. -->
+        <img class="user-avatar" src="assets/images/profile-user.png" alt="">
       </button>
 
       <ul class="dropdown-menu dropdown-menu-end shadow border-0">

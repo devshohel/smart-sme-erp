@@ -62,6 +62,7 @@ public class AuthServiceImpl implements AuthService {
         return new LoginResponseDTO(
                 jwtService.generateToken(user),
                 user.getUsername(),
+                user.getName(),
                 user.getRole().getRoleName(),
                 rolePermissionRepository.findPermissionNamesByRoleId(user.getRole().getId()),
                 loginTime);

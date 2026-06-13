@@ -1,6 +1,7 @@
 package com.sme.erp.dashboard.service.impl;
 
 import com.sme.erp.accounting.repository.ExpenseRepository;
+import com.sme.erp.accounting.entity.Expense;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.dashboard.dto.DashboardSummaryDTO;
 import com.sme.erp.dashboard.dto.DashboardSummaryDTO.DueAlertDTO;
@@ -71,6 +72,7 @@ public class DashboardServiceImpl implements DashboardService {
     public DashboardSummaryDTO getSummary() {
         List<SalesInvoice> salesInvoices = salesInvoiceRepository.findAll();
         List<PurchaseOrder> purchaseOrders = purchaseOrderRepository.findAll();
+        List<Expense> expenses = expenseRepository.findAll();
         List<Stock> stocks = stockRepository.findAll();
 
         LocalDate today = LocalDate.now();
@@ -130,7 +132,7 @@ public class DashboardServiceImpl implements DashboardService {
         summary.setMonthlySalesPurchase(buildMonthlySalesPurchase(salesInvoices, purchaseOrders));
         summary.setTopSellingProducts(buildTopSellingProducts());
         summary.setDueAlerts(buildDueAlerts(salesInvoices, purchaseOrders));
-        summary.setRecentTransactions(buildRecentTransactions(salesInvoices, purchaseOrders));
+        summary.setRecentTransactions(buildRecentTransactions(salesInvoices, purchaseOrders, expenses));
 
         return summary;
     }
@@ -259,7 +261,8 @@ public class DashboardServiceImpl implements DashboardService {
 
     private List<RecentTransactionDTO> buildRecentTransactions(
             List<SalesInvoice> salesInvoices,
-            List<PurchaseOrder> purchaseOrders) {
+            List<PurchaseOrder> purchaseOrders,
+            List<Expense> expenses) {
         List<RecentTransactionDTO> transactions = new ArrayList<>();
 
         salesInvoices.stream()
@@ -267,7 +270,8 @@ public class DashboardServiceImpl implements DashboardService {
                 .forEach(invoice -> transactions.add(new RecentTransactionDTO(
                         "Sales Invoice",
                         invoice.getInvoiceNo(),
-                        invoice.getCustomer().getName(),
+                        invoice.getCustomer() != null ? invoice.getCustomer().getName() : "Customer",
+                        "Sales invoice",
                         safe(invoice.getNetTotal()),
                         invoice.getPaymentStatus().name(),
                         invoice.getSaleDate().toString())));
@@ -277,10 +281,30 @@ public class DashboardServiceImpl implements DashboardService {
                 .forEach(order -> transactions.add(new RecentTransactionDTO(
                         "Purchase",
                         order.getPurchaseCode(),
-                        order.getSupplier().getName(),
+                        order.getSupplier() != null ? order.getSupplier().getName() : "Supplier",
+                        order.getWarehouse() != null ? order.getWarehouse().getName() : "Purchase",
                         safe(order.getNetTotal()),
                         order.getStatus().name(),
-                        order.getPurchaseDate().toString())));
+                        order.getPurchaseDate() != null
+                                ? order.getPurchaseDate().toString()
+                                : order.getCreatedAt().toString())));
+
+        expenses.stream()
+                .filter(expense -> expense != null && (expense.getExpenseDate() != null || expense.getCreatedAt() != null))
+                .forEach(expense -> transactions.add(new RecentTransactionDTO(
+                        "Expense",
+                        expense.getExpenseNo() != null && !expense.getExpenseNo().isBlank()
+                                ? expense.getExpenseNo()
+                                : "EXP-" + expense.getId(),
+                        expense.getCategory() != null ? expense.getCategory().getName() : "Expense",
+                        expense.getNotes() != null && !expense.getNotes().isBlank()
+                                ? expense.getNotes()
+                                : expense.getCategory() != null ? expense.getCategory().getName() : "Expense",
+                        safe(expense.getAmount()),
+                        expense.getStatus() != null ? expense.getStatus().name() : "ACTIVE",
+                        expense.getExpenseDate() != null
+                                ? expense.getExpenseDate().toString()
+                                : expense.getCreatedAt().toLocalDate().toString())));
 
         return transactions.stream()
                 .sorted(Comparator.comparing(RecentTransactionDTO::getDate).reversed())

@@ -212,6 +212,7 @@ public class DashboardSummaryDTO {
         private String type;
         private String referenceNo;
         private String partyName;
+        private String description;
         private BigDecimal amount = BigDecimal.ZERO;
         private String status;
         private String date;
@@ -222,12 +223,14 @@ public class DashboardSummaryDTO {
                 String type,
                 String referenceNo,
                 String partyName,
+                String description,
                 BigDecimal amount,
                 String status,
                 String date) {
             this.type = type;
             this.referenceNo = referenceNo;
             this.partyName = partyName;
+            this.description = description;
             this.amount = amount;
             this.status = status;
             this.date = date;
@@ -241,6 +244,9 @@ public class DashboardSummaryDTO {
 
         public String getPartyName() { return partyName; }
         public void setPartyName(String partyName) { this.partyName = partyName; }
+
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
 
         public BigDecimal getAmount() { return amount; }
         public void setAmount(BigDecimal amount) { this.amount = amount; }

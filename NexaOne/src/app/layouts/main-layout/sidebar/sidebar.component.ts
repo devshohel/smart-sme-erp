@@ -9,6 +9,7 @@ import { AuthService } from '../../../modules/auth/auth.service';
 export class SidebarComponent {
   @Input() isMobileView = false;
   @Input() isMobileOpen = false;
+  @Input() isCollapsed = false;
   @Output() closeRequested = new EventEmitter<void>();
 
   isProductsOpen = true;

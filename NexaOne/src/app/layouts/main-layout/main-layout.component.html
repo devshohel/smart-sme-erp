@@ -8,11 +8,13 @@
   <app-sidebar
     [isMobileView]="isMobileView"
     [isMobileOpen]="isSidebarMobileOpen"
+    [isCollapsed]="!isMobileView && isSidebarCollapsed"
     (closeRequested)="closeSidebar()">
   </app-sidebar>
 
-  <div class="main-content">
+  <div class="main-content" [class.sidebar-collapsed]="!isMobileView && isSidebarCollapsed">
     <app-navbar
+      [isSidebarCollapsed]="!isMobileView && isSidebarCollapsed"
       (sidebarToggle)="toggleSidebar()">
     </app-navbar>
 

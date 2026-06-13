@@ -14,6 +14,7 @@ export interface ChangePasswordRequest {
 export interface LoginResponse {
   accessToken: string;
   username: string;
+  name?: string | null;
   role: string;
   permissions: string[];
   loginTimestamp: string;

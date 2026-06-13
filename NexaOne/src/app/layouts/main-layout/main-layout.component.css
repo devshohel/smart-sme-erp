@@ -1,5 +1,6 @@
 .layout-wrapper {
   --sidebar-width: 260px;
+  --sidebar-collapsed-width: 76px;
   --navbar-height: 70px;
   display: flex;
   min-height: 100vh;
@@ -25,9 +26,14 @@
   transition: margin-left 0.3s ease, width 0.3s ease;
 }
 
+.main-content.sidebar-collapsed {
+  margin-left: var(--sidebar-collapsed-width);
+  width: calc(100% - var(--sidebar-collapsed-width));
+}
+
 .page-content {
   min-height: 100vh;
-  padding: calc(var(--navbar-height) + 24px) 24px 24px;
+  padding: calc(var(--navbar-height) + 12px) 18px 18px;
   overflow-x: hidden;
   scroll-behavior: smooth;
   box-sizing: border-box;
@@ -57,6 +63,6 @@
   }
 
   .page-content {
-    padding: calc(var(--navbar-height) + 16px) 16px 20px;
+    padding: calc(var(--navbar-height) + 10px) 12px 16px;
   }
 }

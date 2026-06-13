@@ -146,6 +146,7 @@ export class AuthService {
   private storeSession(response: LoginResponse): void {
     localStorage.setItem(this.tokenKey, response.accessToken);
     localStorage.setItem(this.userKey, JSON.stringify({
+      name: response.name,
       username: response.username,
       role: response.role,
       permissions: response.permissions || [],
