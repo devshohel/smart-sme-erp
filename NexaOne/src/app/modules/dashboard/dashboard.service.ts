@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { map, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import {
   DashboardSummary,
@@ -18,13 +18,18 @@ import { ApiResponse } from '../../shared/utils/api-response.util';
 })
 export class DashboardService {
   private readonly summaryUrl = `${environment.apiUrl}/dashboard/summary`;
+  private readonly latestSummarySubject = new BehaviorSubject<DashboardSummary | null>(null);
+  latestSummary$ = this.latestSummarySubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
   getSummary(): Observable<DashboardSummary> {
     return this.http
       .get<DashboardSummary | ApiResponse<DashboardSummary>>(this.summaryUrl)
-      .pipe(map(response => this.normalizeSummary(this.unwrapDashboardResponse(response))));
+      .pipe(
+        map(response => this.normalizeSummary(this.unwrapDashboardResponse(response))),
+        tap(summary => this.latestSummarySubject.next(summary))
+      );
   }
 
   private unwrapDashboardResponse(response: unknown): Partial<DashboardSummary> {

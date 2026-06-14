@@ -24,7 +24,6 @@
       </div>
       <div class="search-suggestions" *ngIf="isSearchOpen && filteredSuggestions.length">
         <button type="button" *ngFor="let item of filteredSuggestions" (click)="navigateSearch(item.route)">
-          <i class="bi bi-search"></i>
           <span>{{ item.label }}</span>
         </button>
       </div>

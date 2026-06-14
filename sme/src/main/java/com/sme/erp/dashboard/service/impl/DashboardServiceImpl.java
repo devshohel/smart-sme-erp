@@ -12,6 +12,7 @@ import com.sme.erp.dashboard.dto.DashboardSummaryDTO.TopSellingProductDTO;
 import com.sme.erp.dashboard.service.DashboardService;
 import com.sme.erp.inventory.entity.Stock;
 import com.sme.erp.inventory.repository.StockRepository;
+import com.sme.erp.enums.Status;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.purchase.entity.PurchaseOrder;
 import com.sme.erp.purchase.enums.PurchaseStatus;
@@ -328,8 +329,17 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     private boolean isLowStock(Stock stock) {
+        if (stock == null || !isActiveProduct(stock.getProduct())) {
+            return false;
+        }
         BigDecimal reorderLevel = reorderLevel(stock);
         return reorderLevel.signum() > 0 && safe(stock.getQuantity()).compareTo(reorderLevel) <= 0;
+    }
+
+    private boolean isActiveProduct(Product product) {
+        return product != null
+                && product.getStatus() == Status.ACTIVE
+                && !Boolean.TRUE.equals(product.getDeleted());
     }
 
     private BigDecimal reorderLevel(Stock stock) {

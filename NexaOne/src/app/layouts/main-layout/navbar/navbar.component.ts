@@ -1,5 +1,6 @@
-import { Component, ElementRef, EventEmitter, HostListener, Input, OnInit, Output, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, HostListener, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../../../modules/auth/auth.service';
 import { DashboardService } from '../../../modules/dashboard/dashboard.service';
 import { DueAlert, LowStockAlert, RecentTransaction } from '../../../modules/dashboard/dashboard.model';
@@ -9,7 +10,7 @@ import { DueAlert, LowStockAlert, RecentTransaction } from '../../../modules/das
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.css']
 })
-export class NavbarComponent implements OnInit {
+export class NavbarComponent implements OnInit, OnDestroy {
 
   @ViewChild('searchInput')
   searchInput?: ElementRef<HTMLInputElement>;
@@ -26,9 +27,10 @@ export class NavbarComponent implements OnInit {
   searchTerm = '';
   filteredSuggestions: { label: string; route: string; keywords: string[] }[] = [];
   private searchMessageTimer: ReturnType<typeof setTimeout> | null = null;
+  private summarySubscription?: Subscription;
 
   private readonly searchItems: { label: string; route: string; keywords: string[] }[] = [
-    { label: 'Dashboard', route: '/dashboard', keywords: ['dashboard'] },
+    { label: 'Dashboard', route: '/dashboard', keywords: ['dashboard', 'dashbord', 'deshboard'] },
     { label: 'All Products', route: '/products/products', keywords: ['product', 'products', 'all products'] },
     { label: 'Add Product', route: '/products/add-product', keywords: ['add product'] },
     { label: 'Categories', route: '/products/categories', keywords: ['category', 'categories'] },
@@ -42,13 +44,13 @@ export class NavbarComponent implements OnInit {
     { label: 'Add Customer', route: '/customers/create', keywords: ['customer form', 'add customer'] },
     { label: 'Supplier List', route: '/suppliers/list', keywords: ['supplier', 'suppliers', 'supplier list'] },
     { label: 'Add Supplier', route: '/suppliers/create', keywords: ['supplier form', 'add supplier'] },
-    { label: 'Purchase Orders', route: '/purchases/orders', keywords: ['purchase', 'purchases', 'purchase order'] },
+    { label: 'Purchase Orders', route: '/purchases/orders', keywords: ['purchase', 'purchases', 'purchas', 'parchase', 'purchase order'] },
     { label: 'Purchase Invoices', route: '/purchases/invoices', keywords: ['purchase invoice', 'purchase receive'] },
     { label: 'Purchase Returns', route: '/purchases/returns', keywords: ['purchase return'] },
     { label: 'Sales Orders', route: '/sales/orders', keywords: ['sales', 'sale', 'sales order', 'sale order'] },
-    { label: 'Sales Invoices', route: '/sales/invoices', keywords: ['invoice', 'sales invoice'] },
+    { label: 'Sales Invoices', route: '/sales/invoices', keywords: ['invoice', 'invoices', 'sales invoice', 'sales invoices'] },
     { label: 'Sales Returns', route: '/sales/returns', keywords: ['sales return'] },
-    { label: 'Sales Report', route: '/reports/sales', keywords: ['report', 'reports', 'sales report'] },
+    { label: 'Sales Report', route: '/reports/sales', keywords: ['report', 'reports', 'sales report', 'sales reports'] },
     { label: 'Purchase Report', route: '/reports/purchases', keywords: ['purchase report'] },
     { label: 'Stock Report', route: '/reports/stock', keywords: ['stock report'] },
     { label: 'Customer Due Report', route: '/reports/customer-dues', keywords: ['customer due report'] },
@@ -84,7 +86,16 @@ export class NavbarComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.summarySubscription = this.dashboardService.latestSummary$.subscribe(summary => {
+      if (summary) {
+        this.applyNotificationSummary(summary);
+      }
+    });
     this.loadNotifications();
+  }
+
+  ngOnDestroy(): void {
+    this.summarySubscription?.unsubscribe();
   }
 
   @HostListener('document:click')
@@ -144,6 +155,7 @@ export class NavbarComponent implements OnInit {
 
   toggleNotifications(event: MouseEvent): void {
     event.stopPropagation();
+    this.loadNotifications();
     this.isNotificationOpen = !this.isNotificationOpen;
   }
 
@@ -209,17 +221,19 @@ export class NavbarComponent implements OnInit {
 
   private loadNotifications(): void {
     this.dashboardService.getSummary().subscribe({
-      next: summary => {
-        this.lowStockAlerts = summary.lowStockAlerts || [];
-        this.dueAlerts = summary.dueAlerts || [];
-        this.recentTransactions = (summary.recentTransactions || []).slice(0, 4);
-      },
+      next: summary => this.applyNotificationSummary(summary),
       error: () => {
         this.lowStockAlerts = [];
         this.dueAlerts = [];
         this.recentTransactions = [];
       }
     });
+  }
+
+  private applyNotificationSummary(summary: { lowStockAlerts?: LowStockAlert[]; dueAlerts?: DueAlert[]; recentTransactions?: RecentTransaction[] }): void {
+    this.lowStockAlerts = summary.lowStockAlerts || [];
+    this.dueAlerts = summary.dueAlerts || [];
+    this.recentTransactions = (summary.recentTransactions || []).slice(0, 4);
   }
 
   private showSearchMessage(message: string): void {

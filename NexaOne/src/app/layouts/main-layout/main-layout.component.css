@@ -4,7 +4,7 @@
   --navbar-height: 70px;
   display: flex;
   min-height: 100vh;
-  background: #f5f7fb;
+  background: #f2f7f4;
   overflow-x: hidden;
   position: relative;
 }
@@ -33,6 +33,7 @@
 
 .page-content {
   min-height: 100vh;
+  background: #f2f7f4;
   padding: calc(var(--navbar-height) + 12px) 18px 18px;
   overflow-x: hidden;
   scroll-behavior: smooth;
