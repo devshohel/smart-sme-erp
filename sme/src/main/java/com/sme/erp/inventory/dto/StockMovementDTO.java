@@ -20,6 +20,9 @@ public class StockMovementDTO {
     private String warehouseName;
     private MovementType movementType;
     private BigDecimal quantity;
+    private BigDecimal quantityBefore;
+    private BigDecimal quantityChange;
+    private BigDecimal quantityAfter;
     private BigDecimal unitCost;
     private String referenceType;
     private String referenceNo;
@@ -63,6 +66,15 @@ public class StockMovementDTO {
 
     public BigDecimal getQuantity() { return quantity; }
     public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }
+
+    public BigDecimal getQuantityBefore() { return quantityBefore; }
+    public void setQuantityBefore(BigDecimal quantityBefore) { this.quantityBefore = quantityBefore; }
+
+    public BigDecimal getQuantityChange() { return quantityChange; }
+    public void setQuantityChange(BigDecimal quantityChange) { this.quantityChange = quantityChange; }
+
+    public BigDecimal getQuantityAfter() { return quantityAfter; }
+    public void setQuantityAfter(BigDecimal quantityAfter) { this.quantityAfter = quantityAfter; }
 
     public BigDecimal getUnitCost() { return unitCost; }
     public void setUnitCost(BigDecimal unitCost) { this.unitCost = unitCost; }

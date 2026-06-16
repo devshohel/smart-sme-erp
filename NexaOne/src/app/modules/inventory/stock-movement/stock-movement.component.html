@@ -1,72 +1,133 @@
-<div class="container-fluid p-4">
+<div class="inventory-page container-fluid p-4">
   <app-page-header
     title="Stock Movement"
-    subtitle="Track stock in, stock out, and adjustment history across warehouses.">
+    subtitle="Read-only inventory movement history with running balance.">
   </app-page-header>
 
-  <app-card title="Filters" subtitle="Narrow down movement history by product, warehouse, or movement type.">
-    <div class="row g-3">
-      <div class="col-md-4">
+  <section class="filter-card">
+    <div class="row g-3 align-items-end">
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label">Search</label>
+        <input type="text" class="form-control" [(ngModel)]="filters.keyword" placeholder="Product, SKU, barcode, reference">
+      </div>
+      <div class="col-lg-3 col-md-6">
         <label class="form-label">Product</label>
-        <select class="form-select" [(ngModel)]="filters.productId" (change)="applyFilters()">
-          <option value="">All Products</option>
-          <option *ngFor="let product of products" [value]="product.id">{{ product.productName }}</option>
+        <select class="form-select" [(ngModel)]="filters.productId">
+          <option [ngValue]="null">All Products</option>
+          <option *ngFor="let product of products" [ngValue]="product.id">{{ product.productName }}</option>
         </select>
       </div>
-      <div class="col-md-4">
+      <div class="col-lg-3 col-md-6">
         <label class="form-label">Warehouse</label>
-        <select class="form-select" [(ngModel)]="filters.warehouseId" (change)="applyFilters()">
-          <option value="">All Warehouses</option>
-          <option *ngFor="let warehouse of warehouses" [value]="warehouse.id">{{ warehouse.name }}</option>
+        <select class="form-select" [(ngModel)]="filters.warehouseId">
+          <option [ngValue]="null">All Warehouses</option>
+          <option *ngFor="let warehouse of warehouses" [ngValue]="warehouse.id">{{ warehouse.name }}</option>
         </select>
       </div>
-      <div class="col-md-4">
+      <div class="col-lg-3 col-md-6">
         <label class="form-label">Movement Type</label>
-        <select class="form-select" [(ngModel)]="filters.movementType" (change)="applyFilters()">
+        <select class="form-select" [(ngModel)]="filters.movementType">
           <option value="">All Types</option>
           <option *ngFor="let type of movementTypes" [value]="type">{{ type }}</option>
         </select>
       </div>
-      <div class="col-12 d-flex justify-content-end">
-        <button type="button" class="btn btn-outline-secondary" (click)="resetFilters()">Reset Filters</button>
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label">Reference Type</label>
+        <input type="text" class="form-control" [(ngModel)]="filters.referenceType" placeholder="SALE, PURCHASE, ADJUSTMENT">
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label">From Date</label>
+        <input type="date" class="form-control" [(ngModel)]="filters.fromDate">
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label">To Date</label>
+        <input type="date" class="form-control" [(ngModel)]="filters.toDate">
+      </div>
+      <div class="col-lg-3 col-md-6 filter-buttons">
+        <button type="button" class="btn btn-success" (click)="applyFilters()" [disabled]="loading">
+          <i class="bi bi-funnel me-1"></i> Apply
+        </button>
+        <button type="button" class="btn btn-outline-secondary" (click)="resetFilters()" [disabled]="loading">
+          Reset
+        </button>
       </div>
     </div>
-  </app-card>
+  </section>
 
-  <app-card title="Movement History" subtitle="API-backed inventory movement records.">
-    <div class="table-responsive">
+  <section class="list-card">
+    <div class="list-toolbar">
+      <div>
+        <strong>Movement History</strong>
+        <div class="record-summary">{{ totalElements | number }} total records. Read-only ledger.</div>
+      </div>
+      <select class="form-select page-size" [(ngModel)]="size" (change)="changePageSize()">
+        <option *ngFor="let option of pageSizes" [ngValue]="option">{{ option }} / page</option>
+      </select>
+    </div>
+
+    <div class="alert alert-danger m-3" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div class="loading-panel" *ngIf="loading">
+      <span class="spinner-border spinner-border-sm me-2"></span> Loading movement history...
+    </div>
+
+    <div class="table-responsive" *ngIf="!loading">
       <table class="table table-hover align-middle mb-0">
         <thead class="table-light">
           <tr>
-            <th>Product</th>
-            <th>Warehouse</th>
-            <th>Movement Type</th>
-            <th class="text-end">Quantity</th>
-            <th>Reference Type</th>
-            <th>Reference No</th>
-            <th class="text-end">Unit Cost</th>
-            <th>Created At</th>
+            <th class="sortable" (click)="setSort('createdAt')">Date <i class="bi" [ngClass]="sortIcon('createdAt')"></i></th>
+            <th>Movement No</th>
+            <th class="sortable" (click)="setSort('productName')">Product <i class="bi" [ngClass]="sortIcon('productName')"></i></th>
+            <th class="sortable" (click)="setSort('warehouseName')">Warehouse <i class="bi" [ngClass]="sortIcon('warehouseName')"></i></th>
+            <th class="sortable" (click)="setSort('movementType')">Type <i class="bi" [ngClass]="sortIcon('movementType')"></i></th>
+            <th class="text-end">Before</th>
+            <th class="text-end sortable" (click)="setSort('quantityChange')">Change <i class="bi" [ngClass]="sortIcon('quantityChange')"></i></th>
+            <th class="text-end">After</th>
+            <th class="sortable" (click)="setSort('referenceType')">Reference <i class="bi" [ngClass]="sortIcon('referenceType')"></i></th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let movement of filteredMovements">
-            <td>{{ movement.productName || 'N/A' }}</td>
+          <tr *ngFor="let movement of movements">
+            <td>{{ movement.createdAt | date:'medium' }}</td>
+            <td>{{ movement.movementCode || 'N/A' }}</td>
+            <td>
+              <div class="fw-semibold">{{ movement.productName || 'N/A' }}</div>
+              <small class="text-muted">{{ movement.productCode || '' }}</small>
+            </td>
             <td>{{ movement.warehouseName || 'N/A' }}</td>
-            <td>{{ movement.movementType || 'N/A' }}</td>
-            <td class="text-end">{{ movement.quantity ?? 0 }}</td>
-            <td>{{ movement.referenceType || 'N/A' }}</td>
-            <td>{{ movement.referenceNo || 'N/A' }}</td>
-            <td class="text-end">{{ movement.unitCost ?? 0 }}</td>
-            <td>{{ movement.createdAt || 'N/A' }}</td>
+            <td>
+              <span class="badge px-3 py-2" [ngClass]="movementBadgeClass(movement.movementType)">
+                {{ movement.movementType || 'N/A' }}
+              </span>
+            </td>
+            <td class="text-end">{{ (movement.quantityBefore ?? 0) | number:'1.0-2' }}</td>
+            <td class="text-end fw-semibold">{{ (movement.quantityChange ?? 0) | number:'1.0-2' }}</td>
+            <td class="text-end">{{ (movement.quantityAfter ?? 0) | number:'1.0-2' }}</td>
+            <td>
+              <div>{{ movement.referenceType || 'N/A' }}</div>
+              <small class="text-muted">{{ movement.referenceNo || '-' }}</small>
+            </td>
           </tr>
-          <tr *ngIf="!loading && filteredMovements.length === 0">
-            <td colspan="8" class="text-center text-muted py-5">No stock movements found.</td>
-          </tr>
-          <tr *ngIf="loading">
-            <td colspan="8" class="text-center text-muted py-5">Loading movement history...</td>
+          <tr *ngIf="movements.length === 0">
+            <td colspan="9">
+              <div class="empty-state">
+                <i class="bi bi-clock-history"></i>
+                <strong>No stock movements found</strong>
+                <span>Adjust filters or create inventory activity.</span>
+              </div>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
-  </app-card>
+
+    <div class="pagination-row">
+      <div class="record-summary">
+        Page {{ totalPages ? page + 1 : 0 }} of {{ totalPages }}
+      </div>
+      <div class="btn-group">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="goToPage(page - 1)" [disabled]="page === 0 || loading">Previous</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="goToPage(page + 1)" [disabled]="page + 1 >= totalPages || loading">Next</button>
+      </div>
+    </div>
+  </section>
 </div>

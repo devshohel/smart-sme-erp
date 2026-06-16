@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Entity
 @Table(name = "stock_movements", indexes = {
@@ -41,6 +42,15 @@ public class StockMovement {
     private BigDecimal quantity;
 
     @Column(precision = 15, scale = 2)
+    private BigDecimal quantityBefore;
+
+    @Column(precision = 15, scale = 2)
+    private BigDecimal quantityChange;
+
+    @Column(precision = 15, scale = 2)
+    private BigDecimal quantityAfter;
+
+    @Column(precision = 15, scale = 2)
     private BigDecimal unitCost; // kenar somoy dam koto chilo (need for Profit/Loss)
 
     private String referenceType; // PURCHASE, SALE, ADJUSTMENT, TRANSFER
@@ -58,9 +68,8 @@ public class StockMovement {
     @PrePersist
     public void onCreate() {
         this.createdAt = LocalDateTime.now();
-        // auto movement code generation ligic
         if (this.movementCode == null) {
-            this.movementCode = "MOV-" + System.currentTimeMillis();
+            this.movementCode = "MOV-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         }
     }
 
@@ -88,6 +97,15 @@ public class StockMovement {
 
     public BigDecimal  getUnitCost() { return unitCost; }
     public void setUnitCost(BigDecimal  unitCost) { this.unitCost = unitCost; }
+
+    public BigDecimal getQuantityBefore() { return quantityBefore; }
+    public void setQuantityBefore(BigDecimal quantityBefore) { this.quantityBefore = quantityBefore; }
+
+    public BigDecimal getQuantityChange() { return quantityChange; }
+    public void setQuantityChange(BigDecimal quantityChange) { this.quantityChange = quantityChange; }
+
+    public BigDecimal getQuantityAfter() { return quantityAfter; }
+    public void setQuantityAfter(BigDecimal quantityAfter) { this.quantityAfter = quantityAfter; }
 
     public String getReferenceType() { return referenceType; }
     public void setReferenceType(String referenceType) { this.referenceType = referenceType; }

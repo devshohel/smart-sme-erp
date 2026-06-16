@@ -1,0 +1,85 @@
+<div class="inventory-page container-fluid p-4">
+  <div class="page-actions mb-3">
+    <app-page-header
+      title="Stock Card"
+      subtitle="Product warehouse stock ledger with running balance.">
+    </app-page-header>
+    <button type="button" class="btn btn-outline-secondary" (click)="backToStock()">
+      <i class="bi bi-arrow-left me-1"></i> Back
+    </button>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="loading-panel" *ngIf="loading">
+    <span class="spinner-border spinner-border-sm me-2"></span> Loading stock card...
+  </div>
+
+  <ng-container *ngIf="!loading && stockCard">
+    <section class="summary-grid">
+      <div class="summary-card">
+        <span>Product</span>
+        <strong>{{ stockCard.productName || 'N/A' }}</strong>
+      </div>
+      <div class="summary-card">
+        <span>Warehouse</span>
+        <strong>{{ stockCard.warehouseName || 'N/A' }}</strong>
+      </div>
+      <div class="summary-card active">
+        <span>Current Quantity</span>
+        <strong>{{ stockCard.currentQuantity | number:'1.0-2' }}</strong>
+      </div>
+    </section>
+
+    <section class="list-card">
+      <div class="list-toolbar">
+        <div>
+          <strong>Movement Ledger</strong>
+          <div class="record-summary">{{ stockCard.movements.length | number }} movement records</div>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Date</th>
+              <th>Movement No</th>
+              <th>Type</th>
+              <th>Reference</th>
+              <th class="text-end">Before</th>
+              <th class="text-end">Change</th>
+              <th class="text-end">After</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let movement of stockCard.movements">
+              <td>{{ movement.createdAt | date:'medium' }}</td>
+              <td>{{ movement.movementCode || 'N/A' }}</td>
+              <td>
+                <span class="badge px-3 py-2" [ngClass]="movementBadgeClass(movement.movementType)">
+                  {{ movement.movementType || 'N/A' }}
+                </span>
+              </td>
+              <td>
+                <div>{{ movement.referenceType || 'N/A' }}</div>
+                <small class="text-muted">{{ movement.referenceNo || '-' }}</small>
+              </td>
+              <td class="text-end">{{ (movement.quantityBefore ?? 0) | number:'1.0-2' }}</td>
+              <td class="text-end fw-semibold">{{ (movement.quantityChange ?? 0) | number:'1.0-2' }}</td>
+              <td class="text-end">{{ (movement.quantityAfter ?? 0) | number:'1.0-2' }}</td>
+            </tr>
+            <tr *ngIf="stockCard.movements.length === 0">
+              <td colspan="7">
+                <div class="empty-state">
+                  <i class="bi bi-journal-text"></i>
+                  <strong>No movement history</strong>
+                  <span>This product warehouse pair has no stock ledger activity yet.</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </ng-container>
+</div>

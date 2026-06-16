@@ -1,13 +1,21 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Product } from '../../../models/product.model';
-import { Stock } from '../../../models/stock.model';
+import { ProductCategory } from '../../../models/category.model';
 import { InventoryWarehouse } from '../../../models/inventory-warehouse.model';
-import { ProductService } from '../../../services/product.service';
+import { Stock } from '../../../models/stock.model';
 import { InventoryStockService } from '../../../services/inventory-stock.service';
 import { InventoryWarehouseService } from '../../../services/inventory-warehouse.service';
+import { ProductCategoryService } from '../../../services/product-category.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
+
+type SortDirection = 'asc' | 'desc';
+
+interface StockFilters {
+  keyword: string;
+  warehouseId: number | null;
+  categoryId: number | null;
+  lowStockOnly: boolean;
+}
 
 @Component({
   selector: 'app-stock-level',
@@ -15,115 +23,119 @@ import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api
   styleUrls: ['./stock-level.component.css']
 })
 export class StockLevelComponent implements OnInit {
-  filterForm: FormGroup;
-  products: Product[] = [];
+  stocks: Stock[] = [];
   warehouses: InventoryWarehouse[] = [];
-  results: Stock[] = [];
+  categories: ProductCategory[] = [];
+  filters: StockFilters = { keyword: '', warehouseId: null, categoryId: null, lowStockOnly: false };
   loading = false;
   errorMessage = '';
-  searchKeyword = '';
+
+  page = 0;
+  size = 10;
+  readonly pageSizes = [10, 25, 50, 100];
+  totalElements = 0;
+  totalPages = 0;
+  sort = 'productName';
+  direction: SortDirection = 'asc';
 
   constructor(
-    private fb: FormBuilder,
-    private productService: ProductService,
-    private warehouseService: InventoryWarehouseService,
     private stockService: InventoryStockService,
+    private warehouseService: InventoryWarehouseService,
+    private categoryService: ProductCategoryService,
     private router: Router
-  ) {
-    this.filterForm = this.fb.group({
-      productId: [null, Validators.required],
-      warehouseId: [null, Validators.required]
-    });
-  }
+  ) {}
 
   ngOnInit(): void {
     this.loadOptions();
-    this.loadAllStock();
+    this.loadStock();
   }
 
   loadOptions(): void {
-    this.productService.getAllProducts().subscribe({
-      next: (data) => this.products = data,
-      error: (error) => {
-        this.products = [];
-        debugApiError('StockLevelComponent.loadProducts', error);
-      }
-    });
-
     this.warehouseService.getAllWarehouses().subscribe({
-      next: (data) => this.warehouses = data,
-      error: (error) => {
-        this.warehouses = [];
-        debugApiError('StockLevelComponent.loadWarehouses', error);
-      }
+      next: data => this.warehouses = data,
+      error: error => debugApiError('StockLevelComponent.loadWarehouses', error)
+    });
+    this.categoryService.getAllCategories().subscribe({
+      next: data => this.categories = data,
+      error: error => debugApiError('StockLevelComponent.loadCategories', error)
     });
   }
 
-  loadAllStock(): void {
+  loadStock(): void {
     this.loading = true;
     this.errorMessage = '';
 
-    this.stockService.getAllStock().subscribe({
-      next: (data) => {
-        this.results = data;
+    this.stockService.getStockPage({
+      keyword: this.filters.keyword,
+      warehouseId: this.filters.warehouseId,
+      categoryId: this.filters.categoryId,
+      lowStockOnly: this.filters.lowStockOnly,
+      page: this.page,
+      size: this.size,
+      sort: this.sort,
+      direction: this.direction
+    }).subscribe({
+      next: data => {
+        this.stocks = data.content;
+        this.totalElements = data.totalElements;
+        this.totalPages = data.totalPages;
+        this.page = data.page;
+        this.size = data.size;
         this.loading = false;
       },
-      error: (error) => {
-        this.results = [];
+      error: error => {
+        this.stocks = [];
         this.loading = false;
         this.errorMessage = extractApiErrorMessage(error, 'Current stock could not be loaded.');
-        debugApiError('StockLevelComponent.loadAllStock', error);
+        debugApiError('StockLevelComponent.loadStock', error);
       }
     });
   }
 
-  lookupStock(): void {
-    this.errorMessage = '';
-    if (this.filterForm.invalid) {
-      this.filterForm.markAllAsTouched();
+  applyFilters(): void {
+    this.page = 0;
+    this.loadStock();
+  }
+
+  resetFilters(): void {
+    this.filters = { keyword: '', warehouseId: null, categoryId: null, lowStockOnly: false };
+    this.page = 0;
+    this.loadStock();
+  }
+
+  changePageSize(): void {
+    this.page = 0;
+    this.loadStock();
+  }
+
+  setSort(column: string): void {
+    if (this.sort === column) {
+      this.direction = this.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sort = column;
+      this.direction = 'asc';
+    }
+    this.loadStock();
+  }
+
+  sortIcon(column: string): string {
+    if (this.sort !== column) {
+      return 'bi-arrow-down-up';
+    }
+    return this.direction === 'asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up';
+  }
+
+  goToPage(page: number): void {
+    if (page < 0 || page >= this.totalPages || page === this.page) {
       return;
     }
-
-    const value = this.filterForm.value;
-    this.loading = true;
-
-    this.stockService.getStock(Number(value.productId), Number(value.warehouseId)).subscribe({
-      next: (stock) => {
-        this.loading = false;
-        this.upsertResult(stock);
-      },
-      error: (error) => {
-        this.loading = false;
-        this.errorMessage = extractApiErrorMessage(error, 'Current stock could not be found for the selected product and warehouse.');
-        debugApiError('StockLevelComponent.lookupStock', error);
-      }
-    });
-  }
-
-  upsertResult(stock: Stock): void {
-    const index = this.results.findIndex(item => item.productId === stock.productId && item.warehouseId === stock.warehouseId);
-    if (index >= 0) {
-      this.results[index] = stock;
-    } else {
-      this.results.unshift(stock);
-    }
-  }
-
-  filteredResults(): Stock[] {
-    const keyword = this.searchKeyword.trim().toLowerCase();
-    if (!keyword) {
-      return this.results;
-    }
-
-    return this.results.filter(stock =>
-      (stock.productName || '').toLowerCase().includes(keyword) ||
-      (stock.warehouseName || '').toLowerCase().includes(keyword)
-    );
+    this.page = page;
+    this.loadStock();
   }
 
   isLowStock(stock: Stock): boolean {
     const reorderLevel = stock.reorderLevel ?? 0;
-    return reorderLevel > 0 && stock.quantity <= reorderLevel;
+    return reorderLevel > 0 && Number(stock.quantity || 0) <= reorderLevel;
   }
 
   viewMovements(stock: Stock): void {
@@ -135,8 +147,12 @@ export class StockLevelComponent implements OnInit {
     });
   }
 
-  hasError(controlName: string): boolean {
-    const control = this.filterForm.get(controlName);
-    return !!control && control.touched && control.invalid;
+  viewStockCard(stock: Stock): void {
+    this.router.navigate(['/inventory/stock-card'], {
+      queryParams: {
+        productId: stock.productId,
+        warehouseId: stock.warehouseId
+      }
+    });
   }
 }

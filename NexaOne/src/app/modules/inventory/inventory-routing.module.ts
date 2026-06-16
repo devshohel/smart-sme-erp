@@ -5,6 +5,7 @@ import { StockLevelComponent } from './stock-level/stock-level.component';
 import { StockAdjustmentComponent } from './stock-adjustment/stock-adjustment.component';
 import { StockMovementComponent } from './stock-movement/stock-movement.component';
 import { WarehouseComponent } from './warehouse/warehouse.component';
+import { StockCardComponent } from './stock-card/stock-card.component';
 
 const routes: Routes = [
   {
@@ -18,6 +19,7 @@ const routes: Routes = [
       { path: 'warehouse', redirectTo: 'warehouses', pathMatch: 'full' },
       { path: 'warehouses', component: WarehouseComponent },
       { path: 'stocks', component: StockLevelComponent },
+      { path: 'stock-card', component: StockCardComponent },
       { path: 'adjustments', component: StockAdjustmentComponent },
       { path: 'movements', component: StockMovementComponent },
       { path: '', redirectTo: 'stocks', pathMatch: 'full' }

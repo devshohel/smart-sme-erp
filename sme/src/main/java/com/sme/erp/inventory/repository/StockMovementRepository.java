@@ -3,14 +3,19 @@ package com.sme.erp.inventory.repository;
 import com.sme.erp.inventory.entity.StockMovement;
 import com.sme.erp.reports.dto.StockMovementReportRowDTO;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface StockMovementRepository extends JpaRepository<StockMovement, Long> {
+public interface StockMovementRepository extends JpaRepository<StockMovement, Long>, JpaSpecificationExecutor<StockMovement> {
 
     List<StockMovement> findByProductId(Long productId);
+
+    List<StockMovement> findByProductIdAndWarehouseIdOrderByCreatedAtAscIdAsc(Long productId, Long warehouseId);
+
+    StockMovement findTopByOrderByIdDesc();
 
     @Query("""
             select new com.sme.erp.reports.dto.StockMovementReportRowDTO(

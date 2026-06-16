@@ -18,6 +18,15 @@ public class StockMapper {
         if (stock.getProduct() != null) {
             dto.setProductId(stock.getProduct().getId());
             dto.setProductName(stock.getProduct().getProductName());
+            dto.setSku(stock.getProduct().getSku());
+            dto.setBarcode(stock.getProduct().getBarcode());
+            if (stock.getProduct().getReorderLevel() != null) {
+                dto.setReorderLevel(stock.getProduct().getReorderLevel());
+            }
+            if (stock.getProduct().getCategory() != null) {
+                dto.setCategoryId(stock.getProduct().getCategory().getId());
+                dto.setCategoryName(stock.getProduct().getCategory().getCategoryName());
+            }
         }
 
         if (stock.getWarehouse() != null) {

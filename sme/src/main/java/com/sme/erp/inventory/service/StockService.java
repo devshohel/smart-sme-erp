@@ -2,8 +2,13 @@ package com.sme.erp.inventory.service;
 
 import java.util.List;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import com.sme.erp.enums.MovementType;
+import com.sme.erp.inventory.dto.StockCardDTO;
 import com.sme.erp.inventory.dto.StockDTO;
 import com.sme.erp.inventory.dto.StockMovementDTO;
+import com.sme.erp.inventory.dto.StockMovementPageDTO;
+import com.sme.erp.inventory.dto.StockPageDTO;
 
 public interface StockService {
 
@@ -28,4 +33,13 @@ public interface StockService {
     List<StockDTO> getAllStock(); 
 
     List<StockMovementDTO> getAllMovements();
+
+    StockPageDTO searchStock(String keyword, Long warehouseId, Long categoryId, Boolean lowStockOnly,
+                             int page, int size, String sort, String direction);
+
+    StockMovementPageDTO searchMovements(String keyword, Long productId, Long warehouseId, MovementType movementType,
+                                         String referenceType, LocalDate fromDate, LocalDate toDate,
+                                         int page, int size, String sort, String direction);
+
+    StockCardDTO getStockCard(Long productId, Long warehouseId);
 }

@@ -2,8 +2,11 @@ package com.sme.erp.inventory.service.impl;
 
 import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
+import com.sme.erp.inventory.dto.StockCardDTO;
 import com.sme.erp.inventory.dto.StockDTO;
 import com.sme.erp.inventory.dto.StockMovementDTO;
+import com.sme.erp.inventory.dto.StockMovementPageDTO;
+import com.sme.erp.inventory.dto.StockPageDTO;
 import com.sme.erp.inventory.entity.*;
 import com.sme.erp.enums.MovementType;
 import com.sme.erp.inventory.mapper.StockMapper;
@@ -14,11 +17,17 @@ import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.repository.ProductRepository;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -74,10 +83,13 @@ public class StockServiceImpl implements StockService {
 
         Stock stock = getOrCreateStock(productId, warehouseId);
 
-        stock.setQuantity(stock.getQuantity().add(qty));
+        BigDecimal before = safe(stock.getQuantity());
+        BigDecimal after = before.add(qty);
+        stock.setQuantity(after);
         saveStockOrThrowConflict(stock);
 
-        saveMovement(stock, qty, MovementType.IN, normalizeReferenceType(referenceType, "PURCHASE"), referenceNo, unitCost);
+        saveMovement(stock, qty, qty, before, after, MovementType.IN,
+                normalizeReferenceType(referenceType, "PURCHASE"), referenceNo, unitCost);
 
         return stockMapper.toDTO(stock);
     }
@@ -102,10 +114,14 @@ public class StockServiceImpl implements StockService {
             throw new BadRequestException("Insufficient stock");
         }
 
-        stock.setQuantity(stock.getQuantity().subtract(qty));
+        BigDecimal before = safe(stock.getQuantity());
+        BigDecimal change = qty.negate();
+        BigDecimal after = before.add(change);
+        stock.setQuantity(after);
         saveStockOrThrowConflict(stock);
 
-        saveMovement(stock, qty, MovementType.OUT, normalizeReferenceType(referenceType, "SALE"), referenceNo, null);
+        saveMovement(stock, qty, change, before, after, MovementType.OUT,
+                normalizeReferenceType(referenceType, "SALE"), referenceNo, null);
 
         return stockMapper.toDTO(stock);
     }
@@ -120,7 +136,13 @@ public class StockServiceImpl implements StockService {
 
         Stock stock = getOrCreateStock(productId, warehouseId);
 
-        stock.setQuantity(stock.getQuantity().add(qty));
+        BigDecimal before = safe(stock.getQuantity());
+        BigDecimal after = before.add(qty);
+        if (after.signum() < 0) {
+            throw new BadRequestException("Adjustment cannot make stock negative.");
+        }
+
+        stock.setQuantity(after);
         saveStockOrThrowConflict(stock);
 
         StockAdjustment adj = new StockAdjustment();
@@ -131,7 +153,7 @@ public class StockServiceImpl implements StockService {
 
         adjustmentRepository.save(adj);
 
-        saveMovement(stock, qty, MovementType.ADJUSTMENT, "ADJUSTMENT", reason, null);
+        saveMovement(stock, qty.abs(), qty, before, after, MovementType.ADJUSTMENT, "ADJUSTMENT", reason, null);
 
         return stockMapper.toDTO(stock);
     }
@@ -159,26 +181,93 @@ public class StockServiceImpl implements StockService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public StockPageDTO searchStock(String keyword, Long warehouseId, Long categoryId, Boolean lowStockOnly,
+                                    int page, int size, String sort, String direction) {
+        Pageable pageable = PageRequest.of(safePage(page), safeSize(size), sortForStock(sort, direction));
+        Page<Stock> result = stockRepository.findAll(stockSpec(keyword, warehouseId, categoryId, lowStockOnly), pageable);
+
+        return new StockPageDTO(
+                result.getContent().stream().map(stockMapper::toDTO).collect(Collectors.toList()),
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.getNumber(),
+                result.getSize());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StockMovementPageDTO searchMovements(String keyword, Long productId, Long warehouseId, MovementType movementType,
+                                                String referenceType, LocalDate fromDate, LocalDate toDate,
+                                                int page, int size, String sort, String direction) {
+        Pageable pageable = PageRequest.of(safePage(page), safeSize(size), sortForMovement(sort, direction));
+        Page<StockMovement> result = movementRepository.findAll(
+                movementSpec(keyword, productId, warehouseId, movementType, referenceType, fromDate, toDate), pageable);
+
+        return new StockMovementPageDTO(
+                result.getContent().stream().map(stockMovementMapper::toDTO).collect(Collectors.toList()),
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.getNumber(),
+                result.getSize());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StockCardDTO getStockCard(Long productId, Long warehouseId) {
+        validatePositiveId(productId, "Product id");
+        validatePositiveId(warehouseId, "Warehouse id");
+
+        Stock stock = getStockEntity(productId, warehouseId);
+        List<StockMovementDTO> movements = movementRepository
+                .findByProductIdAndWarehouseIdOrderByCreatedAtAscIdAsc(productId, warehouseId)
+                .stream()
+                .map(stockMovementMapper::toDTO)
+                .collect(Collectors.toList());
+
+        return new StockCardDTO(
+                productId,
+                stock.getProduct() != null ? stock.getProduct().getProductName() : null,
+                warehouseId,
+                stock.getWarehouse() != null ? stock.getWarehouse().getName() : null,
+                safe(stock.getQuantity()),
+                movements);
+    }
+
     // HELPER METHODS
 
     private void saveMovement(
             Stock stock,
             BigDecimal qty,
+            BigDecimal quantityChange,
+            BigDecimal quantityBefore,
+            BigDecimal quantityAfter,
             MovementType type,
             String referenceType,
             String referenceNo,
             BigDecimal cost) {
 
         StockMovement movement = new StockMovement();
+        movement.setMovementCode(nextMovementCode());
         movement.setProduct(stock.getProduct());
         movement.setWarehouse(stock.getWarehouse());
         movement.setQuantity(qty);
+        movement.setQuantityBefore(quantityBefore);
+        movement.setQuantityChange(quantityChange);
+        movement.setQuantityAfter(quantityAfter);
         movement.setMovementType(type);
         movement.setReferenceType(referenceType);
         movement.setReferenceNo(referenceNo);
         movement.setUnitCost(cost);
 
         movementRepository.save(movement);
+    }
+
+    private synchronized String nextMovementCode() {
+        StockMovement lastMovement = movementRepository.findTopByOrderByIdDesc();
+        long next = lastMovement == null || lastMovement.getId() == null ? 1L : lastMovement.getId() + 1L;
+        return String.format("MOV-%06d", next);
     }
 
     private Stock getStockEntity(Long productId, Long warehouseId) {
@@ -256,5 +345,138 @@ public class StockServiceImpl implements StockService {
             return fallback;
         }
         return referenceType.trim();
+    }
+
+    private Specification<Stock> stockSpec(String keyword, Long warehouseId, Long categoryId, Boolean lowStockOnly) {
+        return (root, query, cb) -> {
+            if (query.getResultType() != Long.class && query.getResultType() != long.class) {
+                root.fetch("product", jakarta.persistence.criteria.JoinType.LEFT)
+                        .fetch("category", jakarta.persistence.criteria.JoinType.LEFT);
+                root.fetch("warehouse", jakarta.persistence.criteria.JoinType.LEFT);
+                query.distinct(true);
+            }
+
+            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+            jakarta.persistence.criteria.Join<Stock, Product> product =
+                    root.join("product", jakarta.persistence.criteria.JoinType.LEFT);
+            jakarta.persistence.criteria.Join<Stock, Warehouse> warehouse =
+                    root.join("warehouse", jakarta.persistence.criteria.JoinType.LEFT);
+
+            String normalizedKeyword = normalizeSearch(keyword);
+            if (normalizedKeyword != null) {
+                String pattern = "%" + normalizedKeyword + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(product.get("productName")), pattern),
+                        cb.like(cb.lower(product.get("sku")), pattern),
+                        cb.like(cb.lower(product.get("barcode")), pattern)));
+            }
+            if (warehouseId != null) {
+                predicates.add(cb.equal(warehouse.get("id"), warehouseId));
+            }
+            if (categoryId != null) {
+                predicates.add(cb.equal(product.get("category").get("id"), categoryId));
+            }
+            if (Boolean.TRUE.equals(lowStockOnly)) {
+                predicates.add(cb.gt(product.get("reorderLevel"), 0));
+                predicates.add(cb.lessThanOrEqualTo(root.get("quantity"), product.get("reorderLevel").as(BigDecimal.class)));
+            }
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+    }
+
+    private Specification<StockMovement> movementSpec(String keyword, Long productId, Long warehouseId,
+                                                      MovementType movementType, String referenceType,
+                                                      LocalDate fromDate, LocalDate toDate) {
+        return (root, query, cb) -> {
+            if (query.getResultType() != Long.class && query.getResultType() != long.class) {
+                root.fetch("product", jakarta.persistence.criteria.JoinType.LEFT);
+                root.fetch("warehouse", jakarta.persistence.criteria.JoinType.LEFT);
+                query.distinct(true);
+            }
+
+            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+            jakarta.persistence.criteria.Join<StockMovement, Product> product =
+                    root.join("product", jakarta.persistence.criteria.JoinType.LEFT);
+            jakarta.persistence.criteria.Join<StockMovement, Warehouse> warehouse =
+                    root.join("warehouse", jakarta.persistence.criteria.JoinType.LEFT);
+
+            String normalizedKeyword = normalizeSearch(keyword);
+            if (normalizedKeyword != null) {
+                String pattern = "%" + normalizedKeyword + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(product.get("productName")), pattern),
+                        cb.like(cb.lower(product.get("sku")), pattern),
+                        cb.like(cb.lower(product.get("barcode")), pattern),
+                        cb.like(cb.lower(root.get("referenceNo")), pattern)));
+            }
+            if (productId != null) {
+                predicates.add(cb.equal(product.get("id"), productId));
+            }
+            if (warehouseId != null) {
+                predicates.add(cb.equal(warehouse.get("id"), warehouseId));
+            }
+            if (movementType != null) {
+                predicates.add(cb.equal(root.get("movementType"), movementType));
+            }
+            String normalizedReferenceType = normalizeSearch(referenceType);
+            if (normalizedReferenceType != null) {
+                predicates.add(cb.equal(cb.lower(root.get("referenceType")), normalizedReferenceType));
+            }
+            if (fromDate != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), fromDate.atStartOfDay()));
+            }
+            if (toDate != null) {
+                predicates.add(cb.lessThan(root.get("createdAt"), toDate.plusDays(1).atStartOfDay()));
+            }
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+    }
+
+    private Sort sortForStock(String sort, String direction) {
+        String property = switch (sort == null ? "" : sort) {
+            case "productName" -> "product.productName";
+            case "sku" -> "product.sku";
+            case "warehouseName" -> "warehouse.name";
+            case "quantity" -> "quantity";
+            case "reorderLevel" -> "reorderLevel";
+            default -> "product.productName";
+        };
+        return Sort.by(sortDirection(direction), property).and(Sort.by(Sort.Direction.ASC, "id"));
+    }
+
+    private Sort sortForMovement(String sort, String direction) {
+        String property = switch (sort == null ? "" : sort) {
+            case "productName" -> "product.productName";
+            case "warehouseName" -> "warehouse.name";
+            case "movementType" -> "movementType";
+            case "quantityChange" -> "quantityChange";
+            case "referenceType" -> "referenceType";
+            case "createdAt" -> "createdAt";
+            default -> "createdAt";
+        };
+        return Sort.by(sortDirection(direction), property).and(Sort.by(Sort.Direction.DESC, "id"));
+    }
+
+    private Sort.Direction sortDirection(String direction) {
+        return "asc".equalsIgnoreCase(direction) ? Sort.Direction.ASC : Sort.Direction.DESC;
+    }
+
+    private int safePage(int page) {
+        return Math.max(page, 0);
+    }
+
+    private int safeSize(int size) {
+        return size == 25 || size == 50 || size == 100 ? size : 10;
+    }
+
+    private String normalizeSearch(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        return value.trim().toLowerCase();
+    }
+
+    private BigDecimal safe(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
     }
 }

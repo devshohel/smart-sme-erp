@@ -8,12 +8,14 @@ import { StockAdjustmentComponent } from './stock-adjustment/stock-adjustment.co
 import { StockLevelComponent } from './stock-level/stock-level.component';
 import { StockMovementComponent } from './stock-movement/stock-movement.component';
 import { WarehouseComponent } from './warehouse/warehouse.component';
+import { StockCardComponent } from './stock-card/stock-card.component';
 
 
 @NgModule({
   declarations: [
     StockLevelComponent,
     StockMovementComponent,
+    StockCardComponent,
     StockAdjustmentComponent,
     WarehouseComponent
   ],

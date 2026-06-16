@@ -1,6 +1,8 @@
 package com.sme.erp.inventory.controller;
 
 import com.sme.erp.inventory.dto.StockDTO;
+import com.sme.erp.inventory.dto.StockCardDTO;
+import com.sme.erp.inventory.dto.StockPageDTO;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -55,5 +57,26 @@ public class StockController {
     @PreAuthorize("hasAuthority('INVENTORY_VIEW')")
     public ResponseEntity<List<StockDTO>> getAllStock() {
         return ResponseEntity.ok(service.getAllStock());
+    }
+
+    @GetMapping("/page")
+    @PreAuthorize("hasAuthority('INVENTORY_VIEW')")
+    public ResponseEntity<StockPageDTO> getStockPage(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long warehouseId,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Boolean lowStockOnly,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "productName") String sort,
+            @RequestParam(defaultValue = "asc") String direction) {
+        return ResponseEntity.ok(service.searchStock(keyword, warehouseId, categoryId, lowStockOnly, page, size, sort, direction));
+    }
+
+    @GetMapping("/card")
+    @PreAuthorize("hasAuthority('INVENTORY_VIEW')")
+    public ResponseEntity<StockCardDTO> getStockCard(@RequestParam @NotNull @Positive Long productId,
+                                                     @RequestParam @NotNull @Positive Long warehouseId) {
+        return ResponseEntity.ok(service.getStockCard(productId, warehouseId));
     }
 }

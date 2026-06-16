@@ -1,60 +1,89 @@
-<div class="container-fluid p-4">
-  <app-page-header
-    title="Current Stock"
-    subtitle="Review current stock and look up a specific product warehouse pair.">
-  </app-page-header>
+<div class="inventory-page container-fluid p-4">
+  <div class="page-title-row mb-3">
+    <app-page-header
+      title="Current Stock"
+      subtitle="Paginated product stock by warehouse with low-stock visibility.">
+    </app-page-header>
+  </div>
 
-  <app-card title="Stock Lookup" subtitle="Search a specific product and warehouse without clearing the current stock list.">
-    <form [formGroup]="filterForm" (ngSubmit)="lookupStock()" novalidate>
-      <div class="row g-3">
-        <div class="col-md-5">
-          <label class="form-label">Product *</label>
-          <select class="form-select" formControlName="productId">
-            <option [ngValue]="null">Select Product</option>
-            <option *ngFor="let product of products" [ngValue]="product.id">{{ product.productName }}</option>
-          </select>
-          <div class="invalid-feedback d-block" *ngIf="hasError('productId')">Product is required.</div>
-        </div>
-        <div class="col-md-5">
-          <label class="form-label">Warehouse *</label>
-          <select class="form-select" formControlName="warehouseId">
-            <option [ngValue]="null">Select Warehouse</option>
-            <option *ngFor="let warehouse of warehouses" [ngValue]="warehouse.id">{{ warehouse.name }}</option>
-          </select>
-          <div class="invalid-feedback d-block" *ngIf="hasError('warehouseId')">Warehouse is required.</div>
-        </div>
-        <div class="col-md-2 d-flex align-items-end">
-          <button type="submit" class="btn btn-success w-100" [disabled]="loading">
-            {{ loading ? 'Loading...' : 'Search' }}
-          </button>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">Quick Filter</label>
-          <input type="text" class="form-control" [(ngModel)]="searchKeyword" [ngModelOptions]="{standalone: true}" placeholder="Filter current stock rows">
+  <section class="filter-card">
+    <div class="row g-3 align-items-end">
+      <div class="col-lg-4 col-md-6">
+        <label class="form-label">Search</label>
+        <input type="text" class="form-control" [(ngModel)]="filters.keyword" placeholder="Product name, SKU, barcode">
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label">Warehouse</label>
+        <select class="form-select" [(ngModel)]="filters.warehouseId">
+          <option [ngValue]="null">All Warehouses</option>
+          <option *ngFor="let warehouse of warehouses" [ngValue]="warehouse.id">{{ warehouse.name }}</option>
+        </select>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label">Category</label>
+        <select class="form-select" [(ngModel)]="filters.categoryId">
+          <option [ngValue]="null">All Categories</option>
+          <option *ngFor="let category of categories" [ngValue]="category.id">{{ category.categoryName }}</option>
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <label class="form-label d-block">Low Stock</label>
+        <div class="form-check form-switch filter-switch">
+          <input class="form-check-input" type="checkbox" id="lowStockOnly" [(ngModel)]="filters.lowStockOnly">
+          <label class="form-check-label" for="lowStockOnly">Only low stock</label>
         </div>
       </div>
-      <div class="alert alert-danger mt-3 mb-0" *ngIf="errorMessage">{{ errorMessage }}</div>
-    </form>
-  </app-card>
+      <div class="col-12 filter-buttons">
+        <button type="button" class="btn btn-success" (click)="applyFilters()" [disabled]="loading">
+          <i class="bi bi-funnel me-1"></i> Apply
+        </button>
+        <button type="button" class="btn btn-outline-secondary" (click)="resetFilters()" [disabled]="loading">
+          Reset
+        </button>
+      </div>
+    </div>
+  </section>
 
-  <app-card title="Stock Results" subtitle="Current stock records with low stock indication.">
-    <div class="table-responsive">
+  <section class="list-card">
+    <div class="list-toolbar">
+      <div>
+        <strong>Stock Levels</strong>
+        <div class="record-summary">{{ totalElements | number }} total records</div>
+      </div>
+      <select class="form-select page-size" [(ngModel)]="size" (change)="changePageSize()">
+        <option *ngFor="let option of pageSizes" [ngValue]="option">{{ option }} / page</option>
+      </select>
+    </div>
+
+    <div class="alert alert-danger m-3" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div class="loading-panel" *ngIf="loading">
+      <span class="spinner-border spinner-border-sm me-2"></span> Loading stock levels...
+    </div>
+
+    <div class="table-responsive" *ngIf="!loading">
       <table class="table table-hover align-middle mb-0">
         <thead class="table-light">
           <tr>
-            <th>Product</th>
-            <th>Warehouse</th>
-            <th class="text-end">Quantity</th>
-            <th class="text-end">Reorder Level</th>
+            <th class="sortable" (click)="setSort('productName')">Product <i class="bi" [ngClass]="sortIcon('productName')"></i></th>
+            <th class="sortable" (click)="setSort('sku')">SKU <i class="bi" [ngClass]="sortIcon('sku')"></i></th>
+            <th>Category</th>
+            <th class="sortable" (click)="setSort('warehouseName')">Warehouse <i class="bi" [ngClass]="sortIcon('warehouseName')"></i></th>
+            <th class="text-end sortable" (click)="setSort('quantity')">Quantity <i class="bi" [ngClass]="sortIcon('quantity')"></i></th>
+            <th class="text-end sortable" (click)="setSort('reorderLevel')">Reorder <i class="bi" [ngClass]="sortIcon('reorderLevel')"></i></th>
             <th>Status</th>
-            <th class="text-center">Action</th>
+            <th class="text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let stock of filteredResults()">
-            <td>{{ stock.productName || 'N/A' }}</td>
+          <tr *ngFor="let stock of stocks">
+            <td>
+              <div class="fw-semibold">{{ stock.productName || 'N/A' }}</div>
+              <small class="text-muted" *ngIf="stock.barcode">Barcode: {{ stock.barcode }}</small>
+            </td>
+            <td>{{ stock.sku || 'N/A' }}</td>
+            <td>{{ stock.categoryName || 'N/A' }}</td>
             <td>{{ stock.warehouseName || 'N/A' }}</td>
-            <td class="text-end fw-semibold">{{ stock.quantity }}</td>
+            <td class="text-end fw-semibold">{{ stock.quantity | number:'1.0-2' }}</td>
             <td class="text-end">{{ stock.reorderLevel ?? 0 }}</td>
             <td>
               <span class="badge px-3 py-2"
@@ -63,16 +92,37 @@
               </span>
             </td>
             <td class="text-center">
-              <button type="button" class="btn btn-sm btn-outline-primary" (click)="viewMovements(stock)">
-                View Movements
-              </button>
+              <div class="action-group">
+                <button type="button" class="btn-action btn-view" title="View Stock Card" (click)="viewStockCard(stock)">
+                  <i class="bi bi-journal-text"></i>
+                </button>
+                <button type="button" class="btn-action btn-history" title="View Movements" (click)="viewMovements(stock)">
+                  <i class="bi bi-clock-history"></i>
+                </button>
+              </div>
             </td>
           </tr>
-          <tr *ngIf="!loading && filteredResults().length === 0">
-            <td colspan="6" class="text-center text-muted py-5">No stock rows found.</td>
+          <tr *ngIf="stocks.length === 0">
+            <td colspan="8">
+              <div class="empty-state">
+                <i class="bi bi-box-seam"></i>
+                <strong>No stock rows found</strong>
+                <span>Adjust filters or create stock activity for products.</span>
+              </div>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
-  </app-card>
+
+    <div class="pagination-row">
+      <div class="record-summary">
+        Page {{ totalPages ? page + 1 : 0 }} of {{ totalPages }}
+      </div>
+      <div class="btn-group">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="goToPage(page - 1)" [disabled]="page === 0 || loading">Previous</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="goToPage(page + 1)" [disabled]="page + 1 >= totalPages || loading">Next</button>
+      </div>
+    </div>
+  </section>
 </div>

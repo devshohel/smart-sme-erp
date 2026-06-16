@@ -95,6 +95,10 @@ class StockServiceImplTest {
         assertThat(savedMovement.getMovementType().name()).isEqualTo("IN");
         assertThat(savedMovement.getReferenceType()).isEqualTo("PURCHASE");
         assertThat(savedMovement.getReferenceNo()).isNull();
+        assertThat(savedMovement.getMovementCode()).isEqualTo("MOV-000001");
+        assertThat(savedMovement.getQuantityBefore()).isEqualByComparingTo("5.00");
+        assertThat(savedMovement.getQuantityChange()).isEqualByComparingTo("3.00");
+        assertThat(savedMovement.getQuantityAfter()).isEqualByComparingTo("8.00");
     }
 
     @Test
@@ -163,6 +167,32 @@ class StockServiceImplTest {
         assertThat(savedMovement.getMovementType().name()).isEqualTo("OUT");
         assertThat(savedMovement.getReferenceType()).isEqualTo("PURCHASE_RETURN");
         assertThat(savedMovement.getReferenceNo()).isEqualTo("PR-0001");
+        assertThat(savedMovement.getQuantityBefore()).isEqualByComparingTo("5.00");
+        assertThat(savedMovement.getQuantityChange()).isEqualByComparingTo("-2.00");
+        assertThat(savedMovement.getQuantityAfter()).isEqualByComparingTo("3.00");
+    }
+
+    @Test
+    void adjustStock_rejectsNegativeResultingStock() {
+        Product product = new Product();
+        product.setId(1L);
+        product.setProductName("Product A");
+
+        Warehouse warehouse = new Warehouse();
+        warehouse.setId(2L);
+        warehouse.setWarehouseCode("WH-01");
+        warehouse.setName("Main Warehouse");
+
+        Stock stock = new Stock();
+        stock.setProduct(product);
+        stock.setWarehouse(warehouse);
+        stock.setQuantity(new BigDecimal("5.00"));
+
+        when(stockRepository.findWithLockByProductIdAndWarehouseId(1L, 2L)).thenReturn(Optional.of(stock));
+
+        assertThatThrownBy(() -> service.adjustStock(1L, 2L, new BigDecimal("-6.00"), "DAMAGE"))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Adjustment cannot make stock negative.");
     }
 
     @Test

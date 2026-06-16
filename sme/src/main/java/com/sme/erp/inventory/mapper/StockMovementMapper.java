@@ -17,6 +17,9 @@ public class StockMovementMapper {
         dto.setMovementCode(movement.getMovementCode());
         dto.setMovementType(movement.getMovementType());
         dto.setQuantity(movement.getQuantity());
+        dto.setQuantityBefore(movement.getQuantityBefore());
+        dto.setQuantityChange(movement.getQuantityChange());
+        dto.setQuantityAfter(movement.getQuantityAfter());
         dto.setUnitCost(movement.getUnitCost());
         dto.setReferenceType(movement.getReferenceType());
         dto.setReferenceNo(movement.getReferenceNo());
