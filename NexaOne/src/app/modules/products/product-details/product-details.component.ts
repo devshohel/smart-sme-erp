@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Product } from '../../../models/product.model';
 import { ProductService } from '../../../services/product.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
@@ -16,6 +16,7 @@ export class ProductDetailsComponent implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private productService: ProductService
   ) {}
 
@@ -38,5 +39,19 @@ export class ProductDetailsComponent implements OnInit {
         debugApiError('ProductDetailsComponent.loadProduct', error);
       }
     });
+  }
+
+  get imageUrl(): string {
+    return this.productService.resolveImageUrl(this.product?.imageUrl);
+  }
+
+  backToList(): void {
+    this.router.navigate(['/products/products']);
+  }
+
+  editProduct(): void {
+    if (this.product?.id) {
+      this.router.navigate(['/products/edit-product', this.product.id]);
+    }
   }
 }

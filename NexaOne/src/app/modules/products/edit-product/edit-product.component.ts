@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Product } from '../../../models/product.model';
+import { Product, ProductFormPayload } from '../../../models/product.model';
 import { ProductService } from '../../../services/product.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
@@ -45,10 +45,16 @@ export class EditProductComponent implements OnInit {
     });
   }
 
-  saveProduct(payload: Product): void {
+  saveProduct(payload: ProductFormPayload): void {
+    const productId = payload.product.id || this.product?.id;
+    if (!productId) {
+      this.errorMessage = 'Invalid product id.';
+      return;
+    }
+
     this.submitting = true;
     this.errorMessage = '';
-    this.productService.saveProduct(payload).subscribe({
+    this.productService.updateProductMultipart(productId, payload.product, payload.imageFile).subscribe({
       next: () => {
         this.submitting = false;
         this.router.navigate(['/products/products']);

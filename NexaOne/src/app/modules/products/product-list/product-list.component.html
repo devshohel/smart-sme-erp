@@ -1,81 +1,170 @@
-<div class="container-fluid p-4">
-  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+<div class="container-fluid p-4 product-list-page">
+  <div class="page-title-row">
     <div>
       <h4 class="fw-bold mb-0">All Products</h4>
       <p class="text-muted mb-0">Manage product records, pricing, status, and references.</p>
     </div>
-    <div class="d-flex gap-2">
-      <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i> Export</button>
+    <div class="toolbar-actions">
+      <button class="btn btn-outline-secondary btn-sm" (click)="exportCsv()">
+        <i class="bi bi-filetype-csv me-1"></i> CSV
+      </button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="exportExcel()">
+        <i class="bi bi-file-earmark-spreadsheet me-1"></i> Excel
+      </button>
       <button *ngIf="hasPermission('PRODUCT_CREATE')" class="btn btn-success btn-sm px-3" routerLink="/products/add-product">
         <i class="bi bi-plus me-1"></i> New Product
       </button>
     </div>
   </div>
 
-  <div class="card border-0 shadow-sm">
-    <div class="card-body p-0">
-      <div class="alert alert-danger m-3 mb-0" *ngIf="submitError">{{ submitError }}</div>
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light text-uppercase small fw-bold">
-            <tr>
-              <th class="ps-4">Product</th>
-              <th>SKU / Barcode</th>
-              <th>Category</th>
-              <th>Brand / UOM</th>
-              <th class="text-end">Purchase</th>
-              <th class="text-end">Sale</th>
-              <th class="text-center">Status</th>
-              <th class="text-center pe-4">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let product of products">
-              <td class="ps-4">
-                <div class="fw-semibold">{{ product.productName }}</div>
-                <div class="text-muted small">{{ product.productCode || 'No code' }}</div>
-              </td>
-              <td>
-                <div>{{ product.sku }}</div>
-                <div class="text-muted small">{{ product.barcode || 'No barcode' }}</div>
-              </td>
-              <td>{{ product.categoryName || 'Unassigned' }}</td>
-              <td>
-                <div>{{ product.brandName || 'No brand' }}</div>
-                <div class="text-muted small">{{ product.uomName || 'No UOM' }}</div>
-              </td>
-              <td class="text-end">{{ product.purchasePrice | number:'1.2-2' }}</td>
-              <td class="text-end fw-bold">{{ product.salePrice | number:'1.2-2' }}</td>
-              <td class="text-center">
-                <span class="badge px-2 py-1 border-0"
-                  [ngClass]="product.status === 'ACTIVE' ? 'bg-light-success text-success' : product.status === 'DRAFT' ? 'bg-light-warning text-warning' : 'bg-light-danger text-danger'">
-                  {{ product.status || 'ACTIVE' }}
-                </span>
-              </td>
-              <td class="text-center pe-4">
-                <div class="d-flex justify-content-center gap-2">
-                  <button class="btn-action btn-view" (click)="viewProduct(product)">
-                    <i class="bi bi-eye"></i>
-                  </button>
-                  <button *ngIf="hasPermission('PRODUCT_EDIT')" class="btn-action btn-edit" (click)="editProduct(product)">
-                    <i class="bi bi-pencil-square"></i>
-                  </button>
-                  <button *ngIf="hasPermission('PRODUCT_DELETE')" class="btn-action btn-delete" (click)="deleteProduct(product.id)">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
+  <div class="stats-grid">
+    <div class="stat-card"><span>Total Products</span><strong>{{ stats.totalProducts }}</strong></div>
+    <div class="stat-card active"><span>Active Products</span><strong>{{ stats.activeProducts }}</strong></div>
+    <div class="stat-card inactive"><span>Inactive Products</span><strong>{{ stats.inactiveProducts }}</strong></div>
+    <div class="stat-card warning"><span>Without Image</span><strong>{{ stats.productsWithoutImage }}</strong></div>
+  </div>
 
-            <tr *ngIf="!loading && products.length === 0">
-              <td colspan="8" class="text-center text-muted py-5">No products found.</td>
-            </tr>
+  <div class="filter-card">
+    <form class="row g-3 align-items-end" (ngSubmit)="applyFilters()">
+      <div class="col-xl-4 col-lg-6">
+        <label class="form-label">Search</label>
+        <input class="form-control" name="keyword" [(ngModel)]="filters.keyword" placeholder="Product name, SKU, barcode">
+      </div>
+      <div class="col-xl-2 col-md-6">
+        <label class="form-label">Category</label>
+        <select class="form-select" name="categoryId" [(ngModel)]="filters.categoryId">
+          <option [ngValue]="null">All Categories</option>
+          <option *ngFor="let category of categories" [ngValue]="category.id">{{ category.categoryName }}</option>
+        </select>
+      </div>
+      <div class="col-xl-2 col-md-6">
+        <label class="form-label">Brand</label>
+        <select class="form-select" name="brandId" [(ngModel)]="filters.brandId">
+          <option [ngValue]="null">All Brands</option>
+          <option *ngFor="let brand of brands" [ngValue]="brand.id">{{ brand.brandName }}</option>
+        </select>
+      </div>
+      <div class="col-xl-2 col-md-6">
+        <label class="form-label">Status</label>
+        <select class="form-select" name="status" [(ngModel)]="filters.status">
+          <option value="">All Status</option>
+          <option value="ACTIVE">ACTIVE</option>
+          <option value="INACTIVE">INACTIVE</option>
+          <option value="DRAFT">DRAFT</option>
+        </select>
+      </div>
+      <div class="col-xl-2 col-md-12 filter-buttons">
+        <button class="btn btn-success" type="submit" [disabled]="loading"><i class="bi bi-search"></i></button>
+        <button class="btn btn-outline-secondary" type="button" (click)="resetFilters()" [disabled]="loading"><i class="bi bi-x-lg"></i></button>
+      </div>
+    </form>
+  </div>
 
-            <tr *ngIf="loading">
-              <td colspan="8" class="text-center text-muted py-5">Loading products...</td>
-            </tr>
-          </tbody>
-        </table>
+  <div class="list-card">
+    <div class="list-toolbar">
+      <div class="record-summary">
+        <strong>{{ totalElements }}</strong> records
+        <span *ngIf="selectedIds.size">| {{ selectedIds.size }} selected</span>
+      </div>
+      <div class="bulk-actions">
+        <button class="btn btn-sm btn-outline-success" *ngIf="hasPermission('PRODUCT_EDIT')" [disabled]="!selectedIds.size" (click)="bulkActivate()">
+          <i class="bi bi-check-circle me-1"></i> Activate
+        </button>
+        <button class="btn btn-sm btn-outline-warning" *ngIf="hasPermission('PRODUCT_EDIT')" [disabled]="!selectedIds.size" (click)="bulkDeactivate()">
+          <i class="bi bi-slash-circle me-1"></i> Deactivate
+        </button>
+        <button class="btn btn-sm btn-outline-dark" [disabled]="!selectedIds.size" (click)="printSelected()">
+          <i class="bi bi-printer me-1"></i> Print Selected
+        </button>
+        <button class="btn btn-sm btn-outline-dark" [disabled]="!products.length" (click)="printLabelSheet()">
+          <i class="bi bi-grid-3x3-gap me-1"></i> Label Sheet
+        </button>
+        <select class="form-select form-select-sm page-size" [(ngModel)]="size" (change)="changePageSize()">
+          <option *ngFor="let option of pageSizes" [ngValue]="option">{{ option }} / page</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="alert alert-danger m-3 mb-0" *ngIf="submitError">{{ submitError }}</div>
+
+    <div class="loading-panel" *ngIf="loading">
+      <span class="spinner-border spinner-border-sm me-2"></span> Loading products...
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && products.length === 0">
+      <i class="bi bi-box-seam"></i>
+      <strong>No products found</strong>
+      <span>Try adjusting search or filters.</span>
+    </div>
+
+    <div class="table-responsive" *ngIf="!loading && products.length">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-uppercase small fw-bold">
+          <tr>
+            <th class="ps-4 select-col">
+              <input type="checkbox" class="form-check-input" [checked]="allPageSelected" (change)="togglePageSelection($any($event.target).checked)">
+            </th>
+            <th>Image</th>
+            <th class="sortable" (click)="setSort('productName')">Product <i class="bi" [ngClass]="sortIcon('productName')"></i></th>
+            <th class="sortable" (click)="setSort('sku')">SKU / Barcode <i class="bi" [ngClass]="sortIcon('sku')"></i></th>
+            <th class="sortable" (click)="setSort('category')">Category <i class="bi" [ngClass]="sortIcon('category')"></i></th>
+            <th>Brand / UOM</th>
+            <th class="text-end sortable" (click)="setSort('purchasePrice')">Purchase <i class="bi" [ngClass]="sortIcon('purchasePrice')"></i></th>
+            <th class="text-end sortable" (click)="setSort('salePrice')">Sale <i class="bi" [ngClass]="sortIcon('salePrice')"></i></th>
+            <th class="text-center sortable" (click)="setSort('status')">Status <i class="bi" [ngClass]="sortIcon('status')"></i></th>
+            <th class="text-center pe-4">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let product of products">
+            <td class="ps-4">
+              <input type="checkbox" class="form-check-input" [checked]="isSelected(product)" (change)="toggleProduct(product, $any($event.target).checked)">
+            </td>
+            <td>
+              <img *ngIf="productImageUrl(product)" class="product-thumb" [src]="productImageUrl(product)" [alt]="product.productName">
+              <div *ngIf="!productImageUrl(product)" class="product-thumb product-thumb-placeholder"><i class="bi bi-image"></i></div>
+            </td>
+            <td>
+              <div class="fw-semibold">{{ product.productName }}</div>
+              <div class="text-muted small">{{ product.productCode || 'No code' }}</div>
+            </td>
+            <td>
+              <div>{{ product.sku }}</div>
+              <div class="text-muted small">{{ product.barcode || 'No barcode' }}</div>
+            </td>
+            <td>{{ product.categoryName || 'Unassigned' }}</td>
+            <td>
+              <div>{{ product.brandName || 'No brand' }}</div>
+              <div class="text-muted small">{{ product.uomName || 'No UOM' }}</div>
+            </td>
+            <td class="text-end">{{ product.purchasePrice | number:'1.2-2' }}</td>
+            <td class="text-end fw-bold">{{ product.salePrice | number:'1.2-2' }}</td>
+            <td class="text-center">
+              <span class="badge px-2 py-1 border-0"
+                [ngClass]="product.status === 'ACTIVE' ? 'bg-light-success text-success' : product.status === 'DRAFT' ? 'bg-light-warning text-warning' : 'bg-light-danger text-danger'">
+                {{ product.status || 'ACTIVE' }}
+              </span>
+            </td>
+            <td class="text-center pe-4">
+              <div class="d-flex justify-content-center gap-2">
+                <button class="btn-action btn-print" title="Print barcode" (click)="printProduct(product)"><i class="bi bi-upc-scan"></i></button>
+                <button class="btn-action btn-view" title="View" (click)="viewProduct(product)"><i class="bi bi-eye"></i></button>
+                <button *ngIf="hasPermission('PRODUCT_EDIT')" class="btn-action btn-edit" title="Edit" (click)="editProduct(product)"><i class="bi bi-pencil-square"></i></button>
+                <button *ngIf="hasPermission('PRODUCT_DELETE')" class="btn-action btn-delete" title="Delete" (click)="deleteProduct(product.id)"><i class="bi bi-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-row" *ngIf="totalElements > 0">
+      <span>Page {{ page + 1 }} of {{ totalPages || 1 }}</span>
+      <div class="btn-group">
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="page === 0" (click)="goToPage(0)">First</button>
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="page === 0" (click)="goToPage(page - 1)">Prev</button>
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="page + 1 >= totalPages" (click)="goToPage(page + 1)">Next</button>
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="page + 1 >= totalPages" (click)="goToPage(totalPages - 1)">Last</button>
       </div>
     </div>
   </div>

@@ -1,63 +1,55 @@
-<div class="container-fluid">
+<div class="container-fluid product-details-page">
   <app-page-header
     title="Product Details"
     subtitle="Read-only ERP product information view.">
-    <a routerLink="/products/products" class="btn btn-outline-secondary">
-      <i class="bi bi-arrow-left me-1"></i>
-      Back to Products
-    </a>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-outline-secondary" (click)="backToList()">
+        <i class="bi bi-arrow-left me-1"></i> Back
+      </button>
+      <button type="button" class="btn btn-success" *ngIf="product" (click)="editProduct()">
+        <i class="bi bi-pencil-square me-1"></i> Edit
+      </button>
+    </div>
   </app-page-header>
 
   <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
-  <div class="text-muted py-4" *ngIf="loading">Loading product...</div>
+  <div class="details-loading" *ngIf="loading">
+    <span class="spinner-border spinner-border-sm me-2"></span> Loading product...
+  </div>
 
-  <div class="row g-4" *ngIf="product && !loading">
-    <div class="col-12">
-      <app-card title="Basic Information">
-        <div class="row g-3">
-          <div class="col-md-6"><strong>Name:</strong> {{ product.productName }}</div>
-          <div class="col-md-6"><strong>SKU:</strong> {{ product.sku }}</div>
-          <div class="col-md-6"><strong>Barcode:</strong> {{ product.barcode || 'N/A' }}</div>
-          <div class="col-md-6"><strong>Type:</strong> {{ product.type || 'N/A' }}</div>
+  <div class="details-shell" *ngIf="product && !loading">
+    <div class="image-panel">
+      <div class="detail-image-wrap">
+        <img *ngIf="imageUrl" [src]="imageUrl" [alt]="product.productName">
+        <div *ngIf="!imageUrl" class="detail-image-placeholder">
+          <i class="bi bi-image"></i>
         </div>
-      </app-card>
+      </div>
+      <span class="status-pill" [ngClass]="product.status === 'ACTIVE' ? 'active' : product.status === 'DRAFT' ? 'draft' : 'inactive'">
+        {{ product.status || 'ACTIVE' }}
+      </span>
     </div>
 
-    <div class="col-12">
-      <app-card title="Pricing Information">
-        <div class="row g-3">
-          <div class="col-md-4"><strong>Purchase Price:</strong> {{ product.purchasePrice | number:'1.2-2' }}</div>
-          <div class="col-md-4"><strong>Sale Price:</strong> {{ product.salePrice | number:'1.2-2' }}</div>
-          <div class="col-md-4"><strong>Tax %:</strong> {{ product.taxPercentage ?? 0 }}</div>
+    <div class="info-panel">
+      <div class="product-heading">
+        <div>
+          <h4>{{ product.productName }}</h4>
+          <span>{{ product.productCode || 'No product code' }}</span>
         </div>
-      </app-card>
-    </div>
+      </div>
 
-    <div class="col-12">
-      <app-card title="Classification">
-        <div class="row g-3">
-          <div class="col-md-4"><strong>Category:</strong> {{ product.categoryName || 'N/A' }}</div>
-          <div class="col-md-4"><strong>Brand:</strong> {{ product.brandName || 'N/A' }}</div>
-          <div class="col-md-4"><strong>UOM:</strong> {{ product.uomName || 'N/A' }}</div>
-        </div>
-      </app-card>
-    </div>
-
-    <div class="col-12">
-      <app-card title="Stock Settings">
-        <div class="row g-3">
-          <div class="col-md-4"><strong>Reorder Level:</strong> {{ product.reorderLevel ?? 0 }}</div>
-        </div>
-      </app-card>
-    </div>
-
-    <div class="col-12">
-      <app-card title="Status & Image">
-        <div class="row g-3">
-          <div class="col-md-4"><strong>Status:</strong> {{ product.status || 'N/A' }}</div>
-          <div class="col-md-8"><strong>Image URL:</strong> {{ product.imageUrl || 'N/A' }}</div>
-        </div>
-      </app-card>
+      <div class="detail-grid">
+        <div><span>SKU</span><strong>{{ product.sku }}</strong></div>
+        <div><span>Barcode</span><strong>{{ product.barcode || 'N/A' }}</strong></div>
+        <div><span>Category</span><strong>{{ product.categoryName || 'N/A' }}</strong></div>
+        <div><span>Brand</span><strong>{{ product.brandName || 'N/A' }}</strong></div>
+        <div><span>UOM</span><strong>{{ product.uomName || 'N/A' }}</strong></div>
+        <div><span>Purchase Price</span><strong>{{ product.purchasePrice | number:'1.2-2' }}</strong></div>
+        <div><span>Sale Price</span><strong>{{ product.salePrice | number:'1.2-2' }}</strong></div>
+        <div><span>Reorder Level</span><strong>{{ product.reorderLevel ?? 0 }}</strong></div>
+        <div><span>Created Date</span><strong>{{ product.createdAt ? (product.createdAt | date:'medium') : 'N/A' }}</strong></div>
+        <div><span>Updated Date</span><strong>{{ product.updatedAt ? (product.updatedAt | date:'medium') : 'N/A' }}</strong></div>
+      </div>
     </div>
   </div>
 </div>

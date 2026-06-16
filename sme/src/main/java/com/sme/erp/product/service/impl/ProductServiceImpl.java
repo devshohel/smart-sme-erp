@@ -6,15 +6,29 @@ import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
 import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.audit.service.AuditLogService;
+import com.sme.erp.enums.Status;
+import com.sme.erp.file.dto.StoredFileDTO;
+import com.sme.erp.file.service.FileStorageService;
 import com.sme.erp.product.dto.ProductDTO;
+import com.sme.erp.product.dto.ProductPageDTO;
+import com.sme.erp.product.dto.ProductStatsDTO;
 import com.sme.erp.product.entity.*;
 import com.sme.erp.product.mapper.ProductMapper;
 import com.sme.erp.product.repository.*;
 import com.sme.erp.product.service.ProductService;
 
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,6 +42,7 @@ public class ProductServiceImpl implements ProductService {
     private final UomRepository uomRepository;
     private final ActivityLogService activityLogService;
     private final AuditLogService auditLogService;
+    private final FileStorageService fileStorageService;
 
     public ProductServiceImpl(ProductRepository repository,
                               ProductMapper mapper,
@@ -35,7 +50,8 @@ public class ProductServiceImpl implements ProductService {
                               ProductBrandRepository brandRepository,
                               UomRepository uomRepository,
                               ActivityLogService activityLogService,
-                              AuditLogService auditLogService) {
+                              AuditLogService auditLogService,
+                              FileStorageService fileStorageService) {
         this.repository = repository;
         this.mapper = mapper;
         this.categoryRepository = categoryRepository;
@@ -43,12 +59,18 @@ public class ProductServiceImpl implements ProductService {
         this.uomRepository = uomRepository;
         this.activityLogService = activityLogService;
         this.auditLogService = auditLogService;
+        this.fileStorageService = fileStorageService;
     }
 
     @Override
     @Transactional
     public ProductDTO saveProduct(ProductDTO dto) {
+        return saveProduct(dto, null);
+    }
 
+    @Override
+    @Transactional
+    public ProductDTO saveProduct(ProductDTO dto, MultipartFile image) {
         validateProductBusinessRules(dto);
         String normalizedProductCode = RequestValueUtils.normalize(dto.getProductCode());
         dto.setProductCode(normalizedProductCode);
@@ -89,6 +111,10 @@ public class ProductServiceImpl implements ProductService {
             product.setUom(null);
         }
 
+        if (image != null && !image.isEmpty()) {
+            applyProductImage(product, fileStorageService.storeProductImage(image));
+        }
+
         Product saved = repository.save(product);
         ProductDTO savedDto = mapper.toDTO(saved);
         String action = isCreate ? "CREATE" : "UPDATE";
@@ -104,6 +130,47 @@ public class ProductServiceImpl implements ProductService {
                 .stream()
                 .map(mapper::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProductPageDTO searchProducts(String keyword, Long categoryId, Long brandId, Status status, int page, int size, String sort, String direction) {
+        int safePage = Math.max(page, 0);
+        int safeSize = List.of(10, 25, 50, 100).contains(size) ? size : 10;
+        Pageable pageable = PageRequest.of(safePage, safeSize, resolveSort(sort, direction));
+        Page<Product> result = repository.findAll(productSpec(keyword, categoryId, brandId, status), pageable);
+        List<ProductDTO> rows = result.getContent().stream().map(mapper::toDTO).collect(Collectors.toList());
+        return new ProductPageDTO(rows, result.getTotalElements(), result.getTotalPages(), result.getNumber(), result.getSize());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProductStatsDTO getStats() {
+        return new ProductStatsDTO(
+                repository.count(),
+                repository.countByStatus(Status.ACTIVE),
+                repository.countByStatus(Status.INACTIVE),
+                repository.countByImageUrlIsNullOrImageUrl(""));
+    }
+
+    @Override
+    @Transactional
+    public int updateStatusBulk(List<Long> productIds, Status status) {
+        if (productIds == null || productIds.isEmpty()) {
+            throw new BadRequestException("Product ids are required");
+        }
+        if (status == null) {
+            throw new BadRequestException("Status is required");
+        }
+
+        List<Product> products = repository.findAllById(productIds);
+        if (products.isEmpty()) {
+            throw new ResourceNotFoundException("No products found for selected ids");
+        }
+        products.forEach(product -> product.setStatus(status));
+        repository.saveAll(products);
+        activityLogService.log("PRODUCT_BULK_STATUS_UPDATE", "PRODUCT", "products", null, "Updated " + products.size() + " products to " + status);
+        return products.size();
     }
 
     @Override
@@ -188,5 +255,57 @@ public class ProductServiceImpl implements ProductService {
         if (dto.getSalePrice() != null && dto.getSalePrice().signum() < 0) {
             throw new BadRequestException("Sale price cannot be negative");
         }
+    }
+
+    private void applyProductImage(Product product, StoredFileDTO storedFile) {
+        product.setImageOriginalFilename(storedFile.getOriginalFilename());
+        product.setImageStoredFilename(storedFile.getStoredFilename());
+        product.setImageContentType(storedFile.getContentType());
+        product.setImageSize(storedFile.getFileSize());
+        product.setImagePath(storedFile.getStoragePath());
+        product.setImageUrl(storedFile.getPublicUrl());
+    }
+
+    private Specification<Product> productSpec(String keyword, Long categoryId, Long brandId, Status status) {
+        return (root, query, cb) -> {
+            if (query.getResultType() != Long.class && query.getResultType() != long.class) {
+                root.fetch("category", JoinType.LEFT);
+                root.fetch("brand", JoinType.LEFT);
+                root.fetch("uom", JoinType.LEFT);
+            }
+
+            List<Predicate> predicates = new ArrayList<>();
+            String normalizedKeyword = RequestValueUtils.normalize(keyword);
+            if (normalizedKeyword != null) {
+                String value = "%" + normalizedKeyword.toLowerCase() + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("productName")), value),
+                        cb.like(cb.lower(root.get("sku")), value),
+                        cb.like(cb.lower(root.get("barcode")), value)));
+            }
+            if (categoryId != null) {
+                predicates.add(cb.equal(root.get("category").get("id"), categoryId));
+            }
+            if (brandId != null) {
+                predicates.add(cb.equal(root.get("brand").get("id"), brandId));
+            }
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    private Sort resolveSort(String sort, String direction) {
+        Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        String property = switch (sort == null ? "" : sort) {
+            case "sku" -> "sku";
+            case "category" -> "category.categoryName";
+            case "purchasePrice" -> "purchasePrice";
+            case "salePrice" -> "salePrice";
+            case "status" -> "status";
+            default -> "productName";
+        };
+        return Sort.by(sortDirection, property).and(Sort.by(Sort.Direction.ASC, "id"));
     }
 }

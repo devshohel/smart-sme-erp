@@ -1,6 +1,7 @@
 .form-label {
   font-weight: 600;
   color: #374151;
+  font-size: .84rem;
 }
 
 .form-control,
@@ -17,4 +18,97 @@
 
 .invalid-feedback {
   font-size: 0.875rem;
+}
+
+.product-form-card {
+  background: #fff;
+  border: 1px solid #e4e9e6;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(22, 37, 29, .08);
+  padding: 1.1rem;
+}
+
+.form-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: .85rem;
+  border-bottom: 1px solid #edf2ef;
+}
+
+.form-card-header h5 {
+  margin: 0;
+  color: #17221c;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.form-card-header p {
+  margin: .2rem 0 0;
+  color: #6d7a72;
+  font-size: .82rem;
+}
+
+.form-state {
+  border: 1px solid #dce6df;
+  border-radius: 999px;
+  color: #456052;
+  background: #f7fbf8;
+  padding: .28rem .65rem;
+  font-size: .76rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.form-section {
+  padding: .95rem 0;
+  border-bottom: 1px solid #edf2ef;
+}
+
+.last-section {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.form-section h6 {
+  margin: 0 0 .7rem;
+  color: #26352d;
+  font-size: .82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.image-preview-wrap {
+  min-height: 92px;
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+}
+
+.image-preview-wrap img,
+.image-placeholder {
+  width: 88px;
+  height: 88px;
+  border-radius: 8px;
+  border: 1px solid #dce6df;
+  background: #f7faf8;
+}
+
+.image-preview-wrap img {
+  object-fit: cover;
+}
+
+.image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a9890;
+  font-size: 1.7rem;
+}
+
+@media (max-width: 767px) {
+  .form-card-header {
+    flex-direction: column;
+  }
 }

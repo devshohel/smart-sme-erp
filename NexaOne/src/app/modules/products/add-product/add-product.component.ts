@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
-import { Product } from '../../../models/product.model';
+import { ProductFormPayload } from '../../../models/product.model';
 import { ProductService } from '../../../services/product.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
@@ -19,12 +19,12 @@ export class AddProductComponent {
     private router: Router
   ) {}
 
-  saveProduct(payload: Product): void {
+  saveProduct(payload: ProductFormPayload): void {
     this.isSubmitting = true;
     this.submitError = '';
     this.submitSuccess = '';
 
-    this.productService.createProduct(payload).subscribe({
+    this.productService.createProductMultipart(payload.product, payload.imageFile).subscribe({
       next: () => {
         this.isSubmitting = false;
         this.submitSuccess = 'Product created successfully.';

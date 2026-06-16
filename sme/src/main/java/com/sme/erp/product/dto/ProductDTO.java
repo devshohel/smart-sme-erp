@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public class ProductDTO {
 
@@ -41,6 +42,12 @@ public class ProductDTO {
     @Size(max = 500, message = "Image URL must be at most 500 characters")
     private String imageUrl;
 
+    private String imageOriginalFilename;
+    private String imageStoredFilename;
+    private String imageContentType;
+    private Long imageSize;
+    private String imagePath;
+
     private Status status;
 
     @Positive(message = "Category id must be positive")
@@ -54,6 +61,8 @@ public class ProductDTO {
     @Positive(message = "UOM id must be positive")
     private Long uomId;
     private String uomName;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     // Getters & Setters
 
@@ -90,6 +99,21 @@ public class ProductDTO {
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
+    public String getImageOriginalFilename() { return imageOriginalFilename; }
+    public void setImageOriginalFilename(String imageOriginalFilename) { this.imageOriginalFilename = imageOriginalFilename; }
+
+    public String getImageStoredFilename() { return imageStoredFilename; }
+    public void setImageStoredFilename(String imageStoredFilename) { this.imageStoredFilename = imageStoredFilename; }
+
+    public String getImageContentType() { return imageContentType; }
+    public void setImageContentType(String imageContentType) { this.imageContentType = imageContentType; }
+
+    public Long getImageSize() { return imageSize; }
+    public void setImageSize(Long imageSize) { this.imageSize = imageSize; }
+
+    public String getImagePath() { return imagePath; }
+    public void setImagePath(String imagePath) { this.imagePath = imagePath; }
+
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
 
@@ -110,4 +134,10 @@ public class ProductDTO {
 
     public String getUomName() { return uomName; }
     public void setUomName(String uomName) { this.uomName = uomName; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

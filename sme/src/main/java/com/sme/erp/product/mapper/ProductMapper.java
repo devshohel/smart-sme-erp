@@ -25,7 +25,14 @@ public class ProductMapper {
         dto.setTaxPercentage(product.getTaxPercentage());
         dto.setReorderLevel(product.getReorderLevel());
         dto.setImageUrl(product.getImageUrl());
+        dto.setImageOriginalFilename(product.getImageOriginalFilename());
+        dto.setImageStoredFilename(product.getImageStoredFilename());
+        dto.setImageContentType(product.getImageContentType());
+        dto.setImageSize(product.getImageSize());
+        dto.setImagePath(product.getImagePath());
         dto.setStatus(product.getStatus() != null ? product.getStatus() : Status.ACTIVE);
+        dto.setCreatedAt(product.getCreatedAt());
+        dto.setUpdatedAt(product.getUpdatedAt());
 
         mapCategory(product, dto);
         mapBrand(product, dto);
@@ -75,6 +82,21 @@ public class ProductMapper {
         }
         if (dto.getImageUrl() != null) {
             product.setImageUrl(dto.getImageUrl());
+        }
+        if (dto.getImageOriginalFilename() != null) {
+            product.setImageOriginalFilename(dto.getImageOriginalFilename());
+        }
+        if (dto.getImageStoredFilename() != null) {
+            product.setImageStoredFilename(dto.getImageStoredFilename());
+        }
+        if (dto.getImageContentType() != null) {
+            product.setImageContentType(dto.getImageContentType());
+        }
+        if (dto.getImageSize() != null) {
+            product.setImageSize(dto.getImageSize());
+        }
+        if (dto.getImagePath() != null) {
+            product.setImagePath(dto.getImagePath());
         }
         if (dto.getStatus() != null) {
             product.setStatus(dto.getStatus());

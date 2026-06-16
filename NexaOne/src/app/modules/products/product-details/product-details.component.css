@@ -1,3 +1,137 @@
 .alert {
   border-radius: 12px;
 }
+
+.product-details-page {
+  background: #f5f8f6;
+  min-height: 100%;
+  padding: 1rem;
+}
+
+.details-loading {
+  padding: 2rem;
+  color: #647268;
+}
+
+.details-shell {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.image-panel,
+.info-panel {
+  background: #fff;
+  border: 1px solid #e1e8e4;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(22, 37, 29, .07);
+  padding: 1rem;
+}
+
+.image-panel {
+  position: relative;
+}
+
+.detail-image-wrap {
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.detail-image-wrap img,
+.detail-image-placeholder {
+  width: min(100%, 280px);
+  aspect-ratio: 1;
+  border-radius: 8px;
+  border: 1px solid #dfe8e2;
+  background: #f7faf8;
+}
+
+.detail-image-wrap img {
+  object-fit: cover;
+}
+
+.detail-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a9890;
+  font-size: 3rem;
+}
+
+.status-pill {
+  display: inline-flex;
+  margin-top: .75rem;
+  border-radius: 999px;
+  padding: .28rem .75rem;
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.status-pill.active { background: #e8fadf; color: #16803d; }
+.status-pill.inactive { background: #fce7e7; color: #bc2525; }
+.status-pill.draft { background: #fff3cd; color: #946200; }
+
+.product-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #edf2ef;
+}
+
+.product-heading h4 {
+  margin: 0;
+  color: #17221c;
+  font-weight: 800;
+}
+
+.product-heading span {
+  color: #6a766f;
+  font-size: .85rem;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .85rem;
+  padding-top: 1rem;
+}
+
+.detail-grid div {
+  border: 1px solid #edf2ef;
+  border-radius: 8px;
+  padding: .8rem;
+  background: #fbfdfb;
+}
+
+.detail-grid span,
+.detail-grid strong {
+  display: block;
+}
+
+.detail-grid span {
+  color: #66736b;
+  font-size: .76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.detail-grid strong {
+  color: #25342c;
+  margin-top: .25rem;
+  word-break: break-word;
+}
+
+@media (max-width: 991px) {
+  .details-shell {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 575px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

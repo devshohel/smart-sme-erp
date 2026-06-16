@@ -57,6 +57,21 @@ public class Product {
     @Column(length = 500)
     private String imageUrl;
 
+    @Column(name = "image_original_filename")
+    private String imageOriginalFilename;
+
+    @Column(name = "image_stored_filename")
+    private String imageStoredFilename;
+
+    @Column(name = "image_content_type", length = 100)
+    private String imageContentType;
+
+    @Column(name = "image_size")
+    private Long imageSize;
+
+    @Column(name = "image_path", length = 500)
+    private String imagePath;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status = Status.ACTIVE;
@@ -135,6 +150,21 @@ public class Product {
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public String getImageOriginalFilename() { return imageOriginalFilename; }
+    public void setImageOriginalFilename(String imageOriginalFilename) { this.imageOriginalFilename = imageOriginalFilename; }
+
+    public String getImageStoredFilename() { return imageStoredFilename; }
+    public void setImageStoredFilename(String imageStoredFilename) { this.imageStoredFilename = imageStoredFilename; }
+
+    public String getImageContentType() { return imageContentType; }
+    public void setImageContentType(String imageContentType) { this.imageContentType = imageContentType; }
+
+    public Long getImageSize() { return imageSize; }
+    public void setImageSize(Long imageSize) { this.imageSize = imageSize; }
+
+    public String getImagePath() { return imagePath; }
+    public void setImagePath(String imagePath) { this.imagePath = imagePath; }
 
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }

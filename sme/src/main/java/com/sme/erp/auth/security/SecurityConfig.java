@@ -31,6 +31,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/login").permitAll()
+                        .requestMatchers("/api/v1/files/products/**").permitAll()
                         .requestMatchers(
                                 "/api/v1/dashboard", "/api/v1/dashboard/**",
                                 "/api/v1/products", "/api/v1/products/**",
