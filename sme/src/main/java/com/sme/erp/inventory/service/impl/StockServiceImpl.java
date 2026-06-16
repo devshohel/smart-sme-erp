@@ -126,6 +126,49 @@ public class StockServiceImpl implements StockService {
         return stockMapper.toDTO(stock);
     }
 
+    @Override
+    @Transactional
+    public StockDTO transferOut(Long productId, Long warehouseId, BigDecimal qty, String referenceNo) {
+        validatePositiveId(productId, "Product id");
+        validatePositiveId(warehouseId, "Warehouse id");
+        validatePositiveAmount(qty, "Quantity");
+
+        Stock stock = getStockEntityForUpdate(productId, warehouseId);
+        if (stock.getQuantity().compareTo(qty) < 0) {
+            throw new BadRequestException("Insufficient stock");
+        }
+
+        BigDecimal before = safe(stock.getQuantity());
+        BigDecimal change = qty.negate();
+        BigDecimal after = before.add(change);
+        stock.setQuantity(after);
+        saveStockOrThrowConflict(stock);
+
+        saveMovement(stock, qty, change, before, after, MovementType.TRANSFER,
+                "STOCK_TRANSFER_OUT", referenceNo, null);
+
+        return stockMapper.toDTO(stock);
+    }
+
+    @Override
+    @Transactional
+    public StockDTO transferIn(Long productId, Long warehouseId, BigDecimal qty, String referenceNo) {
+        validatePositiveId(productId, "Product id");
+        validatePositiveId(warehouseId, "Warehouse id");
+        validatePositiveAmount(qty, "Quantity");
+
+        Stock stock = getOrCreateStock(productId, warehouseId);
+        BigDecimal before = safe(stock.getQuantity());
+        BigDecimal after = before.add(qty);
+        stock.setQuantity(after);
+        saveStockOrThrowConflict(stock);
+
+        saveMovement(stock, qty, qty, before, after, MovementType.TRANSFER,
+                "STOCK_TRANSFER_IN", referenceNo, null);
+
+        return stockMapper.toDTO(stock);
+    }
+
     // ADJUSTMENT
     @Override
     @Transactional

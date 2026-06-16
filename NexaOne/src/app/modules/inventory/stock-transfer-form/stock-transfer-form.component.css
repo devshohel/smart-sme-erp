@@ -1,0 +1,5 @@
+.inventory-page{background:#f5f8f6;min-height:100%}.page-actions,.items-heading{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.form-card{background:#fff;border:1px solid #e1e8e4;border-radius:8px;box-shadow:0 8px 20px rgba(22,37,29,.07);padding:1rem}
+.items-heading{margin:.5rem 0 1rem}.items-heading h6{margin:0;color:#25342c}.table th{font-size:11px;color:#6c757d;letter-spacing:0;white-space:nowrap}
+.table td{vertical-align:middle}.loading-panel{padding:2rem;text-align:center;color:#647268}.form-control:focus,.form-select:focus{box-shadow:none;border-color:#27ae60}
+@media(max-width:767px){.inventory-page{padding:1rem!important}}

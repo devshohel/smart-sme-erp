@@ -9,6 +9,9 @@ import { StockLevelComponent } from './stock-level/stock-level.component';
 import { StockMovementComponent } from './stock-movement/stock-movement.component';
 import { WarehouseComponent } from './warehouse/warehouse.component';
 import { StockCardComponent } from './stock-card/stock-card.component';
+import { StockTransferListComponent } from './stock-transfer-list/stock-transfer-list.component';
+import { StockTransferFormComponent } from './stock-transfer-form/stock-transfer-form.component';
+import { StockTransferDetailsComponent } from './stock-transfer-details/stock-transfer-details.component';
 
 
 @NgModule({
@@ -16,6 +19,9 @@ import { StockCardComponent } from './stock-card/stock-card.component';
     StockLevelComponent,
     StockMovementComponent,
     StockCardComponent,
+    StockTransferListComponent,
+    StockTransferFormComponent,
+    StockTransferDetailsComponent,
     StockAdjustmentComponent,
     WarehouseComponent
   ],

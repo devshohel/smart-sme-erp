@@ -1,0 +1,112 @@
+<div class="inventory-page container-fluid p-4">
+  <div class="page-actions mb-3">
+    <app-page-header title="Stock Transfers" subtitle="Warehouse-to-warehouse transfer workflow."></app-page-header>
+    <button type="button" class="btn btn-success" (click)="createTransfer()">
+      <i class="bi bi-plus-square me-1"></i> New Transfer
+    </button>
+  </div>
+
+  <section class="filter-card">
+    <div class="row g-3 align-items-end">
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label">Search</label>
+        <input class="form-control" [(ngModel)]="filters.keyword" placeholder="Transfer no">
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <label class="form-label">Status</label>
+        <select class="form-select" [(ngModel)]="filters.status">
+          <option value="">All Status</option>
+          <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <label class="form-label">From</label>
+        <select class="form-select" [(ngModel)]="filters.fromWarehouseId">
+          <option [ngValue]="null">All</option>
+          <option *ngFor="let warehouse of warehouses" [ngValue]="warehouse.id">{{ warehouse.name }}</option>
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <label class="form-label">To</label>
+        <select class="form-select" [(ngModel)]="filters.toWarehouseId">
+          <option [ngValue]="null">All</option>
+          <option *ngFor="let warehouse of warehouses" [ngValue]="warehouse.id">{{ warehouse.name }}</option>
+        </select>
+      </div>
+      <div class="col-lg-3 col-md-12 filter-buttons">
+        <button class="btn btn-success" type="button" (click)="applyFilters()" [disabled]="loading"><i class="bi bi-funnel me-1"></i> Apply</button>
+        <button class="btn btn-outline-secondary" type="button" (click)="resetFilters()" [disabled]="loading">Reset</button>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label">From Date</label>
+        <input class="form-control" type="date" [(ngModel)]="filters.fromDate">
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label">To Date</label>
+        <input class="form-control" type="date" [(ngModel)]="filters.toDate">
+      </div>
+    </div>
+  </section>
+
+  <section class="list-card">
+    <div class="list-toolbar">
+      <div>
+        <strong>Transfer List</strong>
+        <div class="record-summary">{{ totalElements | number }} total records</div>
+      </div>
+      <select class="form-select page-size" [(ngModel)]="size" (change)="changePageSize()">
+        <option *ngFor="let option of pageSizes" [ngValue]="option">{{ option }} / page</option>
+      </select>
+    </div>
+
+    <div class="alert alert-danger m-3" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div class="loading-panel" *ngIf="loading"><span class="spinner-border spinner-border-sm me-2"></span> Loading transfers...</div>
+
+    <div class="table-responsive" *ngIf="!loading">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="sortable" (click)="setSort('transferNo')">Transfer No <i class="bi" [ngClass]="sortIcon('transferNo')"></i></th>
+            <th class="sortable" (click)="setSort('transferDate')">Date <i class="bi" [ngClass]="sortIcon('transferDate')"></i></th>
+            <th>Warehouse Path</th>
+            <th class="sortable" (click)="setSort('status')">Status <i class="bi" [ngClass]="sortIcon('status')"></i></th>
+            <th class="text-end">Items</th>
+            <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let transfer of transfers">
+            <td class="fw-semibold">{{ transfer.transferNo }}</td>
+            <td>{{ transfer.transferDate | date:'mediumDate' }}</td>
+            <td>{{ transfer.fromWarehouseName || 'N/A' }} <i class="bi bi-arrow-right mx-1"></i> {{ transfer.toWarehouseName || 'N/A' }}</td>
+            <td><span class="badge px-3 py-2" [ngClass]="statusClass(transfer.status)">{{ transfer.status }}</span></td>
+            <td class="text-end">{{ transfer.items.length }}</td>
+            <td class="text-center">
+              <div class="action-group">
+                <button class="btn-action btn-view" title="View" (click)="view(transfer)"><i class="bi bi-eye"></i></button>
+                <button *ngIf="canEdit(transfer.status)" class="btn-action btn-edit" title="Edit" (click)="edit(transfer)"><i class="bi bi-pencil"></i></button>
+                <button *ngIf="canApprove(transfer.status)" class="btn-action btn-approve" title="Approve" (click)="approve(transfer)"><i class="bi bi-check2-circle"></i></button>
+                <button *ngIf="transfer.status === 'APPROVED'" class="btn-action btn-send" title="Send" (click)="send(transfer)"><i class="bi bi-truck"></i></button>
+                <button *ngIf="transfer.status === 'IN_TRANSIT'" class="btn-action btn-receive" title="Receive" (click)="receive(transfer)"><i class="bi bi-box-arrow-in-down"></i></button>
+                <button *ngIf="canEdit(transfer.status)" class="btn-action btn-cancel" title="Cancel" (click)="cancel(transfer)"><i class="bi bi-x-circle"></i></button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="transfers.length === 0">
+            <td colspan="6">
+              <div class="empty-state"><i class="bi bi-arrow-left-right"></i><strong>No transfers found</strong><span>Create a warehouse transfer to begin.</span></div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-row">
+      <div class="record-summary">Page {{ totalPages ? page + 1 : 0 }} of {{ totalPages }}</div>
+      <div class="btn-group">
+        <button class="btn btn-outline-secondary btn-sm" type="button" (click)="goToPage(page - 1)" [disabled]="page === 0 || loading">Previous</button>
+        <button class="btn btn-outline-secondary btn-sm" type="button" (click)="goToPage(page + 1)" [disabled]="page + 1 >= totalPages || loading">Next</button>
+      </div>
+    </div>
+  </section>
+</div>
