@@ -42,6 +42,14 @@
         <strong>{{ receipt.amount | number:'1.2-2' }}</strong>
       </div>
       <div class="summary-card">
+        <span>Allocated</span>
+        <strong>{{ (receipt.totalAllocatedAmount || 0) | number:'1.2-2' }}</strong>
+      </div>
+      <div class="summary-card">
+        <span>Unapplied</span>
+        <strong>{{ (receipt.unappliedAmount || 0) | number:'1.2-2' }}</strong>
+      </div>
+      <div class="summary-card">
         <span>Receipt Date</span>
         <strong>{{ receipt.receiptDate | date:'mediumDate' }}</strong>
       </div>
@@ -53,6 +61,35 @@
         <span>Journal No</span>
         <strong>{{ receipt.journalNo || 'Not posted' }}</strong>
       </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <h5>Allocations</h5>
+      </div>
+      <div class="table-responsive" *ngIf="receipt.allocations?.length; else noAllocations">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Invoice No</th>
+              <th>Date</th>
+              <th class="text-end">Invoice Due</th>
+              <th class="text-end">Allocated</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let allocation of receipt.allocations">
+              <td>{{ allocation.invoiceNo }}</td>
+              <td>{{ allocation.invoiceDate | date:'mediumDate' }}</td>
+              <td class="text-end">{{ (allocation.dueAmount || 0) | number:'1.2-2' }}</td>
+              <td class="text-end fw-semibold">{{ (allocation.allocatedAmount || 0) | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noAllocations>
+        <p class="mb-0">No allocation lines.</p>
+      </ng-template>
     </section>
 
     <section class="panel">

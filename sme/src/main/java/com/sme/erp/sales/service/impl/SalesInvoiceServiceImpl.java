@@ -81,6 +81,14 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<SalesInvoiceDTO> getUnpaidByCustomerId(Long customerId) {
+        return salesInvoiceRepository.findUnpaidByCustomerIdOrderBySaleDateAscIdAsc(customerId).stream()
+                .map(salesInvoiceMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public SalesInvoiceDTO getById(Long id) {
         return salesInvoiceMapper.toDTO(findInvoiceById(id));
     }

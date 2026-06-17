@@ -1,8 +1,14 @@
 import { Component, OnInit } from '@angular/core';
-import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerOption } from '../../../../models/customer.model';
-import { CustomerReceipt, CustomerReceiptPaymentMethod } from '../../../../models/customer-receipt.model';
+import {
+  CustomerReceipt,
+  CustomerReceiptAllocation,
+  CustomerReceiptAllocationMode,
+  CustomerReceiptPaymentMethod,
+  UnpaidSalesInvoice
+} from '../../../../models/customer-receipt.model';
 import { CustomerService } from '../../../../services/customer.service';
 import { CustomerReceiptService } from '../../../../services/customer-receipt.service';
 import { debugApiError, extractApiErrorMessage } from '../../../../shared/utils/api-error.util';
@@ -22,10 +28,11 @@ export class CustomerReceiptFormComponent implements OnInit {
   errorMessage = '';
   customerSearchTerm = '';
   customerSuggestions: CustomerOption[] = [];
+  unpaidInvoices: UnpaidSalesInvoice[] = [];
   selectedCustomerLabel = '';
-  submitAction: 'draft' | 'post' | null = null;
 
   readonly paymentMethods: CustomerReceiptPaymentMethod[] = ['CASH', 'BANK', 'MOBILE_BANKING', 'CHEQUE', 'OTHER'];
+  readonly allocationModes: CustomerReceiptAllocationMode[] = ['AUTO', 'MANUAL'];
 
   constructor(
     private fb: FormBuilder,
@@ -38,9 +45,11 @@ export class CustomerReceiptFormComponent implements OnInit {
       customerId: [null, Validators.required],
       receiptDate: ['', Validators.required],
       amount: [null, [Validators.required, Validators.min(0.01)]],
+      allocationMode: ['AUTO', Validators.required],
       paymentMethod: ['CASH', Validators.required],
       referenceNo: [''],
-      notes: ['']
+      notes: [''],
+      allocations: this.fb.array([])
     });
   }
 
@@ -57,6 +66,7 @@ export class CustomerReceiptFormComponent implements OnInit {
 
     this.form.patchValue({
       receiptDate: this.todayValue(),
+      allocationMode: 'AUTO',
       paymentMethod: 'CASH'
     });
 
@@ -76,6 +86,9 @@ export class CustomerReceiptFormComponent implements OnInit {
         this.editable = receipt.status === 'DRAFT';
         if (!this.editable) {
           this.form.disable({ emitEvent: false });
+        }
+        if (receipt.customerId) {
+          this.loadUnpaidInvoices(receipt.customerId, receipt.allocations || []);
         }
         this.loading = false;
       },
@@ -98,6 +111,8 @@ export class CustomerReceiptFormComponent implements OnInit {
     this.customerSearchTerm = term;
     this.form.patchValue({ customerId: null });
     this.selectedCustomerLabel = '';
+    this.unpaidInvoices = [];
+    this.clearAllocations();
     if (!term.trim()) {
       this.customerSuggestions = [];
       return;
@@ -113,15 +128,26 @@ export class CustomerReceiptFormComponent implements OnInit {
     this.customerSearchTerm = `${customerCode || 'CUS'} - ${name}`;
     this.selectedCustomerLabel = this.customerSearchTerm;
     this.customerSuggestions = [];
+    this.loadUnpaidInvoices(id);
+  }
+
+  onAllocationModeChange(mode: CustomerReceiptAllocationMode): void {
+    this.form.patchValue({ allocationMode: mode });
+    if (mode === 'AUTO') {
+      this.clearAllocations();
+      return;
+    }
+    const customerId = Number(this.form.get('customerId')?.value || 0);
+    if (customerId) {
+      this.loadUnpaidInvoices(customerId);
+    }
   }
 
   saveDraft(): void {
-    this.submitAction = 'draft';
     this.submit(false);
   }
 
   saveAndPost(): void {
-    this.submitAction = 'post';
     this.submit(true);
   }
 
@@ -129,6 +155,11 @@ export class CustomerReceiptFormComponent implements OnInit {
     this.errorMessage = '';
     if (this.form.invalid || !this.editable) {
       this.form.markAllAsTouched();
+      return;
+    }
+
+    if (this.isManualAllocationMode() && this.manualAllocationTotal() > Number(this.form.get('amount')?.value || 0)) {
+      this.errorMessage = 'Allocation cannot exceed receipt amount.';
       return;
     }
 
@@ -163,6 +194,21 @@ export class CustomerReceiptFormComponent implements OnInit {
     return !!control && control.touched && control.hasError(errorName);
   }
 
+  get allocationControls(): FormArray {
+    return this.form.get('allocations') as FormArray;
+  }
+
+  manualAllocationTotal(): number {
+    if (!this.isManualAllocationMode()) {
+      return 0;
+    }
+    return this.allocationControls.controls.reduce((sum, control) => sum + Number(control.get('allocatedAmount')?.value || 0), 0);
+  }
+
+  isManualAllocationMode(): boolean {
+    return this.form.get('allocationMode')?.value === 'MANUAL';
+  }
+
   private finishSave(id?: number | null): void {
     this.submitting = false;
     this.router.navigate(['/customers/receipts/details', id || this.receiptId || 0]);
@@ -180,9 +226,18 @@ export class CustomerReceiptFormComponent implements OnInit {
       customerId: Number(value.customerId),
       receiptDate: value.receiptDate,
       amount: value.amount === null || value.amount === '' ? 0 : Number(value.amount),
+      allocationMode: value.allocationMode,
       paymentMethod: value.paymentMethod,
       referenceNo: this.optionalTextValue(value.referenceNo),
-      notes: this.optionalTextValue(value.notes)
+      notes: this.optionalTextValue(value.notes),
+      allocations: this.isManualAllocationMode()
+        ? value.allocations
+            .filter((allocation: any) => Number(allocation.allocatedAmount || 0) > 0)
+            .map((allocation: any) => ({
+              salesInvoiceId: Number(allocation.salesInvoiceId),
+              allocatedAmount: Number(allocation.allocatedAmount || 0)
+            }))
+        : []
     };
   }
 
@@ -191,12 +246,87 @@ export class CustomerReceiptFormComponent implements OnInit {
       customerId: receipt.customerId,
       receiptDate: receipt.receiptDate,
       amount: receipt.amount,
+      allocationMode: receipt.allocationMode || 'AUTO',
       paymentMethod: receipt.paymentMethod,
       referenceNo: receipt.referenceNo || '',
       notes: receipt.notes || ''
     });
     this.customerSearchTerm = receipt.customerName ? `${receipt.customerCode || 'CUS'} - ${receipt.customerName}` : '';
     this.selectedCustomerLabel = this.customerSearchTerm;
+  }
+
+  private loadUnpaidInvoices(customerId: number, existingAllocations: CustomerReceiptAllocation[] = []): void {
+    if (!customerId) {
+      return;
+    }
+    this.receiptService.getUnpaidInvoices(customerId).subscribe({
+      next: invoices => {
+        const mergedInvoices = [...invoices];
+        const existingInvoiceIds = new Set<number>(mergedInvoices.map(invoice => Number(invoice.id)));
+        existingAllocations.forEach(allocation => {
+          const invoiceId = Number(allocation.salesInvoiceId);
+          if (existingInvoiceIds.has(invoiceId)) {
+            return;
+          }
+          mergedInvoices.push({
+            id: invoiceId,
+            invoiceNo: allocation.invoiceNo,
+            saleDate: allocation.invoiceDate || this.todayValue(),
+            netTotal: Number(allocation.netTotal || 0),
+            paidAmount: Number(allocation.paidAmount || 0),
+            dueAmount: Number(allocation.dueAmount || 0),
+            paymentStatus: Number(allocation.dueAmount || 0) <= 0
+              ? 'PAID'
+              : Number(allocation.paidAmount || 0) > 0
+                ? 'PARTIAL'
+                : 'DUE',
+            status: 'CONFIRMED',
+            orderId: null,
+            orderNo: '',
+            customerId,
+            warehouseId: null,
+            notes: '',
+            items: [],
+            totalAmount: Number(allocation.netTotal || 0),
+            discountAmount: 0,
+            taxAmount: 0
+          } as UnpaidSalesInvoice);
+        });
+        this.unpaidInvoices = mergedInvoices;
+        this.rebuildAllocationRows(existingAllocations);
+      },
+      error: error => debugApiError('CustomerReceiptFormComponent.loadUnpaidInvoices', error)
+    });
+  }
+
+  private rebuildAllocationRows(existingAllocations: CustomerReceiptAllocation[] = []): void {
+    this.clearAllocations();
+    if (!this.isManualAllocationMode() || !this.unpaidInvoices.length) {
+      return;
+    }
+
+    const existingMap = new Map<number, number>();
+    existingAllocations.forEach(allocation => {
+      existingMap.set(Number(allocation.salesInvoiceId), Number(allocation.allocatedAmount || 0));
+    });
+
+    this.unpaidInvoices.forEach(invoice => {
+      this.allocationControls.push(this.fb.group({
+        salesInvoiceId: [invoice.id],
+        invoiceNo: [invoice.invoiceNo],
+        invoiceDate: [invoice.saleDate],
+        netTotal: [invoice.netTotal],
+        paidAmount: [invoice.paidAmount],
+        dueAmount: [invoice.dueAmount],
+        allocatedAmount: [existingMap.get(Number(invoice.id)) || 0, [Validators.min(0)]]
+      }));
+    });
+  }
+
+  private clearAllocations(): void {
+    while (this.allocationControls.length > 0) {
+      this.allocationControls.removeAt(0);
+    }
   }
 
   private optionalTextValue(value: string): string | null {

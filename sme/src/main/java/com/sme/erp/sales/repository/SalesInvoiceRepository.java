@@ -65,6 +65,16 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
     @Query("select coalesce(sum(i.dueAmount), 0) from SalesInvoice i where i.customer.id = :customerId")
     java.math.BigDecimal sumDueByCustomerId(@Param("customerId") Long customerId);
 
+    @Query("""
+            select i
+            from SalesInvoice i
+            where i.customer.id = :customerId
+              and i.status in (com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED, com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED)
+              and i.dueAmount > 0
+            order by i.saleDate asc, i.id asc
+            """)
+    List<SalesInvoice> findUnpaidByCustomerIdOrderBySaleDateAscIdAsc(@Param("customerId") Long customerId);
+
     @Query("select max(i.saleDate) from SalesInvoice i where i.customer.id = :customerId")
     LocalDateTime findLastInvoiceDateByCustomerId(@Param("customerId") Long customerId);
 

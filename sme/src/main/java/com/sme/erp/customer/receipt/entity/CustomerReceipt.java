@@ -1,6 +1,7 @@
 package com.sme.erp.customer.receipt.entity;
 
 import com.sme.erp.customer.entity.Customer;
+import com.sme.erp.customer.receipt.enums.CustomerReceiptAllocationMode;
 import com.sme.erp.customer.receipt.enums.CustomerReceiptPaymentMethod;
 import com.sme.erp.customer.receipt.enums.CustomerReceiptStatus;
 import jakarta.persistence.Column;
@@ -12,6 +13,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -19,6 +21,8 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "customer_receipts")
@@ -52,6 +56,19 @@ public class CustomerReceipt {
     private String notes;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "allocation_mode", nullable = false)
+    private CustomerReceiptAllocationMode allocationMode = CustomerReceiptAllocationMode.AUTO;
+
+    @Column(name = "total_allocated_amount", precision = 15, scale = 2, nullable = false)
+    private BigDecimal totalAllocatedAmount = BigDecimal.ZERO;
+
+    @Column(name = "unapplied_amount", precision = 15, scale = 2, nullable = false)
+    private BigDecimal unappliedAmount = BigDecimal.ZERO;
+
+    @OneToMany(mappedBy = "receipt", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true)
+    private List<CustomerReceiptAllocation> allocations = new ArrayList<>();
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private CustomerReceiptStatus status = CustomerReceiptStatus.DRAFT;
 
@@ -78,6 +95,15 @@ public class CustomerReceipt {
         if (this.status == null) {
             this.status = CustomerReceiptStatus.DRAFT;
         }
+        if (this.allocationMode == null) {
+            this.allocationMode = CustomerReceiptAllocationMode.AUTO;
+        }
+        if (this.totalAllocatedAmount == null) {
+            this.totalAllocatedAmount = BigDecimal.ZERO;
+        }
+        if (this.unappliedAmount == null) {
+            this.unappliedAmount = BigDecimal.ZERO;
+        }
     }
 
     @PreUpdate
@@ -88,6 +114,15 @@ public class CustomerReceipt {
         }
         if (this.status == null) {
             this.status = CustomerReceiptStatus.DRAFT;
+        }
+        if (this.allocationMode == null) {
+            this.allocationMode = CustomerReceiptAllocationMode.AUTO;
+        }
+        if (this.totalAllocatedAmount == null) {
+            this.totalAllocatedAmount = BigDecimal.ZERO;
+        }
+        if (this.unappliedAmount == null) {
+            this.unappliedAmount = BigDecimal.ZERO;
         }
     }
 
@@ -114,6 +149,18 @@ public class CustomerReceipt {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public CustomerReceiptAllocationMode getAllocationMode() { return allocationMode; }
+    public void setAllocationMode(CustomerReceiptAllocationMode allocationMode) { this.allocationMode = allocationMode; }
+
+    public BigDecimal getTotalAllocatedAmount() { return totalAllocatedAmount; }
+    public void setTotalAllocatedAmount(BigDecimal totalAllocatedAmount) { this.totalAllocatedAmount = totalAllocatedAmount; }
+
+    public BigDecimal getUnappliedAmount() { return unappliedAmount; }
+    public void setUnappliedAmount(BigDecimal unappliedAmount) { this.unappliedAmount = unappliedAmount; }
+
+    public List<CustomerReceiptAllocation> getAllocations() { return allocations; }
+    public void setAllocations(List<CustomerReceiptAllocation> allocations) { this.allocations = allocations; }
 
     public CustomerReceiptStatus getStatus() { return status; }
     public void setStatus(CustomerReceiptStatus status) { this.status = status; }

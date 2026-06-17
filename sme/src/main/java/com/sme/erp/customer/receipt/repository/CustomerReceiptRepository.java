@@ -5,6 +5,7 @@ import com.sme.erp.customer.receipt.enums.CustomerReceiptPaymentMethod;
 import com.sme.erp.customer.receipt.enums.CustomerReceiptStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,6 +16,8 @@ import java.util.Optional;
 
 public interface CustomerReceiptRepository extends JpaRepository<CustomerReceipt, Long> {
     Optional<CustomerReceipt> findTopByOrderByIdDesc();
+    @EntityGraph(attributePaths = {"customer", "allocations", "allocations.salesInvoice"})
+    Optional<CustomerReceipt> findDetailedById(Long id);
     boolean existsByReceiptNo(String receiptNo);
     boolean existsByReceiptNoAndIdNot(String receiptNo, Long id);
 

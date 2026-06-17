@@ -165,6 +165,8 @@
                   <th>Receipt No</th>
                   <th>Date</th>
                   <th class="text-end">Amount</th>
+                  <th class="text-end">Allocated</th>
+                  <th class="text-end">Unapplied</th>
                   <th>Method</th>
                   <th>Status</th>
                   <th>Journal</th>
@@ -176,6 +178,8 @@
                   <td>{{ receipt.receiptNo }}</td>
                   <td>{{ receipt.receiptDate | date:'mediumDate' }}</td>
                   <td class="text-end">{{ receipt.amount | number:'1.2-2' }}</td>
+                  <td class="text-end">{{ (receipt.totalAllocatedAmount || 0) | number:'1.2-2' }}</td>
+                  <td class="text-end">{{ (receipt.unappliedAmount || 0) | number:'1.2-2' }}</td>
                   <td>{{ receipt.paymentMethod }}</td>
                   <td>{{ receipt.status || 'DRAFT' }}</td>
                   <td>{{ receipt.journalNo || 'Not posted' }}</td>

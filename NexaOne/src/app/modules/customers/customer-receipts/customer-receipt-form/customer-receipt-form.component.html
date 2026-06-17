@@ -46,6 +46,13 @@
           <div class="invalid-feedback d-block" *ngIf="hasError('amount', 'min')">Amount must be greater than zero.</div>
         </div>
 
+        <div class="col-lg-3 col-md-6">
+          <label class="form-label">Allocation Mode *</label>
+          <select class="form-select" formControlName="allocationMode" (change)="onAllocationModeChange($any($event.target).value)">
+            <option *ngFor="let mode of allocationModes" [value]="mode">{{ mode }}</option>
+          </select>
+        </div>
+
         <div class="col-lg-4 col-md-6">
           <label class="form-label">Payment Method *</label>
           <select class="form-select" formControlName="paymentMethod">
@@ -61,6 +68,55 @@
         <div class="col-12">
           <label class="form-label">Notes</label>
           <textarea class="form-control" rows="3" formControlName="notes" [readonly]="!editable"></textarea>
+        </div>
+      </div>
+
+      <div class="allocation-panel mt-4" *ngIf="isManualAllocationMode()">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+          <div>
+            <h6 class="mb-1">Manual Allocation</h6>
+            <p class="text-muted mb-0">Select the unpaid invoices and assign allocated amounts.</p>
+          </div>
+          <div class="allocation-summary">
+            <span>Allocated: {{ manualAllocationTotal() | number:'1.2-2' }}</span>
+            <span>Receipt: {{ (form.get('amount')?.value || 0) | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <div *ngIf="unpaidInvoices.length; else noUnpaidInvoices" formArrayName="allocations" class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Invoice No</th>
+                <th>Date</th>
+                <th class="text-end">Net Total</th>
+                <th class="text-end">Paid</th>
+                <th class="text-end">Due</th>
+                <th class="text-end">Allocate</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let invoice of unpaidInvoices; let i = index" [formGroupName]="i">
+                <td>{{ invoice.invoiceNo }}</td>
+                <td>{{ invoice.saleDate | date:'mediumDate' }}</td>
+                <td class="text-end">{{ invoice.netTotal | number:'1.2-2' }}</td>
+                <td class="text-end">{{ invoice.paidAmount | number:'1.2-2' }}</td>
+                <td class="text-end fw-semibold">{{ invoice.dueAmount | number:'1.2-2' }}</td>
+                <td class="text-end" style="max-width: 140px;">
+                  <input type="number" class="form-control form-control-sm text-end" formControlName="allocatedAmount" min="0" step="0.01">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #noUnpaidInvoices>
+          <div class="empty-state-inline">No unpaid invoices found for the selected customer.</div>
+        </ng-template>
+      </div>
+
+      <div class="allocation-panel mt-4" *ngIf="!isManualAllocationMode()">
+        <div class="empty-state-inline">
+          Receipt will be allocated to oldest unpaid invoices first.
         </div>
       </div>
 

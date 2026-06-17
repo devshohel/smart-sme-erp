@@ -8,7 +8,8 @@ import {
   CustomerReceiptPage,
   CustomerReceiptPaymentMethod,
   CustomerReceiptSearchParams,
-  CustomerReceiptStatus
+  CustomerReceiptStatus,
+  UnpaidSalesInvoice
 } from '../models/customer-receipt.model';
 import { ApiResponse, unwrapApiResponse } from '../shared/utils/api-response.util';
 
@@ -54,6 +55,13 @@ export class CustomerReceiptService {
   getReceipts(): Observable<CustomerReceipt[]> {
     return this.http
       .get<CustomerReceipt[] | ApiResponse<CustomerReceipt[]>>(this.baseUrl)
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  getUnpaidInvoices(customerId: number): Observable<UnpaidSalesInvoice[]> {
+    const params = new HttpParams().set('customerId', String(customerId));
+    return this.http
+      .get<UnpaidSalesInvoice[] | ApiResponse<UnpaidSalesInvoice[]>>(`${environment.apiUrl}/sales/invoices/unpaid`, { params })
       .pipe(map(response => unwrapApiResponse(response)));
   }
 

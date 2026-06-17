@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -31,6 +32,12 @@ public class SalesInvoiceController {
     @PreAuthorize("hasAuthority('SALES_VIEW')")
     public ResponseEntity<List<SalesInvoiceDTO>> getAll() {
         return ResponseEntity.ok(salesInvoiceService.getAll());
+    }
+
+    @GetMapping("/unpaid")
+    @PreAuthorize("hasAuthority('SALES_VIEW')")
+    public ResponseEntity<List<SalesInvoiceDTO>> getUnpaidByCustomerId(@RequestParam Long customerId) {
+        return ResponseEntity.ok(salesInvoiceService.getUnpaidByCustomerId(customerId));
     }
 
     @GetMapping("/{id}")
