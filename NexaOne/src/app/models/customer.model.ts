@@ -16,6 +16,7 @@ export interface Customer {
   creditLimit?: number | null;
   openingBalance?: number | null;
   currentBalance?: number | null;
+  dueBalance?: number | null;
   taxNumber?: string | null;
   status?: Status;
   createdBy?: number | null;

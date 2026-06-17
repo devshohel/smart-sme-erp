@@ -27,8 +27,8 @@ export class CustomerListComponent implements OnInit {
   size = 10;
   totalElements = 0;
   totalPages = 0;
-  sort = 'name';
-  direction: SortDirection = 'asc';
+  sort = 'createdAt';
+  direction: SortDirection = 'desc';
 
   readonly pageSizes = [10, 25, 50, 100];
   readonly statusList: Status[] = ['ACTIVE', 'INACTIVE'];
@@ -38,6 +38,7 @@ export class CustomerListComponent implements OnInit {
     'Phone',
     'Email',
     'Status',
+    'Due Balance',
     'Credit Limit',
     'Opening Balance',
     'Current Balance'
@@ -93,8 +94,8 @@ export class CustomerListComponent implements OnInit {
       status: ''
     };
     this.page = 0;
-    this.sort = 'name';
-    this.direction = 'asc';
+    this.sort = 'createdAt';
+    this.direction = 'desc';
     this.loadCustomers();
   }
 
@@ -180,6 +181,9 @@ export class CustomerListComponent implements OnInit {
     if (status === 'INACTIVE') {
       return 'bg-light-danger text-danger';
     }
+    if (status === 'DRAFT') {
+      return 'bg-light-warning text-warning';
+    }
     return 'bg-light text-dark';
   }
 
@@ -194,6 +198,7 @@ export class CustomerListComponent implements OnInit {
       customer.phone || '',
       customer.email || '',
       customer.status || '',
+      this.formatNumber(customer.dueBalance),
       this.formatNumber(customer.creditLimit),
       this.formatNumber(customer.openingBalance),
       this.formatNumber(customer.currentBalance)

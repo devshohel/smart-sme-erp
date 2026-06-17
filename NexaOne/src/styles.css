@@ -37,3 +37,97 @@ body {
   padding: 20px;
   margin-bottom: 20px;
 }
+
+.erp-data-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  color: #25342c;
+}
+
+.erp-data-table thead th {
+  background: #eef4f0;
+  border-bottom: 1px solid #d7e1db;
+  color: #435047;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  padding: .72rem .85rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.erp-data-table tbody td {
+  border-bottom: 1px solid #e7eee9;
+  padding: .82rem .85rem;
+  vertical-align: middle;
+}
+
+.erp-data-table tbody tr {
+  background: #fff;
+}
+
+.erp-data-table tbody tr:hover {
+  background: #f7fbf8;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 74px;
+  border-radius: 999px;
+  padding: .26rem .58rem;
+  font-size: .72rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.bg-light-success {
+  background-color: #e7f6ed !important;
+  color: #1f7a45 !important;
+}
+
+.bg-light-danger {
+  background-color: #f8e8e8 !important;
+  color: #b42318 !important;
+}
+
+.btn-action {
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease;
+  cursor: pointer;
+}
+
+.btn-view {
+  background: #eef5ff;
+  color: #2563a8;
+  border-color: #d7e6fb;
+}
+
+.btn-edit {
+  background: #edf8f1;
+  color: #25834f;
+  border-color: #d9eee0;
+}
+
+.btn-delete {
+  background: #fff1f1;
+  color: #c2413a;
+  border-color: #f5d8d8;
+}
+
+.btn-action:hover {
+  background: #fff;
+  border-color: #b9c8bf;
+}
+
+.btn-action i {
+  font-size: .95rem;
+  line-height: 1;
+}

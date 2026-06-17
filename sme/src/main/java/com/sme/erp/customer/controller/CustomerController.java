@@ -48,8 +48,8 @@ public class CustomerController {
             @RequestParam(required = false) Status status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "name") String sort,
-            @RequestParam(defaultValue = "asc") String direction) {
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
         return ResponseEntity.ok(customerService.searchPage(keyword, status, page, size, sort, direction));
     }
 

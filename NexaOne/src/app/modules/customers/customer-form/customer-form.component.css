@@ -1,3 +1,155 @@
+.customer-form-page {
+  background: #f5f8f6;
+  min-height: 100%;
+  padding: 1.1rem 1.25rem 1.4rem;
+}
+
+.customer-form-panel {
+  background: #fff;
+  border: 1px solid #d7e1db;
+  border-radius: 8px;
+  box-shadow: 0 8px 18px rgba(22, 37, 29, .06);
+  padding: 1.15rem;
+}
+
+.form-section {
+  padding: 0 0 1.05rem;
+  margin-bottom: 1.05rem;
+  border-bottom: 1px solid #dfe8e3;
+}
+
+.form-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.section-heading {
+  margin-bottom: .75rem;
+}
+
+.section-heading h5 {
+  margin: 0;
+  color: #17221c;
+  font-size: .98rem;
+  font-weight: 800;
+}
+
+.form-grid {
+  display: grid;
+  gap: .85rem 1rem;
+}
+
+.form-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.address-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(140px, 220px);
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+.span-3 {
+  grid-column: span 3;
+}
+
+.field-group {
+  min-width: 0;
+}
+
+.form-label {
+  color: #526158;
+  font-size: .78rem;
+  font-weight: 800;
+  margin-bottom: .34rem;
+}
+
+.form-control,
+.form-select {
+  min-height: 40px;
+  border: 1px solid #cbd8d1;
+  border-radius: 7px;
+  color: #25342c;
+  font-size: .9rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+  box-shadow: 0 0 0 .16rem rgba(39, 174, 96, .12);
+  border-color: #27ae60;
+}
+
+.form-control[readonly],
+.muted-field {
+  background: #f8faf9;
+  color: #67746c;
+}
+
+.address-input {
+  min-height: 88px;
+  resize: vertical;
+}
+
 .form-text {
-  font-size: 0.8rem;
+  color: #7a857e;
+  font-size: .76rem;
+  margin-top: .25rem;
+}
+
+.invalid-feedback {
+  font-size: .76rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .6rem;
+  padding-top: .2rem;
+}
+
+.form-actions .btn {
+  min-height: 38px;
+  border-radius: 7px;
+  font-weight: 700;
+}
+
+@media (max-width: 991px) {
+  .form-grid.three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .address-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .span-2,
+  .span-3 {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 767px) {
+  .customer-form-page {
+    padding: .85rem;
+  }
+
+  .customer-form-panel {
+    padding: .9rem;
+  }
+
+  .form-grid.three,
+  .span-2,
+  .span-3 {
+    grid-template-columns: 1fr;
+    grid-column: span 1;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+  }
 }

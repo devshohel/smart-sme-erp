@@ -32,6 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -80,8 +82,10 @@ public class CustomerServiceImpl implements CustomerService {
     public CustomerPageDTO searchPage(String keyword, Status status, int page, int size, String sort, String direction) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), safeSize(size), sortFor(sort, direction));
         Page<Customer> result = customerRepository.searchPage(RequestValueUtils.normalize(keyword), status, pageable);
+        List<CustomerDTO> customers = result.getContent().stream().map(customerMapper::toDTO).collect(Collectors.toList());
+        applyDueBalances(customers);
         return new CustomerPageDTO(
-                result.getContent().stream().map(customerMapper::toDTO).collect(Collectors.toList()),
+                customers,
                 result.getTotalElements(),
                 result.getTotalPages(),
                 result.getNumber(),
@@ -335,6 +339,23 @@ public class CustomerServiceImpl implements CustomerService {
         return "Normal";
     }
 
+    private void applyDueBalances(List<CustomerDTO> customers) {
+        List<Long> customerIds = customers.stream()
+                .map(CustomerDTO::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        if (customerIds.isEmpty()) {
+            customers.forEach(customer -> customer.setDueBalance(BigDecimal.ZERO));
+            return;
+        }
+
+        Map<Long, BigDecimal> dueByCustomerId = salesInvoiceRepository.sumDueByCustomerIds(customerIds).stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> row[1] != null ? (BigDecimal) row[1] : BigDecimal.ZERO));
+        customers.forEach(customer -> customer.setDueBalance(dueByCustomerId.getOrDefault(customer.getId(), BigDecimal.ZERO)));
+    }
+
     private Sort sortFor(String sort, String direction) {
         String property = switch (sort == null ? "" : sort) {
             case "customerCode" -> "customerCode";
@@ -343,10 +364,12 @@ public class CustomerServiceImpl implements CustomerService {
             case "email" -> "email";
             case "status" -> "status";
             case "currentBalance" -> "currentBalance";
-            default -> "name";
+            case "createdAt" -> "createdAt";
+            default -> "createdAt";
         };
         Sort.Direction dir = "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
-        return Sort.by(dir, property).and(Sort.by(Sort.Direction.ASC, "id"));
+        Sort.Direction idDirection = "createdAt".equals(property) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        return Sort.by(dir, property).and(Sort.by(idDirection, "id"));
     }
 
     private int safeSize(int size) {

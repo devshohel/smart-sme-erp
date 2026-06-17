@@ -3,6 +3,7 @@ package com.sme.erp.customer.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sme.erp.common.exception.GlobalExceptionHandler;
 import com.sme.erp.customer.dto.CustomerDTO;
+import com.sme.erp.customer.dto.CustomerPageDTO;
 import com.sme.erp.customer.service.CustomerService;
 import com.sme.erp.enums.Status;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,6 +87,18 @@ class CustomerControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.customerCode").value("CUS-0001"));
+    }
+
+    @Test
+    void getPage_defaultsToNewestCustomersFirst() throws Exception {
+        when(customerService.searchPage(null, null, 0, 10, "createdAt", "desc"))
+                .thenReturn(new CustomerPageDTO(List.of(), 0, 0, 0, 10));
+
+        mockMvc.perform(get("/api/v1/customers/page")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        verify(customerService).searchPage(null, null, 0, 10, "createdAt", "desc");
     }
 
     @Test

@@ -66,6 +66,15 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
     java.math.BigDecimal sumDueByCustomerId(@Param("customerId") Long customerId);
 
     @Query("""
+            select i.customer.id, coalesce(sum(i.dueAmount), 0)
+            from SalesInvoice i
+            where i.customer.id in :customerIds
+              and i.status in (com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED, com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED)
+            group by i.customer.id
+            """)
+    List<Object[]> sumDueByCustomerIds(@Param("customerIds") List<Long> customerIds);
+
+    @Query("""
             select i
             from SalesInvoice i
             where i.customer.id = :customerId

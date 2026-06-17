@@ -69,6 +69,8 @@ public class CustomerDTO {
 
     private BigDecimal currentBalance;
 
+    private BigDecimal dueBalance;
+
     @Size(max = 100, message = "Tax number must be at most 100 characters")
     private String taxNumber;
     @JsonIgnore
@@ -168,6 +170,9 @@ public class CustomerDTO {
 
     public BigDecimal getCurrentBalance() { return currentBalance; }
     public void setCurrentBalance(BigDecimal currentBalance) { this.currentBalance = currentBalance; }
+
+    public BigDecimal getDueBalance() { return dueBalance; }
+    public void setDueBalance(BigDecimal dueBalance) { this.dueBalance = dueBalance; }
 
     public String getTaxNumber() { return taxNumber; }
     public void setTaxNumber(String taxNumber) {

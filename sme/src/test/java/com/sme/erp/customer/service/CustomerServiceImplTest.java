@@ -16,6 +16,7 @@ import com.sme.erp.sales.repository.SalesInvoiceRepository;
 import com.sme.erp.sales.repository.SalesReturnRepository;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -133,11 +134,22 @@ class CustomerServiceImplTest {
 
         when(customerRepository.searchPage(org.mockito.ArgumentMatchers.eq("acme"), org.mockito.ArgumentMatchers.eq(Status.ACTIVE), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(customer)));
+        when(salesInvoiceRepository.sumDueByCustomerIds(List.of(1L)))
+                .thenReturn(List.<Object[]>of(new Object[] { 1L, new BigDecimal("125.50") }));
 
-        var result = service.searchPage(" acme ", Status.ACTIVE, 0, 10, "name", "asc");
+        var result = service.searchPage(" acme ", Status.ACTIVE, 0, 10, "createdAt", "desc");
 
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getTotalElements()).isEqualTo(1);
+        assertThat(result.getContent().get(0).getDueBalance()).isEqualByComparingTo("125.50");
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(customerRepository).searchPage(org.mockito.ArgumentMatchers.eq("acme"), org.mockito.ArgumentMatchers.eq(Status.ACTIVE), pageableCaptor.capture());
+        Sort sort = pageableCaptor.getValue().getSort();
+        assertThat(sort.getOrderFor("createdAt")).isNotNull();
+        assertThat(sort.getOrderFor("createdAt").getDirection()).isEqualTo(Sort.Direction.DESC);
+        assertThat(sort.getOrderFor("id")).isNotNull();
+        assertThat(sort.getOrderFor("id").getDirection()).isEqualTo(Sort.Direction.DESC);
     }
 
     @Test

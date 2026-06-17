@@ -35,8 +35,8 @@ export class CustomerService {
     let httpParams = new HttpParams()
       .set('page', String(params.page ?? 0))
       .set('size', String(params.size ?? 10))
-      .set('sort', params.sort || 'name')
-      .set('direction', params.direction || 'asc');
+      .set('sort', params.sort || 'createdAt')
+      .set('direction', params.direction || 'desc');
 
     if (params.keyword?.trim()) {
       httpParams = httpParams.set('keyword', params.keyword.trim());

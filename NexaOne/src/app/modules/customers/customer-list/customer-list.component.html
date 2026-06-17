@@ -1,4 +1,4 @@
-<div class="container-fluid p-4 customer-list-page">
+<div class="customer-list-page">
   <div class="page-title-row">
     <div>
       <h4 class="fw-bold mb-0">Customers</h4>
@@ -18,8 +18,8 @@
   </div>
 
   <div class="filter-card">
-    <form class="row g-3 align-items-end" (ngSubmit)="search()">
-      <div class="col-lg-7">
+    <form class="customer-filter-form" (ngSubmit)="search()">
+      <div class="filter-search">
         <label class="form-label">Search</label>
         <input
           type="text"
@@ -28,18 +28,18 @@
           name="keyword"
           placeholder="Customer code, name, phone, email">
       </div>
-      <div class="col-lg-3 col-md-6">
+      <div class="filter-status">
         <label class="form-label">Status</label>
         <select class="form-select" [(ngModel)]="filters.status" name="status">
           <option value="">All Statuses</option>
           <option *ngFor="let status of statusList" [value]="status">{{ status }}</option>
         </select>
       </div>
-      <div class="col-lg-2 col-md-6 filter-buttons">
-        <button type="submit" class="btn btn-success" [disabled]="loading">
+      <div class="filter-buttons">
+        <button type="submit" class="btn btn-success btn-filter" [disabled]="loading" title="Search">
           <i class="bi bi-search"></i>
         </button>
-        <button type="button" class="btn btn-outline-secondary" (click)="resetFilters()" [disabled]="loading">
+        <button type="button" class="btn btn-outline-secondary btn-filter" (click)="resetFilters()" [disabled]="loading" title="Reset filters">
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
@@ -49,11 +49,15 @@
   <div class="list-card">
     <div class="list-toolbar">
       <div class="record-summary">
-        <strong>{{ totalElements }}</strong> records
+        <strong>{{ totalElements }}</strong>
+        <span>total records</span>
       </div>
-      <select class="form-select form-select-sm page-size" [(ngModel)]="size" (change)="changePageSize()">
-        <option *ngFor="let option of pageSizes" [ngValue]="option">{{ option }} / page</option>
-      </select>
+      <div class="page-size-control">
+        <span>Rows</span>
+        <select class="form-select form-select-sm page-size" [(ngModel)]="size" (change)="changePageSize()">
+          <option *ngFor="let option of pageSizes" [ngValue]="option">{{ option }}</option>
+        </select>
+      </div>
     </div>
 
     <div class="alert alert-danger m-3 mb-0" *ngIf="errorMessage">{{ errorMessage }}</div>
@@ -68,46 +72,74 @@
       <span>Try adjusting the search term or status filter.</span>
     </div>
 
-    <div class="table-responsive" *ngIf="!loading && customers.length">
-      <table class="table table-hover align-middle mb-0">
-        <thead class="table-light text-uppercase small fw-bold">
+    <div class="table-responsive customer-table-wrap" *ngIf="!loading && customers.length">
+      <table class="table erp-data-table customer-table align-middle mb-0">
+        <colgroup>
+          <col class="code-col">
+          <col class="name-col">
+          <col class="contact-col">
+          <col class="credit-col">
+          <col class="due-col">
+          <col class="balance-col">
+          <col class="status-col">
+          <col class="action-col">
+        </colgroup>
+        <thead>
           <tr>
-            <th class="ps-4 sortable" (click)="setSort('customerCode')">Customer Code <i class="bi" [ngClass]="sortIcon('customerCode')"></i></th>
+            <th class="sortable" (click)="setSort('customerCode')">Customer Code <i class="bi" [ngClass]="sortIcon('customerCode')"></i></th>
             <th class="sortable" (click)="setSort('name')">Name <i class="bi" [ngClass]="sortIcon('name')"></i></th>
-            <th class="sortable" (click)="setSort('phone')">Phone <i class="bi" [ngClass]="sortIcon('phone')"></i></th>
-            <th class="sortable" (click)="setSort('email')">Email <i class="bi" [ngClass]="sortIcon('email')"></i></th>
-            <th>Contact</th>
+            <th class="contact-col">Contact</th>
             <th class="text-end">Credit Limit</th>
+            <th class="text-end">Total Due</th>
             <th class="text-end sortable" (click)="setSort('currentBalance')">Current Balance <i class="bi" [ngClass]="sortIcon('currentBalance')"></i></th>
             <th class="text-center sortable" (click)="setSort('status')">Status <i class="bi" [ngClass]="sortIcon('status')"></i></th>
-            <th class="text-center pe-4">Action</th>
+            <th class="text-center">Action</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let customer of customers">
-            <td class="ps-4">
-              <div class="fw-semibold">{{ customer.customerCode || 'Auto generated' }}</div>
-              <div class="text-muted small">{{ customer.companyName || 'No company' }}</div>
+            <td>
+              <div class="customer-code">{{ customer.customerCode || 'Auto generated' }}</div>
+              <div class="customer-company" *ngIf="customer.companyName">{{ customer.companyName }}</div>
             </td>
             <td>
-              <div class="fw-semibold">{{ customer.name }}</div>
-              <div class="text-muted small">{{ customer.city || 'No city' }}<span *ngIf="customer.country">, {{ customer.country }}</span></div>
+              <div class="customer-name">{{ customer.name }}</div>
+              <div class="customer-location" *ngIf="customer.city || customer.country">
+                <span *ngIf="customer.city">{{ customer.city }}</span><span *ngIf="customer.city && customer.country">, </span><span *ngIf="customer.country">{{ customer.country }}</span>
+              </div>
             </td>
-            <td>{{ customer.phone || 'N/A' }}</td>
-            <td>{{ customer.email || 'N/A' }}</td>
             <td>
-              <div>{{ customer.contactPerson || 'N/A' }}</div>
-              <div class="text-muted small">{{ customer.taxNumber || 'No tax number' }}</div>
+              <div class="contact-line" *ngIf="customer.phone; else noPhone">
+                <span>{{ customer.phone }}</span>
+              </div>
+              <ng-template #noPhone>
+                <div class="contact-line is-empty">N/A</div>
+              </ng-template>
+              <div class="contact-line" *ngIf="customer.email; else noEmail">
+                <span>{{ customer.email }}</span>
+              </div>
+              <ng-template #noEmail>
+                <div class="contact-line is-empty">N/A</div>
+              </ng-template>
             </td>
-            <td class="text-end">{{ (customer.creditLimit ?? 0) | number:'1.2-2' }}</td>
-            <td class="text-end fw-bold">{{ (customer.currentBalance ?? 0) | number:'1.2-2' }}</td>
+            <td class="text-end">
+              <div class="money-value">{{ (customer.creditLimit ?? 0) | number:'1.2-2' }}</div>
+            </td>
+            <td class="text-end">
+              <div class="due-amount" [class.has-due]="(customer.dueBalance ?? 0) > 0">
+                {{ (customer.dueBalance ?? 0) | number:'1.2-2' }}
+              </div>
+            </td>
+            <td class="text-end">
+              <div class="current-balance">{{ (customer.currentBalance ?? 0) | number:'1.2-2' }}</div>
+            </td>
             <td class="text-center">
-              <span class="badge px-2 py-1 border-0" [ngClass]="statusClass(customer.status)">
+              <span class="status-badge" [ngClass]="statusClass(customer.status)">
                 {{ customer.status || 'ACTIVE' }}
               </span>
             </td>
-            <td class="text-center pe-4">
-              <div class="d-flex justify-content-center gap-2">
+            <td class="text-center">
+              <div class="row-actions">
                 <button type="button" class="btn-action btn-view" title="View" (click)="viewCustomer(customer)">
                   <i class="bi bi-eye"></i>
                 </button>
