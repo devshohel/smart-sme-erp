@@ -32,7 +32,7 @@ public class AuditController {
     }
 
     @GetMapping("/activity-logs")
-    @PreAuthorize("hasRole('ADMIN') and hasAuthority('ACTIVITY_VIEW')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','AUDITOR') and hasAuthority('ACTIVITY_VIEW')")
     public List<ActivityLogDTO> activityLogs(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,
@@ -43,7 +43,7 @@ public class AuditController {
     }
 
     @GetMapping("/audit-logs")
-    @PreAuthorize("hasRole('ADMIN') and hasAuthority('AUDIT_VIEW')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','AUDITOR') and hasAuthority('AUDIT_VIEW')")
     public List<AuditLogDTO> auditLogs(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,
@@ -54,7 +54,7 @@ public class AuditController {
     }
 
     @GetMapping("/login-history")
-    @PreAuthorize("hasRole('ADMIN') and hasAuthority('AUDIT_VIEW')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN','AUDITOR') and hasAuthority('LOGIN_HISTORY_VIEW')")
     public List<LoginHistoryDTO> loginHistory(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime toDate,

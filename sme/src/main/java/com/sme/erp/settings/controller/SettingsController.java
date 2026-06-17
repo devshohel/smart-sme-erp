@@ -43,7 +43,7 @@ public class SettingsController {
     }
 
     @PutMapping("/company")
-    @PreAuthorize("hasRole('ADMIN') and hasAuthority('SETTINGS_EDIT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') and hasAuthority('SETTINGS_EDIT')")
     public CompanySettingsDTO updateCompany(@RequestBody CompanySettingsDTO dto) {
         return companySettingsService.update(dto);
     }
@@ -55,7 +55,7 @@ public class SettingsController {
     }
 
     @PutMapping("/invoice")
-    @PreAuthorize("hasRole('ADMIN') and hasAuthority('SETTINGS_EDIT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') and hasAuthority('SETTINGS_EDIT')")
     public InvoiceSettingsDTO updateInvoice(@RequestBody InvoiceSettingsDTO dto) {
         return invoiceSettingsService.update(dto);
     }
@@ -67,7 +67,7 @@ public class SettingsController {
     }
 
     @PutMapping("/tax")
-    @PreAuthorize("hasRole('ADMIN') and hasAuthority('SETTINGS_EDIT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') and hasAuthority('SETTINGS_EDIT')")
     public TaxSettingsDTO updateTax(@RequestBody TaxSettingsDTO dto) {
         return taxSettingsService.update(dto);
     }
@@ -79,7 +79,7 @@ public class SettingsController {
     }
 
     @PutMapping("/system")
-    @PreAuthorize("hasRole('ADMIN') and hasAuthority('SETTINGS_EDIT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') and hasAuthority('SETTINGS_EDIT')")
     public SystemSettingsDTO updateSystem(@RequestBody SystemSettingsDTO dto) {
         return systemSettingsService.update(dto);
     }

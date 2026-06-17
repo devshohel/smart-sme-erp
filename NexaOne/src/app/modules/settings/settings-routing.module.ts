@@ -11,19 +11,20 @@ import { SystemSettingsComponent } from './system-settings/system-settings.compo
 import { TaxSettingsComponent } from './tax-settings/tax-settings.component';
 import { UserFormComponent } from './user-form/user-form.component';
 import { UsersListComponent } from './users-list/users-list.component';
+import { PermissionGuard } from '../auth/permission.guard';
 
 const routes: Routes = [
-  { path: 'company', component: CompanySettingsComponent },
-  { path: 'invoice', component: InvoiceSettingsComponent },
-  { path: 'tax', component: TaxSettingsComponent },
-  { path: 'system', component: SystemSettingsComponent },
-  { path: 'users', component: UsersListComponent },
-  { path: 'users/create', component: UserFormComponent },
-  { path: 'users/edit/:id', component: UserFormComponent },
-  { path: 'roles-permissions', component: RolePermissionsComponent },
-  { path: 'activity-logs', component: ActivityLogListComponent },
-  { path: 'audit-logs', component: AuditLogListComponent },
-  { path: 'login-history', component: LoginHistoryListComponent },
+  { path: 'company', component: CompanySettingsComponent, canActivate: [PermissionGuard], data: { permissions: ['SETTINGS_VIEW'] } },
+  { path: 'invoice', component: InvoiceSettingsComponent, canActivate: [PermissionGuard], data: { permissions: ['SETTINGS_VIEW'] } },
+  { path: 'tax', component: TaxSettingsComponent, canActivate: [PermissionGuard], data: { permissions: ['SETTINGS_VIEW'] } },
+  { path: 'system', component: SystemSettingsComponent, canActivate: [PermissionGuard], data: { permissions: ['SETTINGS_VIEW'] } },
+  { path: 'users', component: UsersListComponent, canActivate: [PermissionGuard], data: { permissions: ['USER_VIEW'] } },
+  { path: 'users/create', component: UserFormComponent, canActivate: [PermissionGuard], data: { permissions: ['USER_CREATE'] } },
+  { path: 'users/edit/:id', component: UserFormComponent, canActivate: [PermissionGuard], data: { permissions: ['USER_EDIT'] } },
+  { path: 'roles-permissions', component: RolePermissionsComponent, canActivate: [PermissionGuard], data: { permissions: ['ROLE_VIEW'] } },
+  { path: 'activity-logs', component: ActivityLogListComponent, canActivate: [PermissionGuard], data: { permissions: ['ACTIVITY_VIEW'] } },
+  { path: 'audit-logs', component: AuditLogListComponent, canActivate: [PermissionGuard], data: { permissions: ['AUDIT_VIEW'] } },
+  { path: 'login-history', component: LoginHistoryListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['LOGIN_HISTORY_VIEW', 'AUDIT_VIEW'] } },
   { path: 'change-password', component: ChangePasswordComponent },
   { path: '', redirectTo: 'company', pathMatch: 'full' }
 ];

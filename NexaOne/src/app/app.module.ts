@@ -9,6 +9,7 @@ import { AppComponent } from './app.component';
 import { MainLayoutComponent } from './layouts/main-layout/main-layout.component';
 import { SidebarComponent } from './layouts/main-layout/sidebar/sidebar.component';
 import { NavbarComponent } from './layouts/main-layout/navbar/navbar.component';
+import { UnauthorizedComponent } from './unauthorized/unauthorized.component';
 
 import { SharedModule } from './shared/shared.module';
 import { JwtInterceptor } from './modules/auth/jwt.interceptor';
@@ -18,7 +19,8 @@ import { JwtInterceptor } from './modules/auth/jwt.interceptor';
     AppComponent,
     MainLayoutComponent,
     SidebarComponent,
-    NavbarComponent
+    NavbarComponent,
+    UnauthorizedComponent
   ],
   imports: [
     BrowserModule,

@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerDetail, CustomerLedger, CustomerLedgerEntry, CustomerTransaction } from '../../../models/customer.model';
 import { Status } from '../../../models/product.model';
 import { CustomerService } from '../../../services/customer.service';
+import { AuthService } from '../../auth/auth.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
 @Component({
@@ -26,7 +27,8 @@ export class CustomerDetailsComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private customerService: CustomerService
+    private customerService: CustomerService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -170,6 +172,10 @@ export class CustomerDetailsComponent implements OnInit {
 
   printStatement(): void {
     window.print();
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
   }
 
   trackTransaction(_: number, transaction: CustomerTransaction): number {

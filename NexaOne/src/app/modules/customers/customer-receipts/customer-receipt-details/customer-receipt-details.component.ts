@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerReceipt } from '../../../../models/customer-receipt.model';
 import { CustomerReceiptService } from '../../../../services/customer-receipt.service';
+import { AuthService } from '../../../auth/auth.service';
 import { debugApiError, extractApiErrorMessage } from '../../../../shared/utils/api-error.util';
 
 @Component({
@@ -17,7 +18,8 @@ export class CustomerReceiptDetailsComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private receiptService: CustomerReceiptService
+    private receiptService: CustomerReceiptService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -82,5 +84,9 @@ export class CustomerReceiptDetailsComponent implements OnInit {
         debugApiError('CustomerReceiptDetailsComponent.cancelReceipt', error);
       }
     });
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
   }
 }

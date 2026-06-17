@@ -33,7 +33,7 @@ public class RolePermissionController {
     }
 
     @PutMapping("/{roleId}/permissions")
-    @PreAuthorize("hasRole('ADMIN') and hasAuthority('ROLE_EDIT')")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN','ADMIN') and hasAuthority('ROLE_EDIT')")
     public ResponseEntity<List<PermissionDTO>> updateRolePermissions(
             @PathVariable Long roleId,
             @Valid @RequestBody RolePermissionUpdateDTO dto) {

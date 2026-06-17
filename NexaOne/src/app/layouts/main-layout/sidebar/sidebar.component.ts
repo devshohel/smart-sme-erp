@@ -80,11 +80,11 @@ export class SidebarComponent {
   }
 
   canViewSettingsMenu(): boolean {
-    return this.isAdmin() || this.hasAnyPermission(['SETTINGS_VIEW', 'USER_VIEW', 'ROLE_VIEW', 'ACTIVITY_VIEW', 'AUDIT_VIEW']);
+    return this.hasAnyPermission(['SETTINGS_VIEW', 'USER_VIEW', 'ROLE_VIEW', 'ACTIVITY_VIEW', 'AUDIT_VIEW', 'LOGIN_HISTORY_VIEW']);
   }
 
   canViewActivityLogs(): boolean {
-    return this.isAdmin() || this.hasPermission('ACTIVITY_VIEW');
+    return this.hasPermission('ACTIVITY_VIEW');
   }
 
   canViewAuditLogs(): boolean {
@@ -96,16 +96,15 @@ export class SidebarComponent {
   }
 
   canShowAuditLogs(): boolean {
-    return this.isAdmin() || this.hasPermission('AUDIT_VIEW');
+    return this.hasPermission('AUDIT_VIEW');
   }
 
   canShowLoginHistory(): boolean {
-    return this.isAdmin() || this.hasAnyPermission(['AUDIT_VIEW', 'ACTIVITY_VIEW']);
+    return this.hasAnyPermission(['LOGIN_HISTORY_VIEW', 'AUDIT_VIEW']);
   }
 
   isAdmin(): boolean {
-    const role = this.authService.getCurrentUser()?.role;
-    return role === 'ADMIN' || role === 'ROLE_ADMIN';
+    return this.authService.hasRole('ADMIN') || this.authService.isSuperAdmin();
   }
 
   closeSidebar(): void {

@@ -9,6 +9,7 @@ import { CustomerService } from '../../services/customer.service';
 import { InventoryWarehouseService } from '../../services/inventory-warehouse.service';
 import { ProductService } from '../../services/product.service';
 import { SupplierService } from '../../services/supplier.service';
+import { AuthService } from '../auth/auth.service';
 import {
   CustomerDueReport,
   ProfitLossSummary,
@@ -61,7 +62,8 @@ export class ReportsComponent implements OnInit {
     private customerService: CustomerService,
     private supplierService: SupplierService,
     private productService: ProductService,
-    private warehouseService: InventoryWarehouseService
+    private warehouseService: InventoryWarehouseService,
+    private authService: AuthService
   ) { }
 
   ngOnInit(): void {
@@ -136,6 +138,10 @@ export class ReportsComponent implements OnInit {
       return !!this.supplierDueReport?.rows.length;
     }
     return !!this.profitLossSummary;
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
   }
 
   private loadFilterOptions(): void {

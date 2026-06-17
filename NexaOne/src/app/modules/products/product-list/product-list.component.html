@@ -5,10 +5,10 @@
       <p class="text-muted mb-0">Manage product records, pricing, status, and references.</p>
     </div>
     <div class="toolbar-actions">
-      <button class="btn btn-outline-secondary btn-sm" (click)="exportCsv()">
+      <button *ngIf="hasPermission('PRODUCT_EXPORT') || hasPermission('PRODUCT_VIEW')" class="btn btn-outline-secondary btn-sm" (click)="exportCsv()">
         <i class="bi bi-filetype-csv me-1"></i> CSV
       </button>
-      <button class="btn btn-outline-secondary btn-sm" (click)="exportExcel()">
+      <button *ngIf="hasPermission('PRODUCT_EXPORT') || hasPermission('PRODUCT_VIEW')" class="btn btn-outline-secondary btn-sm" (click)="exportExcel()">
         <i class="bi bi-file-earmark-spreadsheet me-1"></i> Excel
       </button>
       <button *ngIf="hasPermission('PRODUCT_CREATE')" class="btn btn-success btn-sm px-3" routerLink="/products/add-product">
@@ -73,10 +73,10 @@
         <button class="btn btn-sm btn-outline-warning" *ngIf="hasPermission('PRODUCT_EDIT')" [disabled]="!selectedIds.size" (click)="bulkDeactivate()">
           <i class="bi bi-slash-circle me-1"></i> Deactivate
         </button>
-        <button class="btn btn-sm btn-outline-dark" [disabled]="!selectedIds.size" (click)="printSelected()">
+        <button *ngIf="hasPermission('PRODUCT_PRINT') || hasPermission('PRODUCT_BARCODE')" class="btn btn-sm btn-outline-dark" [disabled]="!selectedIds.size" (click)="printSelected()">
           <i class="bi bi-printer me-1"></i> Print Selected
         </button>
-        <button class="btn btn-sm btn-outline-dark" [disabled]="!products.length" (click)="printLabelSheet()">
+        <button *ngIf="hasPermission('PRODUCT_PRINT') || hasPermission('PRODUCT_BARCODE')" class="btn btn-sm btn-outline-dark" [disabled]="!products.length" (click)="printLabelSheet()">
           <i class="bi bi-grid-3x3-gap me-1"></i> Label Sheet
         </button>
         <select class="form-select form-select-sm page-size" [(ngModel)]="size" (change)="changePageSize()">
@@ -147,7 +147,7 @@
             </td>
             <td class="text-center pe-4">
               <div class="d-flex justify-content-center gap-2">
-                <button class="btn-action btn-print" title="Print barcode" (click)="printProduct(product)"><i class="bi bi-upc-scan"></i></button>
+                <button *ngIf="hasPermission('PRODUCT_PRINT') || hasPermission('PRODUCT_BARCODE')" class="btn-action btn-print" title="Print barcode" (click)="printProduct(product)"><i class="bi bi-upc-scan"></i></button>
                 <button class="btn-action btn-view" title="View" (click)="viewProduct(product)"><i class="bi bi-eye"></i></button>
                 <button *ngIf="hasPermission('PRODUCT_EDIT')" class="btn-action btn-edit" title="Edit" (click)="editProduct(product)"><i class="bi bi-pencil-square"></i></button>
                 <button *ngIf="hasPermission('PRODUCT_DELETE')" class="btn-action btn-delete" title="Delete" (click)="deleteProduct(product.id)"><i class="bi bi-trash"></i></button>

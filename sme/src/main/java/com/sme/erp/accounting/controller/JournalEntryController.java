@@ -39,13 +39,13 @@ public class JournalEntryController {
     }
 
     @PostMapping("/{id}/post")
-    @PreAuthorize("hasAuthority('ACCOUNTING_POST')")
+    @PreAuthorize("hasAuthority('JOURNAL_POST') or hasAuthority('ACCOUNTING_POST')")
     public ResponseEntity<JournalEntryDTO> post(@PathVariable Long id) {
         return ResponseEntity.ok(service.post(id));
     }
 
     @PostMapping("/{id}/cancel")
-    @PreAuthorize("hasAuthority('ACCOUNTING_DELETE')")
+    @PreAuthorize("hasAuthority('JOURNAL_CANCEL') or hasAuthority('ACCOUNTING_DELETE')")
     public ResponseEntity<JournalEntryDTO> cancel(@PathVariable Long id) {
         return ResponseEntity.ok(service.cancel(id));
     }

@@ -7,6 +7,7 @@ import { ProductService } from '../../../services/product.service';
 import { InventoryStockService } from '../../../services/inventory-stock.service';
 import { InventoryWarehouseService } from '../../../services/inventory-warehouse.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
+import { AuthService } from '../../auth/auth.service';
 
 function nonZeroNumberValidator(): ValidatorFn {
   return (control: AbstractControl): ValidationErrors | null => {
@@ -35,7 +36,8 @@ export class StockAdjustmentComponent implements OnInit {
     private fb: FormBuilder,
     private stockService: InventoryStockService,
     private productService: ProductService,
-    private warehouseService: InventoryWarehouseService
+    private warehouseService: InventoryWarehouseService,
+    private authService: AuthService
   ) {
     this.adjustmentForm = this.fb.group({
       productId: [null, Validators.required],
@@ -117,5 +119,9 @@ export class StockAdjustmentComponent implements OnInit {
   hasError(controlName: string, errorName: string): boolean {
     const control = this.adjustmentForm.get(controlName);
     return !!control && control.touched && control.hasError(errorName);
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
   }
 }

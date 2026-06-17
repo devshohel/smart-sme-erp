@@ -5,7 +5,7 @@
   </app-page-header>
 
   <app-card title="Adjustment Form" subtitle="Positive quantity increases stock. Negative quantity decreases stock.">
-    <form [formGroup]="adjustmentForm" (ngSubmit)="submit()" novalidate>
+    <form *ngIf="hasPermission('STOCK_ADJUSTMENT_CREATE')" [formGroup]="adjustmentForm" (ngSubmit)="submit()" novalidate>
       <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
       <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
 
@@ -49,5 +49,6 @@
         </button>
       </div>
     </form>
+    <div class="text-muted" *ngIf="!hasPermission('STOCK_ADJUSTMENT_CREATE')">You do not have permission to create stock adjustments.</div>
   </app-card>
 </div>

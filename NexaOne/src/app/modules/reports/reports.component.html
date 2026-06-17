@@ -5,10 +5,10 @@
       <p>Read-only ERP analytics from existing sales, purchase, inventory, customer, and supplier records.</p>
     </div>
     <div class="export-actions">
-      <button class="btn btn-outline-secondary btn-sm" type="button" disabled title="Coming Soon">
+      <button *ngIf="hasPermission('REPORT_EXPORT_PDF') || hasPermission('REPORT_EXPORT')" class="btn btn-outline-secondary btn-sm" type="button" disabled title="Coming Soon">
         <i class="bi bi-file-earmark-pdf me-1"></i> Export PDF
       </button>
-      <button class="btn btn-outline-secondary btn-sm" type="button" disabled title="Coming Soon">
+      <button *ngIf="hasPermission('REPORT_EXPORT_EXCEL') || hasPermission('REPORT_EXPORT')" class="btn btn-outline-secondary btn-sm" type="button" disabled title="Coming Soon">
         <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export Excel
       </button>
     </div>

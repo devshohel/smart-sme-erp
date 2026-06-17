@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { StockTransfer, StockTransferStatus } from '../../../models/stock-transfer.model';
 import { StockTransferService } from '../../../services/stock-transfer.service';
+import { AuthService } from '../../auth/auth.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
 @Component({
@@ -17,7 +18,8 @@ export class StockTransferDetailsComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private transferService: StockTransferService
+    private transferService: StockTransferService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -51,8 +53,10 @@ export class StockTransferDetailsComponent implements OnInit {
     if (confirm('Cancel this stock transfer?')) this.runAction('cancel');
   }
 
-  canEdit(status: StockTransferStatus): boolean { return ['DRAFT', 'PENDING', 'APPROVED'].includes(status); }
-  canApprove(status: StockTransferStatus): boolean { return status === 'DRAFT' || status === 'PENDING'; }
+  canEdit(status: StockTransferStatus): boolean { return this.hasPermission('TRANSFER_EDIT') && ['DRAFT', 'PENDING', 'APPROVED'].includes(status); }
+  canApprove(status: StockTransferStatus): boolean { return this.hasPermission('TRANSFER_APPROVE') && (status === 'DRAFT' || status === 'PENDING'); }
+
+  hasPermission(permission: string): boolean { return this.authService.hasPermission(permission); }
 
   statusClass(status: StockTransferStatus): string {
     switch (status) {

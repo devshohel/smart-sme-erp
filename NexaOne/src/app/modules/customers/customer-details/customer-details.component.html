@@ -6,13 +6,13 @@
       <button type="button" class="btn btn-outline-secondary" (click)="backToList()">
         <i class="bi bi-arrow-left me-1"></i> Back
       </button>
-      <button type="button" class="btn btn-outline-success" *ngIf="detail" (click)="newReceipt()">
+      <button type="button" class="btn btn-outline-success" *ngIf="detail && hasPermission('CUSTOMER_RECEIPT_CREATE')" (click)="newReceipt()">
         <i class="bi bi-receipt me-1"></i> New Receipt
       </button>
-      <button type="button" class="btn btn-outline-secondary" *ngIf="detail" (click)="openAgingReport()">
+      <button type="button" class="btn btn-outline-secondary" *ngIf="detail && hasPermission('CUSTOMER_AGING_VIEW')" (click)="openAgingReport()">
         <i class="bi bi-hourglass-split me-1"></i> Aging
       </button>
-      <button type="button" class="btn btn-success" *ngIf="detail" (click)="editCustomer()">
+      <button type="button" class="btn btn-success" *ngIf="detail && hasPermission('CUSTOMER_EDIT')" (click)="editCustomer()">
         <i class="bi bi-pencil-square me-1"></i> Edit
       </button>
     </div>
@@ -57,10 +57,10 @@
 
     <section class="tabs-shell">
       <ul class="nav nav-tabs" role="tablist">
-        <li class="nav-item" role="presentation">
+        <li class="nav-item" role="presentation" *ngIf="hasPermission('CUSTOMER_LEDGER_VIEW')">
           <button class="nav-link" [class.active]="activeTab === 'overview'" type="button" (click)="setActiveTab('overview')">Overview</button>
         </li>
-        <li class="nav-item" role="presentation">
+        <li class="nav-item" role="presentation" *ngIf="hasPermission('CUSTOMER_STATEMENT_PRINT')">
           <button class="nav-link" [class.active]="activeTab === 'invoices'" type="button" (click)="setActiveTab('invoices')">Invoices</button>
         </li>
         <li class="nav-item" role="presentation">
@@ -179,7 +179,7 @@
             <input type="date" class="form-control form-control-sm" [(ngModel)]="ledgerFilters.toDate">
             <button class="btn btn-success btn-sm" type="button" (click)="loadLedger()">Search</button>
             <button class="btn btn-outline-secondary btn-sm" type="button" (click)="resetLedgerFilters()">Reset</button>
-            <button class="btn btn-outline-secondary btn-sm ms-auto" type="button" [disabled]="!ledgerEntries.length" (click)="exportLedgerCsv()">
+            <button *ngIf="hasPermission('CUSTOMER_EXPORT')" class="btn btn-outline-secondary btn-sm ms-auto" type="button" [disabled]="!ledgerEntries.length" (click)="exportLedgerCsv()">
               <i class="bi bi-filetype-csv me-1"></i> CSV
             </button>
           </div>
@@ -235,7 +235,7 @@
         <div class="tab-pane statement-print-area" *ngIf="activeTab === 'statement'">
           <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
             <h5 class="mb-0">Customer Statement Preview</h5>
-            <button class="btn btn-outline-secondary btn-sm print-hide" type="button" (click)="printStatement()">
+            <button *ngIf="hasPermission('CUSTOMER_STATEMENT_PRINT')" class="btn btn-outline-secondary btn-sm print-hide" type="button" (click)="printStatement()">
               <i class="bi bi-printer me-1"></i> Print Preview
             </button>
           </div>

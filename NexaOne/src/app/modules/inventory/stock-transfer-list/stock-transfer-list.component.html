@@ -1,7 +1,7 @@
 <div class="inventory-page container-fluid p-4">
   <div class="page-actions mb-3">
     <app-page-header title="Stock Transfers" subtitle="Warehouse-to-warehouse transfer workflow."></app-page-header>
-    <button type="button" class="btn btn-success" (click)="createTransfer()">
+    <button *ngIf="hasPermission('TRANSFER_CREATE')" type="button" class="btn btn-success" (click)="createTransfer()">
       <i class="bi bi-plus-square me-1"></i> New Transfer
     </button>
   </div>
@@ -86,9 +86,9 @@
                 <button class="btn-action btn-view" title="View" (click)="view(transfer)"><i class="bi bi-eye"></i></button>
                 <button *ngIf="canEdit(transfer.status)" class="btn-action btn-edit" title="Edit" (click)="edit(transfer)"><i class="bi bi-pencil"></i></button>
                 <button *ngIf="canApprove(transfer.status)" class="btn-action btn-approve" title="Approve" (click)="approve(transfer)"><i class="bi bi-check2-circle"></i></button>
-                <button *ngIf="transfer.status === 'APPROVED'" class="btn-action btn-send" title="Send" (click)="send(transfer)"><i class="bi bi-truck"></i></button>
-                <button *ngIf="transfer.status === 'IN_TRANSIT'" class="btn-action btn-receive" title="Receive" (click)="receive(transfer)"><i class="bi bi-box-arrow-in-down"></i></button>
-                <button *ngIf="canEdit(transfer.status)" class="btn-action btn-cancel" title="Cancel" (click)="cancel(transfer)"><i class="bi bi-x-circle"></i></button>
+                <button *ngIf="transfer.status === 'APPROVED' && hasPermission('TRANSFER_SEND')" class="btn-action btn-send" title="Send" (click)="send(transfer)"><i class="bi bi-truck"></i></button>
+                <button *ngIf="transfer.status === 'IN_TRANSIT' && hasPermission('TRANSFER_RECEIVE')" class="btn-action btn-receive" title="Receive" (click)="receive(transfer)"><i class="bi bi-box-arrow-in-down"></i></button>
+                <button *ngIf="canEdit(transfer.status) && hasPermission('TRANSFER_CANCEL')" class="btn-action btn-cancel" title="Cancel" (click)="cancel(transfer)"><i class="bi bi-x-circle"></i></button>
               </div>
             </td>
           </tr>

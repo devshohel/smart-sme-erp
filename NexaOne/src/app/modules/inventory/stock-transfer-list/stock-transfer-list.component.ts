@@ -4,6 +4,7 @@ import { InventoryWarehouse } from '../../../models/inventory-warehouse.model';
 import { StockTransfer, StockTransferStatus } from '../../../models/stock-transfer.model';
 import { InventoryWarehouseService } from '../../../services/inventory-warehouse.service';
 import { StockTransferService } from '../../../services/stock-transfer.service';
+import { AuthService } from '../../auth/auth.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
 type SortDirection = 'asc' | 'desc';
@@ -40,6 +41,7 @@ export class StockTransferListComponent implements OnInit {
   constructor(
     private transferService: StockTransferService,
     private warehouseService: InventoryWarehouseService,
+    private authService: AuthService,
     private router: Router
   ) {}
 
@@ -141,11 +143,15 @@ export class StockTransferListComponent implements OnInit {
   }
 
   canEdit(status: StockTransferStatus): boolean {
-    return ['DRAFT', 'PENDING', 'APPROVED'].includes(status);
+    return this.hasPermission('TRANSFER_EDIT') && ['DRAFT', 'PENDING', 'APPROVED'].includes(status);
   }
 
   canApprove(status: StockTransferStatus): boolean {
-    return status === 'DRAFT' || status === 'PENDING';
+    return this.hasPermission('TRANSFER_APPROVE') && (status === 'DRAFT' || status === 'PENDING');
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
   }
 
   statusClass(status: StockTransferStatus): string {

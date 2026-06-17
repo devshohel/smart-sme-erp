@@ -5,13 +5,13 @@
       <p class="text-muted mb-0">Browse customer accounts, contact details, credit limits, and balances.</p>
     </div>
     <div class="toolbar-actions">
-      <button class="btn btn-outline-secondary btn-sm" [disabled]="!customers.length" (click)="exportCsv()">
+      <button *ngIf="hasPermission('CUSTOMER_EXPORT') || hasPermission('CUSTOMER_VIEW')" class="btn btn-outline-secondary btn-sm" [disabled]="!customers.length" (click)="exportCsv()">
         <i class="bi bi-filetype-csv me-1"></i> CSV
       </button>
-      <button class="btn btn-outline-secondary btn-sm" [disabled]="!customers.length" (click)="exportExcel()">
+      <button *ngIf="hasPermission('CUSTOMER_EXPORT') || hasPermission('CUSTOMER_VIEW')" class="btn btn-outline-secondary btn-sm" [disabled]="!customers.length" (click)="exportExcel()">
         <i class="bi bi-file-earmark-spreadsheet me-1"></i> Excel
       </button>
-      <button class="btn btn-outline-secondary btn-sm" routerLink="/customers/aging">
+      <button *ngIf="hasPermission('CUSTOMER_AGING_VIEW')" class="btn btn-outline-secondary btn-sm" routerLink="/customers/aging">
         <i class="bi bi-hourglass-split me-1"></i> Aging
       </button>
       <button *ngIf="hasPermission('CUSTOMER_CREATE')" class="btn btn-success btn-sm px-3" (click)="createCustomer()">

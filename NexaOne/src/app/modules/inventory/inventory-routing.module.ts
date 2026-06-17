@@ -9,6 +9,7 @@ import { StockCardComponent } from './stock-card/stock-card.component';
 import { StockTransferListComponent } from './stock-transfer-list/stock-transfer-list.component';
 import { StockTransferFormComponent } from './stock-transfer-form/stock-transfer-form.component';
 import { StockTransferDetailsComponent } from './stock-transfer-details/stock-transfer-details.component';
+import { PermissionGuard } from '../auth/permission.guard';
 
 const routes: Routes = [
   {
@@ -20,15 +21,15 @@ const routes: Routes = [
       { path: 'uom', redirectTo: '/products/uom', pathMatch: 'full' },
       { path: 'uom-settings', redirectTo: '/products/uom', pathMatch: 'full' },
       { path: 'warehouse', redirectTo: 'warehouses', pathMatch: 'full' },
-      { path: 'warehouses', component: WarehouseComponent },
-      { path: 'stocks', component: StockLevelComponent },
-      { path: 'stock-card', component: StockCardComponent },
-      { path: 'transfers', component: StockTransferListComponent },
-      { path: 'transfers/create', component: StockTransferFormComponent },
-      { path: 'transfers/edit/:id', component: StockTransferFormComponent },
-      { path: 'transfers/details/:id', component: StockTransferDetailsComponent },
-      { path: 'adjustments', component: StockAdjustmentComponent },
-      { path: 'movements', component: StockMovementComponent },
+      { path: 'warehouses', component: WarehouseComponent, canActivate: [PermissionGuard], data: { permissions: ['INVENTORY_VIEW'] } },
+      { path: 'stocks', component: StockLevelComponent, canActivate: [PermissionGuard], data: { permissions: ['INVENTORY_VIEW'] } },
+      { path: 'stock-card', component: StockCardComponent, canActivate: [PermissionGuard], data: { permissions: ['INVENTORY_VIEW'] } },
+      { path: 'transfers', component: StockTransferListComponent, canActivate: [PermissionGuard], data: { permissions: ['TRANSFER_VIEW'] } },
+      { path: 'transfers/create', component: StockTransferFormComponent, canActivate: [PermissionGuard], data: { permissions: ['TRANSFER_CREATE'] } },
+      { path: 'transfers/edit/:id', component: StockTransferFormComponent, canActivate: [PermissionGuard], data: { permissions: ['TRANSFER_EDIT'] } },
+      { path: 'transfers/details/:id', component: StockTransferDetailsComponent, canActivate: [PermissionGuard], data: { permissions: ['TRANSFER_VIEW'] } },
+      { path: 'adjustments', component: StockAdjustmentComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['STOCK_ADJUSTMENT_CREATE', 'STOCK_ADJUSTMENT_VIEW'] } },
+      { path: 'movements', component: StockMovementComponent, canActivate: [PermissionGuard], data: { permissions: ['INVENTORY_VIEW'] } },
       { path: '', redirectTo: 'stocks', pathMatch: 'full' }
     ]
   }

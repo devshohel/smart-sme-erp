@@ -4,6 +4,7 @@ import { CustomerOption } from '../../../../models/customer.model';
 import { CustomerReceipt, CustomerReceiptPaymentMethod, CustomerReceiptSearchParams, CustomerReceiptStatus } from '../../../../models/customer-receipt.model';
 import { CustomerService } from '../../../../services/customer.service';
 import { CustomerReceiptService } from '../../../../services/customer-receipt.service';
+import { AuthService } from '../../../auth/auth.service';
 import { debugApiError, extractApiErrorMessage } from '../../../../shared/utils/api-error.util';
 
 type SortDirection = 'asc' | 'desc';
@@ -44,6 +45,7 @@ export class CustomerReceiptListComponent implements OnInit {
   constructor(
     private receiptService: CustomerReceiptService,
     private customerService: CustomerService,
+    private authService: AuthService,
     private router: Router
   ) {}
 
@@ -225,6 +227,10 @@ export class CustomerReceiptListComponent implements OnInit {
   exportExcel(): void {
     const rows = [this.exportHeaders(), ...this.receipts.map(receipt => this.exportValues(receipt))];
     this.downloadBlob(this.createXlsxBlob(rows), 'customer-receipts.xlsx');
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
   }
 
   paymentMethodClass(method?: CustomerReceiptPaymentMethod): string {

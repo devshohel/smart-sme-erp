@@ -58,11 +58,28 @@ export class AuthService {
   }
 
   hasPermission(permission: string): boolean {
-    return this.getPermissions().includes(permission);
+    return !!permission && (this.isSuperAdmin() || this.getPermissions().includes(permission));
   }
 
   hasAnyPermission(permissions: string[]): boolean {
-    return permissions.some(permission => this.hasPermission(permission));
+    return !!permissions?.length && (this.isSuperAdmin() || permissions.some(permission => this.hasPermission(permission)));
+  }
+
+  hasAllPermissions(permissions: string[]): boolean {
+    return !!permissions?.length && (this.isSuperAdmin() || permissions.every(permission => this.hasPermission(permission)));
+  }
+
+  hasRole(role: string): boolean {
+    const currentRole = this.normalizeRole(this.getCurrentUser()?.role);
+    return !!role && currentRole === this.normalizeRole(role);
+  }
+
+  isSuperAdmin(): boolean {
+    return this.hasRole('SUPER_ADMIN');
+  }
+
+  can(permission: string): boolean {
+    return this.hasPermission(permission);
   }
 
   getUsers(keyword?: string, status?: Status | ''): Observable<User[]> {
@@ -172,5 +189,9 @@ export class AuthService {
       params = params.set('module', filter.module.trim());
     }
     return params;
+  }
+
+  private normalizeRole(role?: string): string {
+    return (role || '').replace(/^ROLE_/, '').toUpperCase();
   }
 }

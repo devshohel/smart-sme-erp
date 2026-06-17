@@ -5,13 +5,13 @@
       <p class="text-muted mb-0">Manage draft and posted customer receipt records.</p>
     </div>
     <div class="toolbar-actions">
-      <button class="btn btn-outline-secondary btn-sm" [disabled]="!receipts.length" (click)="exportCsv()">
+      <button *ngIf="hasPermission('CUSTOMER_RECEIPT_EXPORT')" class="btn btn-outline-secondary btn-sm" [disabled]="!receipts.length" (click)="exportCsv()">
         <i class="bi bi-filetype-csv me-1"></i> CSV
       </button>
-      <button class="btn btn-outline-secondary btn-sm" [disabled]="!receipts.length" (click)="exportExcel()">
+      <button *ngIf="hasPermission('CUSTOMER_RECEIPT_EXPORT')" class="btn btn-outline-secondary btn-sm" [disabled]="!receipts.length" (click)="exportExcel()">
         <i class="bi bi-file-earmark-spreadsheet me-1"></i> Excel
       </button>
-      <button class="btn btn-success btn-sm px-3" (click)="createReceipt()">
+      <button *ngIf="hasPermission('CUSTOMER_RECEIPT_CREATE')" class="btn btn-success btn-sm px-3" (click)="createReceipt()">
         <i class="bi bi-plus-lg me-1"></i> New Receipt
       </button>
     </div>
@@ -62,7 +62,7 @@
         <button type="button" class="btn btn-outline-secondary" (click)="resetFilters()" [disabled]="loading">
           <i class="bi bi-x-lg"></i>
         </button>
-        <button type="button" class="btn btn-outline-success" *ngIf="filters.customerId" (click)="openCreateForCustomer()">
+        <button type="button" class="btn btn-outline-success" *ngIf="filters.customerId && hasPermission('CUSTOMER_RECEIPT_CREATE')" (click)="openCreateForCustomer()">
           <i class="bi bi-receipt-cutoff me-1"></i> New for Customer
         </button>
       </div>
@@ -128,13 +128,13 @@
                 <button type="button" class="btn-action btn-view" title="View" (click)="viewReceipt(receipt)">
                   <i class="bi bi-eye"></i>
                 </button>
-                <button *ngIf="receipt.status === 'DRAFT'" type="button" class="btn-action btn-edit" title="Edit" (click)="editReceipt(receipt)">
+                <button *ngIf="receipt.status === 'DRAFT' && hasPermission('CUSTOMER_RECEIPT_EDIT')" type="button" class="btn-action btn-edit" title="Edit" (click)="editReceipt(receipt)">
                   <i class="bi bi-pencil-square"></i>
                 </button>
-                <button *ngIf="receipt.status === 'DRAFT'" type="button" class="btn-action btn-post" title="Post" (click)="postReceipt(receipt)">
+                <button *ngIf="receipt.status === 'DRAFT' && hasPermission('CUSTOMER_RECEIPT_POST')" type="button" class="btn-action btn-post" title="Post" (click)="postReceipt(receipt)">
                   <i class="bi bi-check2-circle"></i>
                 </button>
-                <button *ngIf="receipt.status === 'DRAFT'" type="button" class="btn-action btn-delete" title="Cancel" (click)="cancelReceipt(receipt)">
+                <button *ngIf="receipt.status === 'DRAFT' && hasPermission('CUSTOMER_RECEIPT_CANCEL')" type="button" class="btn-action btn-delete" title="Cancel" (click)="cancelReceipt(receipt)">
                   <i class="bi bi-x-circle"></i>
                 </button>
               </div>

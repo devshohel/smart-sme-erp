@@ -32,9 +32,9 @@
         <div class="action-group">
           <button *ngIf="canEdit(transfer.status)" class="btn btn-outline-primary btn-sm" (click)="edit()"><i class="bi bi-pencil me-1"></i> Edit</button>
           <button *ngIf="canApprove(transfer.status)" class="btn btn-success btn-sm" (click)="approve()"><i class="bi bi-check2-circle me-1"></i> Approve</button>
-          <button *ngIf="transfer.status === 'APPROVED'" class="btn btn-warning btn-sm" (click)="send()"><i class="bi bi-truck me-1"></i> Send</button>
-          <button *ngIf="transfer.status === 'IN_TRANSIT'" class="btn btn-success btn-sm" (click)="receive()"><i class="bi bi-box-arrow-in-down me-1"></i> Receive</button>
-          <button *ngIf="canEdit(transfer.status)" class="btn btn-outline-danger btn-sm" (click)="cancel()"><i class="bi bi-x-circle me-1"></i> Cancel</button>
+          <button *ngIf="transfer.status === 'APPROVED' && hasPermission('TRANSFER_SEND')" class="btn btn-warning btn-sm" (click)="send()"><i class="bi bi-truck me-1"></i> Send</button>
+          <button *ngIf="transfer.status === 'IN_TRANSIT' && hasPermission('TRANSFER_RECEIVE')" class="btn btn-success btn-sm" (click)="receive()"><i class="bi bi-box-arrow-in-down me-1"></i> Receive</button>
+          <button *ngIf="canEdit(transfer.status) && hasPermission('TRANSFER_CANCEL')" class="btn btn-outline-danger btn-sm" (click)="cancel()"><i class="bi bi-x-circle me-1"></i> Cancel</button>
         </div>
       </div>
 

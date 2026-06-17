@@ -15,7 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
-    private static final String[] ERP_ROLES = {"ADMIN", "MANAGER", "STAFF"};
+    private static final String[] ERP_ROLES = {"SUPER_ADMIN", "ADMIN", "MANAGER", "STAFF", "AUDITOR"};
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 

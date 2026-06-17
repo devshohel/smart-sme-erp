@@ -25,13 +25,13 @@ public class CustomerReceiptController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
+    @PreAuthorize("hasAuthority('CUSTOMER_RECEIPT_VIEW')")
     public ResponseEntity<List<CustomerReceiptDTO>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
 
     @GetMapping("/page")
-    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
+    @PreAuthorize("hasAuthority('CUSTOMER_RECEIPT_VIEW')")
     public ResponseEntity<CustomerReceiptPageDTO> getPage(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long customerId,
@@ -47,31 +47,31 @@ public class CustomerReceiptController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
+    @PreAuthorize("hasAuthority('CUSTOMER_RECEIPT_VIEW')")
     public ResponseEntity<CustomerReceiptDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('CUSTOMER_CREATE')")
+    @PreAuthorize("hasAuthority('CUSTOMER_RECEIPT_CREATE')")
     public ResponseEntity<CustomerReceiptDTO> create(@Valid @RequestBody CustomerReceiptDTO dto) {
         return ResponseEntity.ok(service.create(dto));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('CUSTOMER_EDIT')")
+    @PreAuthorize("hasAuthority('CUSTOMER_RECEIPT_EDIT')")
     public ResponseEntity<CustomerReceiptDTO> update(@PathVariable Long id, @Valid @RequestBody CustomerReceiptDTO dto) {
         return ResponseEntity.ok(service.update(id, dto));
     }
 
     @PostMapping("/{id}/post")
-    @PreAuthorize("hasAuthority('CUSTOMER_EDIT')")
+    @PreAuthorize("hasAuthority('CUSTOMER_RECEIPT_POST')")
     public ResponseEntity<CustomerReceiptDTO> post(@PathVariable Long id) {
         return ResponseEntity.ok(service.post(id));
     }
 
     @PostMapping("/{id}/cancel")
-    @PreAuthorize("hasAuthority('CUSTOMER_EDIT')")
+    @PreAuthorize("hasAuthority('CUSTOMER_RECEIPT_CANCEL')")
     public ResponseEntity<CustomerReceiptDTO> cancel(@PathVariable Long id) {
         return ResponseEntity.ok(service.cancel(id));
     }

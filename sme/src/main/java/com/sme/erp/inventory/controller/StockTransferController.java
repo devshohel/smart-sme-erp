@@ -25,13 +25,13 @@ public class StockTransferController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('INVENTORY_VIEW')")
+    @PreAuthorize("hasAuthority('TRANSFER_VIEW')")
     public ResponseEntity<List<StockTransferDTO>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
 
     @GetMapping("/page")
-    @PreAuthorize("hasAuthority('INVENTORY_VIEW')")
+    @PreAuthorize("hasAuthority('TRANSFER_VIEW')")
     public ResponseEntity<StockTransferPageDTO> getPage(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long fromWarehouseId,
@@ -48,43 +48,43 @@ public class StockTransferController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('INVENTORY_VIEW')")
+    @PreAuthorize("hasAuthority('TRANSFER_VIEW')")
     public ResponseEntity<StockTransferDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('INVENTORY_CREATE')")
+    @PreAuthorize("hasAuthority('TRANSFER_CREATE')")
     public ResponseEntity<StockTransferDTO> create(@Valid @RequestBody StockTransferDTO dto) {
         return ResponseEntity.ok(service.create(dto));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('INVENTORY_EDIT')")
+    @PreAuthorize("hasAuthority('TRANSFER_EDIT')")
     public ResponseEntity<StockTransferDTO> update(@PathVariable Long id, @Valid @RequestBody StockTransferDTO dto) {
         return ResponseEntity.ok(service.update(id, dto));
     }
 
     @PostMapping("/{id}/approve")
-    @PreAuthorize("hasAuthority('INVENTORY_EDIT')")
+    @PreAuthorize("hasAuthority('TRANSFER_APPROVE')")
     public ResponseEntity<StockTransferDTO> approve(@PathVariable Long id) {
         return ResponseEntity.ok(service.approve(id));
     }
 
     @PostMapping("/{id}/send")
-    @PreAuthorize("hasAuthority('INVENTORY_EDIT')")
+    @PreAuthorize("hasAuthority('TRANSFER_SEND')")
     public ResponseEntity<StockTransferDTO> send(@PathVariable Long id) {
         return ResponseEntity.ok(service.send(id));
     }
 
     @PostMapping("/{id}/receive")
-    @PreAuthorize("hasAuthority('INVENTORY_EDIT')")
+    @PreAuthorize("hasAuthority('TRANSFER_RECEIVE')")
     public ResponseEntity<StockTransferDTO> receive(@PathVariable Long id) {
         return ResponseEntity.ok(service.receive(id));
     }
 
     @PostMapping("/{id}/cancel")
-    @PreAuthorize("hasAuthority('INVENTORY_EDIT')")
+    @PreAuthorize("hasAuthority('TRANSFER_CANCEL')")
     public ResponseEntity<StockTransferDTO> cancel(@PathVariable Long id) {
         return ResponseEntity.ok(service.cancel(id));
     }

@@ -25,7 +25,7 @@ public class AdjustmentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('INVENTORY_EDIT')")
+    @PreAuthorize("hasAuthority('STOCK_ADJUSTMENT_CREATE')")
     public ResponseEntity<StockDTO> adjustStock(@RequestParam @NotNull @Positive Long productId,
                                                 @RequestParam @NotNull @Positive Long warehouseId,
                                                 @RequestParam @NotNull BigDecimal qty,
