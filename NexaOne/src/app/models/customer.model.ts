@@ -71,3 +71,41 @@ export interface CustomerDetail {
   recentSalesInvoices: CustomerTransaction[];
   recentSalesReturns: CustomerTransaction[];
 }
+
+export interface CustomerLedgerEntry {
+  date: string;
+  referenceType: string;
+  referenceNo: string;
+  description: string;
+  debit: number;
+  credit: number;
+  runningBalance: number;
+}
+
+export interface CustomerLedger {
+  customer: Customer;
+  fromDate?: string | null;
+  toDate?: string | null;
+  openingBalance: number;
+  closingBalance: number;
+  entries: CustomerLedgerEntry[];
+}
+
+export interface CustomerAgingRow {
+  customerId: number;
+  customerCode: string;
+  customerName: string;
+  current: number;
+  days1To30: number;
+  days31To60: number;
+  days61To90: number;
+  days90Plus: number;
+  totalDue: number;
+}
+
+export interface CustomerAgingReport {
+  fromDate?: string | null;
+  toDate?: string | null;
+  totalDue: number;
+  rows: CustomerAgingRow[];
+}

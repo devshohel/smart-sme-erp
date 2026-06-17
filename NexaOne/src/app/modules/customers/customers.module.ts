@@ -5,6 +5,7 @@ import { RouterModule } from '@angular/router';
 
 import { CustomersRoutingModule } from './customers-routing.module';
 import { SharedModule } from '../../shared/shared.module';
+import { CustomerAgingComponent } from './customer-aging/customer-aging.component';
 import { CustomerDetailsComponent } from './customer-details/customer-details.component';
 import { CustomerFormComponent } from './customer-form/customer-form.component';
 import { CustomerListComponent } from './customer-list/customer-list.component';
@@ -16,6 +17,7 @@ import { CustomerReceiptListComponent } from './customer-receipts/customer-recei
 @NgModule({
   declarations: [
     CustomerListComponent,
+    CustomerAgingComponent,
     CustomerFormComponent,
     CustomerDetailsComponent,
     CustomerReceiptListComponent,

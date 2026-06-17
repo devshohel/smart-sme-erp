@@ -1,12 +1,15 @@
 package com.sme.erp.customer.controller;
 
+import com.sme.erp.customer.dto.CustomerAgingReportDTO;
 import com.sme.erp.customer.dto.CustomerDTO;
 import com.sme.erp.customer.dto.CustomerDetailDTO;
+import com.sme.erp.customer.dto.CustomerLedgerDTO;
 import com.sme.erp.customer.dto.CustomerOptionDTO;
 import com.sme.erp.customer.dto.CustomerPageDTO;
 import com.sme.erp.customer.service.CustomerService;
 import com.sme.erp.enums.Status;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -57,6 +61,24 @@ public class CustomerController {
     @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
     public ResponseEntity<CustomerDetailDTO> getDetail(@PathVariable Long id) {
         return ResponseEntity.ok(customerService.getDetail(id));
+    }
+
+    @GetMapping("/{id}/ledger")
+    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
+    public ResponseEntity<CustomerLedgerDTO> getLedger(
+            @PathVariable Long id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        return ResponseEntity.ok(customerService.getLedger(id, fromDate, toDate));
+    }
+
+    @GetMapping("/aging")
+    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
+    public ResponseEntity<CustomerAgingReportDTO> getAging(
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        return ResponseEntity.ok(customerService.getAging(customerId, fromDate, toDate));
     }
 
     @GetMapping("/{id}")

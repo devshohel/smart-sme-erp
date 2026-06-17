@@ -3,7 +3,15 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
-import { Customer, CustomerDetail, CustomerOption, CustomerPage, CustomerSearchParams } from '../models/customer.model';
+import {
+  Customer,
+  CustomerAgingReport,
+  CustomerDetail,
+  CustomerLedger,
+  CustomerOption,
+  CustomerPage,
+  CustomerSearchParams
+} from '../models/customer.model';
 import { Status } from '../models/product.model';
 import { ApiResponse, unwrapApiResponse } from '../shared/utils/api-response.util';
 
@@ -63,6 +71,37 @@ export class CustomerService {
   getCustomerDetail(id: number): Observable<CustomerDetail> {
     return this.http
       .get<CustomerDetail | ApiResponse<CustomerDetail>>(`${this.baseUrl}/${id}/detail`)
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  getCustomerLedger(id: number, fromDate?: string, toDate?: string): Observable<CustomerLedger> {
+    let params = new HttpParams();
+    if (fromDate) {
+      params = params.set('fromDate', fromDate);
+    }
+    if (toDate) {
+      params = params.set('toDate', toDate);
+    }
+
+    return this.http
+      .get<CustomerLedger | ApiResponse<CustomerLedger>>(`${this.baseUrl}/${id}/ledger`, { params })
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  getCustomerAging(customerId?: number | null, fromDate?: string, toDate?: string): Observable<CustomerAgingReport> {
+    let params = new HttpParams();
+    if (customerId) {
+      params = params.set('customerId', String(customerId));
+    }
+    if (fromDate) {
+      params = params.set('fromDate', fromDate);
+    }
+    if (toDate) {
+      params = params.set('toDate', toDate);
+    }
+
+    return this.http
+      .get<CustomerAgingReport | ApiResponse<CustomerAgingReport>>(`${this.baseUrl}/aging`, { params })
       .pipe(map(response => unwrapApiResponse(response)));
   }
 

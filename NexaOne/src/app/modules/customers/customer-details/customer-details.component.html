@@ -9,6 +9,9 @@
       <button type="button" class="btn btn-outline-success" *ngIf="detail" (click)="newReceipt()">
         <i class="bi bi-receipt me-1"></i> New Receipt
       </button>
+      <button type="button" class="btn btn-outline-secondary" *ngIf="detail" (click)="openAgingReport()">
+        <i class="bi bi-hourglass-split me-1"></i> Aging
+      </button>
       <button type="button" class="btn btn-success" *ngIf="detail" (click)="editCustomer()">
         <i class="bi bi-pencil-square me-1"></i> Edit
       </button>
@@ -52,6 +55,26 @@
       </div>
     </section>
 
+    <section class="tabs-shell">
+      <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" [class.active]="activeTab === 'overview'" type="button" (click)="setActiveTab('overview')">Overview</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" [class.active]="activeTab === 'invoices'" type="button" (click)="setActiveTab('invoices')">Invoices</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" [class.active]="activeTab === 'receipts'" type="button" (click)="setActiveTab('receipts')">Receipts</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" [class.active]="activeTab === 'ledger'" type="button" (click)="setActiveTab('ledger')">Ledger</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" [class.active]="activeTab === 'statement'" type="button" (click)="setActiveTab('statement')">Statement</button>
+        </li>
+      </ul>
+      <div class="tab-content">
+        <div class="tab-pane" *ngIf="activeTab === 'overview'">
     <section class="content-grid">
       <div class="panel">
         <div class="panel-heading">
@@ -81,26 +104,7 @@
         </div>
       </div>
     </section>
-
-    <section class="tabs-shell">
-      <ul class="nav nav-tabs" role="tablist">
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" [class.active]="activeTab === 'invoices'" type="button" (click)="setActiveTab('invoices')">Recent Sales Invoices</button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" [class.active]="activeTab === 'returns'" type="button" (click)="setActiveTab('returns')">Recent Sales Returns</button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" [class.active]="activeTab === 'receipts'" type="button" (click)="setActiveTab('receipts')">Recent Receipts</button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" [class.active]="activeTab === 'ledger'" type="button" (click)="setActiveTab('ledger')">Customer Ledger</button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" [class.active]="activeTab === 'notes'" type="button" (click)="setActiveTab('notes')">Notes</button>
-        </li>
-      </ul>
-      <div class="tab-content">
+        </div>
         <div class="tab-pane" *ngIf="activeTab === 'invoices'">
           <div class="table-responsive" *ngIf="detail?.recentSalesInvoices?.length; else noInvoices">
             <table class="table table-hover align-middle mb-0">
@@ -128,32 +132,6 @@
           </div>
           <ng-template #noInvoices>
             <div class="empty-state">No recent sales invoices found.</div>
-          </ng-template>
-        </div>
-
-        <div class="tab-pane" *ngIf="activeTab === 'returns'">
-          <div class="table-responsive" *ngIf="detail?.recentSalesReturns?.length; else noReturns">
-            <table class="table table-hover align-middle mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Return No</th>
-                  <th>Date</th>
-                  <th class="text-end">Amount</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let salesReturn of detail?.recentSalesReturns || []; trackBy: trackTransaction">
-                  <td>{{ salesReturn.documentNo }}</td>
-                  <td>{{ salesReturn.date | date:'mediumDate' }}</td>
-                  <td class="text-end">{{ salesReturn.amount | number:'1.2-2' }}</td>
-                  <td>{{ salesReturn.status }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <ng-template #noReturns>
-            <div class="empty-state">No recent sales returns found.</div>
           </ng-template>
         </div>
 
@@ -196,19 +174,106 @@
         </div>
 
         <div class="tab-pane" *ngIf="activeTab === 'ledger'">
-          <div class="placeholder-panel">
-            <h6>Existing Customer Ledger</h6>
-            <p>The current application has an accounting customer ledger screen, but this batch does not create a real customer ledger table or change posting logic.</p>
-            <a class="btn btn-outline-success btn-sm" routerLink="/accounting/customer-ledger">
-              Open Ledger
-            </a>
+          <div class="report-toolbar">
+            <input type="date" class="form-control form-control-sm" [(ngModel)]="ledgerFilters.fromDate">
+            <input type="date" class="form-control form-control-sm" [(ngModel)]="ledgerFilters.toDate">
+            <button class="btn btn-success btn-sm" type="button" (click)="loadLedger()">Search</button>
+            <button class="btn btn-outline-secondary btn-sm" type="button" (click)="resetLedgerFilters()">Reset</button>
+            <button class="btn btn-outline-secondary btn-sm ms-auto" type="button" [disabled]="!ledgerEntries.length" (click)="exportLedgerCsv()">
+              <i class="bi bi-filetype-csv me-1"></i> CSV
+            </button>
           </div>
+          <div class="alert alert-danger mt-3" *ngIf="ledgerError">{{ ledgerError }}</div>
+          <div class="details-loading" *ngIf="ledgerLoading">
+            <span class="spinner-border spinner-border-sm me-2"></span> Loading ledger...
+          </div>
+          <ng-container *ngIf="!ledgerLoading">
+            <div class="table-responsive" *ngIf="ledgerEntries.length; else noLedger">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Date</th>
+                    <th>Reference Type</th>
+                    <th>Reference No</th>
+                    <th>Description</th>
+                    <th class="text-end">Debit</th>
+                    <th class="text-end">Credit</th>
+                    <th class="text-end">Running Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of pagedLedgerEntries; trackBy: trackLedger">
+                    <td>{{ row.date | date:'mediumDate' }}</td>
+                    <td>{{ row.referenceType }}</td>
+                    <td>{{ row.referenceNo || 'N/A' }}</td>
+                    <td>{{ row.description }}</td>
+                    <td class="text-end">{{ row.debit | number:'1.2-2' }}</td>
+                    <td class="text-end">{{ row.credit | number:'1.2-2' }}</td>
+                    <td class="text-end fw-semibold">{{ row.runningBalance | number:'1.2-2' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination-row mt-3" *ngIf="ledgerEntries.length">
+              <span>Page {{ ledgerPage + 1 }} of {{ ledgerTotalPages }}</span>
+              <select class="form-select form-select-sm page-size" [(ngModel)]="ledgerSize" (change)="changeLedgerPageSize()">
+                <option *ngFor="let option of ledgerPageSizes" [ngValue]="option">{{ option }} / page</option>
+              </select>
+              <div class="btn-group">
+                <button class="btn btn-sm btn-outline-secondary" [disabled]="ledgerPage === 0" (click)="goToLedgerPage(0)">First</button>
+                <button class="btn btn-sm btn-outline-secondary" [disabled]="ledgerPage === 0" (click)="goToLedgerPage(ledgerPage - 1)">Prev</button>
+                <button class="btn btn-sm btn-outline-secondary" [disabled]="ledgerPage + 1 >= ledgerTotalPages" (click)="goToLedgerPage(ledgerPage + 1)">Next</button>
+                <button class="btn btn-sm btn-outline-secondary" [disabled]="ledgerPage + 1 >= ledgerTotalPages" (click)="goToLedgerPage(ledgerTotalPages - 1)">Last</button>
+              </div>
+            </div>
+            <ng-template #noLedger>
+              <div class="empty-state">No ledger entries found.</div>
+            </ng-template>
+          </ng-container>
         </div>
 
-        <div class="tab-pane" *ngIf="activeTab === 'notes'">
-          <div class="placeholder-panel">
-            <h6>Notes</h6>
-            <p>Customer notes are reserved for a future batch.</p>
+        <div class="tab-pane statement-print-area" *ngIf="activeTab === 'statement'">
+          <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+            <h5 class="mb-0">Customer Statement Preview</h5>
+            <button class="btn btn-outline-secondary btn-sm print-hide" type="button" (click)="printStatement()">
+              <i class="bi bi-printer me-1"></i> Print Preview
+            </button>
+          </div>
+          <div class="statement-box">
+            <div>
+              <h6>{{ detail?.customer?.name }}</h6>
+              <p>{{ detail?.customer?.customerCode }}<br>{{ detail?.customer?.phone || 'N/A' }}<br>{{ detail?.customer?.email || 'N/A' }}</p>
+            </div>
+            <div class="text-end">
+              <h6>Statement</h6>
+              <p>Opening Balance: {{ (ledger?.openingBalance || 0) | number:'1.2-2' }}<br>Closing Balance: {{ (ledger?.closingBalance || 0) | number:'1.2-2' }}</p>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Reference</th>
+                  <th>Description</th>
+                  <th class="text-end">Debit</th>
+                  <th class="text-end">Credit</th>
+                  <th class="text-end">Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of ledgerEntries; trackBy: trackLedger">
+                  <td>{{ row.date | date:'mediumDate' }}</td>
+                  <td>{{ row.referenceType }}</td>
+                  <td>{{ row.referenceNo || 'N/A' }}</td>
+                  <td>{{ row.description }}</td>
+                  <td class="text-end">{{ row.debit | number:'1.2-2' }}</td>
+                  <td class="text-end">{{ row.credit | number:'1.2-2' }}</td>
+                  <td class="text-end fw-semibold">{{ row.runningBalance | number:'1.2-2' }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

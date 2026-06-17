@@ -1,0 +1,97 @@
+<div class="container-fluid p-4 customer-aging-page">
+  <div class="page-title-row">
+    <div>
+      <h4 class="fw-bold mb-0">Customer Aging</h4>
+      <p class="text-muted mb-0">Review outstanding customer dues by invoice age.</p>
+    </div>
+    <div class="toolbar-actions">
+      <button class="btn btn-outline-secondary btn-sm" type="button" (click)="backToCustomers()">
+        <i class="bi bi-arrow-left me-1"></i> Customers
+      </button>
+      <button class="btn btn-outline-secondary btn-sm" type="button" [disabled]="!rows.length" (click)="exportCsv()">
+        <i class="bi bi-filetype-csv me-1"></i> CSV
+      </button>
+    </div>
+  </div>
+
+  <div class="filter-card">
+    <form class="row g-3 align-items-end" (ngSubmit)="loadReport()">
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label">Customer Search</label>
+        <input class="form-control" name="customerSearch" [(ngModel)]="customerSearch" (ngModelChange)="searchCustomers()" placeholder="Code or name">
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <label class="form-label">Customer</label>
+        <select class="form-select" name="customerId" [(ngModel)]="filters.customerId">
+          <option [ngValue]="null">All Customers</option>
+          <option *ngFor="let customer of customers" [ngValue]="customer.id">{{ customer.customerCode }} - {{ customer.name }}</option>
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <label class="form-label">From Date</label>
+        <input type="date" class="form-control" name="fromDate" [(ngModel)]="filters.fromDate">
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <label class="form-label">To Date</label>
+        <input type="date" class="form-control" name="toDate" [(ngModel)]="filters.toDate">
+      </div>
+      <div class="col-lg-2 filter-buttons">
+        <button class="btn btn-success" type="submit" [disabled]="loading"><i class="bi bi-search"></i></button>
+        <button class="btn btn-outline-secondary" type="button" [disabled]="loading" (click)="resetFilters()"><i class="bi bi-x-lg"></i></button>
+      </div>
+    </form>
+  </div>
+
+  <div class="list-card">
+    <div class="list-toolbar">
+      <div class="record-summary"><strong>{{ rows.length }}</strong> records | Total due {{ (report?.totalDue || 0) | number:'1.2-2' }}</div>
+      <select class="form-select form-select-sm page-size" [(ngModel)]="size" (change)="changePageSize()">
+        <option *ngFor="let option of pageSizes" [ngValue]="option">{{ option }} / page</option>
+      </select>
+    </div>
+
+    <div class="alert alert-danger m-3 mb-0" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div class="loading-panel" *ngIf="loading"><span class="spinner-border spinner-border-sm me-2"></span> Loading aging report...</div>
+    <div class="empty-state" *ngIf="!loading && !rows.length">No outstanding customer dues found.</div>
+
+    <div class="table-responsive" *ngIf="!loading && rows.length">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-uppercase small fw-bold">
+          <tr>
+            <th class="ps-4">Customer</th>
+            <th class="text-end">Current</th>
+            <th class="text-end">1-30 Days</th>
+            <th class="text-end">31-60 Days</th>
+            <th class="text-end">61-90 Days</th>
+            <th class="text-end">90+ Days</th>
+            <th class="text-end pe-4">Total Due</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of pagedRows; trackBy: trackRow">
+            <td class="ps-4">
+              <div class="fw-semibold">{{ row.customerName }}</div>
+              <div class="text-muted small">{{ row.customerCode }}</div>
+            </td>
+            <td class="text-end">{{ row.current | number:'1.2-2' }}</td>
+            <td class="text-end">{{ row.days1To30 | number:'1.2-2' }}</td>
+            <td class="text-end">{{ row.days31To60 | number:'1.2-2' }}</td>
+            <td class="text-end">{{ row.days61To90 | number:'1.2-2' }}</td>
+            <td class="text-end">{{ row.days90Plus | number:'1.2-2' }}</td>
+            <td class="text-end pe-4 fw-semibold">{{ row.totalDue | number:'1.2-2' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-row" *ngIf="rows.length">
+      <span>Page {{ page + 1 }} of {{ totalPages }}</span>
+      <div class="btn-group">
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="page === 0" (click)="goToPage(0)">First</button>
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="page === 0" (click)="goToPage(page - 1)">Prev</button>
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="page + 1 >= totalPages" (click)="goToPage(page + 1)">Next</button>
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="page + 1 >= totalPages" (click)="goToPage(totalPages - 1)">Last</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -11,6 +11,9 @@
       <button class="btn btn-outline-secondary btn-sm" [disabled]="!customers.length" (click)="exportExcel()">
         <i class="bi bi-file-earmark-spreadsheet me-1"></i> Excel
       </button>
+      <button class="btn btn-outline-secondary btn-sm" routerLink="/customers/aging">
+        <i class="bi bi-hourglass-split me-1"></i> Aging
+      </button>
       <button *ngIf="hasPermission('CUSTOMER_CREATE')" class="btn btn-success btn-sm px-3" (click)="createCustomer()">
         <i class="bi bi-person-plus me-1"></i> New Customer
       </button>

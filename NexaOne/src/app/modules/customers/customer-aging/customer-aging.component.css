@@ -1,0 +1,77 @@
+.customer-aging-page {
+  background: #f5f8f6;
+  min-height: 100%;
+}
+
+.page-title-row,
+.list-toolbar,
+.pagination-row,
+.toolbar-actions,
+.filter-buttons {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+
+.page-title-row,
+.list-toolbar,
+.pagination-row {
+  justify-content: space-between;
+}
+
+.filter-card,
+.list-card {
+  background: #fff;
+  border: 1px solid #e1e8e4;
+  border-radius: 8px;
+}
+
+.filter-card {
+  margin: 1rem 0;
+  padding: 1rem;
+}
+
+.list-card {
+  overflow: hidden;
+}
+
+.list-toolbar,
+.pagination-row {
+  border-bottom: 1px solid #e6ece8;
+  padding: .85rem 1rem;
+}
+
+.pagination-row {
+  border-top: 1px solid #e6ece8;
+  border-bottom: 0;
+}
+
+.record-summary,
+.pagination-row {
+  color: #4d5d54;
+  font-size: .88rem;
+}
+
+.page-size {
+  width: 126px;
+}
+
+.table th {
+  color: #6c757d;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.loading-panel,
+.empty-state {
+  color: #647268;
+  padding: 2rem;
+  text-align: center;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #27ae60;
+  box-shadow: none;
+}

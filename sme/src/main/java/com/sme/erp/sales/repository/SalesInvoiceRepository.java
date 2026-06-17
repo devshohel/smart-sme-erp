@@ -91,4 +91,33 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
     LocalDateTime findLastPaymentDateByCustomerId(@Param("customerId") Long customerId);
 
     List<SalesInvoice> findByCustomerIdOrderBySaleDateDescIdDesc(Long customerId, Pageable pageable);
+
+    @Query("""
+            select i
+            from SalesInvoice i
+            join fetch i.customer c
+            where c.id = :customerId
+              and i.status in (com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED, com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED)
+              and (:fromDate is null or i.saleDate >= :fromDate)
+              and (:toDate is null or i.saleDate < :toDate)
+            order by i.saleDate asc, i.id asc
+            """)
+    List<SalesInvoice> findPostedByCustomerForLedger(@Param("customerId") Long customerId,
+                                                     @Param("fromDate") LocalDateTime fromDate,
+                                                     @Param("toDate") LocalDateTime toDate);
+
+    @Query("""
+            select i
+            from SalesInvoice i
+            join fetch i.customer c
+            where (:customerId is null or c.id = :customerId)
+              and i.status in (com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED, com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED)
+              and i.dueAmount > 0
+              and (:fromDate is null or i.saleDate >= :fromDate)
+              and (:toDate is null or i.saleDate < :toDate)
+            order by c.name asc, i.saleDate asc, i.id asc
+            """)
+    List<SalesInvoice> findDueInvoicesForAging(@Param("customerId") Long customerId,
+                                               @Param("fromDate") LocalDateTime fromDate,
+                                               @Param("toDate") LocalDateTime toDate);
 }
