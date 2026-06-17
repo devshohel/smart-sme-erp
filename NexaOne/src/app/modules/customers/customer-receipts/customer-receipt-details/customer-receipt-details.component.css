@@ -1,4 +1,4 @@
-.customer-details-page {
+.receipt-details-page {
   background: #f5f8f6;
   min-height: 100%;
   padding: 1rem;
@@ -9,15 +9,14 @@
   color: #647268;
 }
 
-.details-shell {
+.receipt-shell {
   display: grid;
   gap: 1rem;
 }
 
 .header-panel,
 .summary-card,
-.panel,
-.tabs-shell {
+.panel {
   background: #fff;
   border: 1px solid #e1e8e4;
   border-radius: 8px;
@@ -32,7 +31,7 @@
   padding: 1rem;
 }
 
-.customer-code {
+.receipt-no {
   color: #647268;
   font-size: .78rem;
   font-weight: 800;
@@ -50,7 +49,8 @@
   margin: 0;
 }
 
-.status-pill {
+.status-pill,
+.method-pill {
   display: inline-flex;
   border-radius: 999px;
   padding: .3rem .75rem;
@@ -59,9 +59,10 @@
   white-space: nowrap;
 }
 
-.status-pill.active { background: #e8fadf; color: #16803d; }
-.status-pill.inactive { background: #fce7e7; color: #bc2525; }
-.status-pill.neutral { background: #f1f5f9; color: #475569; }
+.status-pill.draft { background: #fff4d6; color: #a16207; }
+.status-pill.posted { background: #e8fadf; color: #16803d; }
+.status-pill.cancelled { background: #fce7e7; color: #bc2525; }
+.method-pill { background: #f1f5f9; color: #475569; }
 
 .summary-grid {
   display: grid;
@@ -75,8 +76,7 @@
 }
 
 .summary-card span,
-.summary-card strong,
-.summary-card small {
+.summary-card strong {
   display: block;
 }
 
@@ -88,23 +88,8 @@
 
 .summary-card strong {
   color: #17221c;
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   margin-top: .25rem;
-}
-
-.summary-card small {
-  color: #65736b;
-  font-weight: 700;
-}
-
-.summary-card.normal { border-left-color: #16a34a; }
-.summary-card.near { border-left-color: #d97706; }
-.summary-card.over { border-left-color: #dc2626; }
-
-.content-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(320px, .9fr);
-  gap: 1rem;
 }
 
 .panel {
@@ -124,119 +109,50 @@
   margin: 0;
 }
 
-.info-grid {
+.audit-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: .85rem;
 }
 
-.info-grid div,
-.metric-list div {
+.audit-grid div {
   background: #fbfdfb;
   border: 1px solid #edf2ef;
   border-radius: 8px;
   padding: .8rem;
 }
 
-.info-grid .span-2 {
-  grid-column: span 2;
-}
-
-.info-grid span,
-.info-grid strong,
-.metric-list span,
-.metric-list strong {
+.audit-grid span,
+.audit-grid strong {
   display: block;
 }
 
-.info-grid span,
-.metric-list span {
+.audit-grid span {
   color: #66736b;
   font-size: .76rem;
   font-weight: 800;
   text-transform: uppercase;
 }
 
-.info-grid strong,
-.metric-list strong {
+.audit-grid strong {
   color: #25342c;
   margin-top: .25rem;
   word-break: break-word;
 }
 
-.metric-list {
-  display: grid;
-  gap: .85rem;
-}
-
-.tabs-shell {
-  overflow: hidden;
-}
-
-.nav-tabs {
-  background: #fbfdfb;
-  padding: .75rem .75rem 0;
-}
-
-.nav-link {
-  color: #4d5d54;
-  font-weight: 700;
-}
-
-.nav-link.active {
-  color: #16803d;
-}
-
-.tab-content {
-  padding: 1rem;
-}
-
-.table th {
-  font-size: 11px;
-  color: #6c757d;
-  letter-spacing: 0;
-  white-space: nowrap;
-}
-
-.empty-state,
-.placeholder-panel {
-  color: #647268;
-  padding: 1rem;
-}
-
-.placeholder-panel {
-  background: #fbfdfb;
-  border: 1px solid #edf2ef;
-  border-radius: 8px;
-}
-
-.placeholder-panel h6 {
-  color: #17221c;
-  font-weight: 800;
-}
-
-.table a.btn {
-  white-space: nowrap;
-}
-
 @media (max-width: 991px) {
   .summary-grid,
-  .content-grid {
+  .audit-grid {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 575px) {
-  .customer-details-page {
+  .receipt-details-page {
     padding: 1rem !important;
   }
 
-  .header-panel,
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .info-grid .span-2 {
-    grid-column: span 1;
+  .header-panel {
+    flex-direction: column;
   }
 }

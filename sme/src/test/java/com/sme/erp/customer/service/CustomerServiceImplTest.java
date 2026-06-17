@@ -8,6 +8,8 @@ import com.sme.erp.customer.dto.CustomerDTO;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.mapper.CustomerMapper;
 import com.sme.erp.customer.repository.CustomerRepository;
+import com.sme.erp.customer.receipt.mapper.CustomerReceiptMapper;
+import com.sme.erp.customer.receipt.repository.CustomerReceiptRepository;
 import com.sme.erp.customer.service.impl.CustomerServiceImpl;
 import com.sme.erp.enums.Status;
 import com.sme.erp.sales.repository.SalesInvoiceRepository;
@@ -44,6 +46,10 @@ class CustomerServiceImplTest {
     private SalesInvoiceRepository salesInvoiceRepository;
     @Mock
     private SalesReturnRepository salesReturnRepository;
+    @Mock
+    private CustomerReceiptRepository customerReceiptRepository;
+    @Mock
+    private CustomerReceiptMapper customerReceiptMapper;
 
     private CustomerServiceImpl service;
 
@@ -55,7 +61,9 @@ class CustomerServiceImplTest {
                 activityLogService,
                 auditLogService,
                 salesInvoiceRepository,
-                salesReturnRepository);
+                salesReturnRepository,
+                customerReceiptRepository,
+                customerReceiptMapper);
     }
 
     @Test

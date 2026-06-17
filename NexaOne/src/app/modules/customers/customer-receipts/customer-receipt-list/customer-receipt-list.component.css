@@ -1,0 +1,189 @@
+.customer-receipt-list-page {
+  background: #f5f8f6;
+  min-height: 100%;
+}
+
+.page-title-row,
+.list-toolbar,
+.pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.toolbar-actions,
+.filter-buttons {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+.filter-card,
+.list-card {
+  background: #fff;
+  border: 1px solid #e1e8e4;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(22, 37, 29, .07);
+}
+
+.filter-card {
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.list-card {
+  overflow: hidden;
+}
+
+.list-toolbar,
+.pagination-row {
+  padding: .85rem 1rem;
+  border-bottom: 1px solid #e6ece8;
+}
+
+.pagination-row {
+  border-bottom: 0;
+  border-top: 1px solid #e6ece8;
+}
+
+.record-summary {
+  color: #4d5d54;
+  font-size: .88rem;
+}
+
+.page-size {
+  width: 126px;
+}
+
+.btn-action {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-view { background-color: #e3f2fd; color: #2196f3; }
+.btn-edit { background-color: #f1f8e9; color: #4caf50; }
+.btn-post { background-color: #e8fadf; color: #16a34a; }
+.btn-delete { background-color: #ffebee; color: #f44336; }
+
+.btn-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.table th {
+  font-size: 11px;
+  color: #6c757d;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.table td {
+  color: #25342c;
+  vertical-align: middle;
+}
+
+.table tbody tr:hover {
+  background-color: #f8f9fa;
+  transition: 0.3s;
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.loading-panel,
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: #647268;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: .35rem;
+}
+
+.empty-state i {
+  font-size: 2rem;
+  color: #9aa8a0;
+}
+
+.empty-state strong {
+  color: #27362d;
+}
+
+.bg-light-success { background-color: #e8fadf !important; }
+.bg-light-danger { background-color: #fce7e7 !important; }
+.bg-light-warning { background-color: #fff4d6 !important; }
+.bg-light-primary { background-color: #e3f2fd !important; }
+.bg-light-info { background-color: #e0f7fa !important; }
+.bg-light-secondary { background-color: #e9ecef !important; }
+
+.customer-suggestions {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: .25rem;
+  background: #fff;
+  border: 1px solid #dbe4dd;
+  border-radius: 8px;
+  box-shadow: 0 12px 20px rgba(22, 37, 29, .12);
+  overflow: hidden;
+}
+
+.customer-suggestion {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  padding: .7rem .85rem;
+  text-align: left;
+  border: 0;
+  background: #fff;
+}
+
+.customer-suggestion:hover {
+  background: #f5f8f6;
+}
+
+.customer-suggestion strong,
+.customer-suggestion small {
+  display: block;
+}
+
+.customer-suggestion small {
+  color: #6b7870;
+}
+
+@media (max-width: 767px) {
+  .customer-receipt-list-page {
+    padding: 1rem !important;
+  }
+
+  .toolbar-actions,
+  .filter-buttons {
+    width: 100%;
+  }
+
+  .toolbar-actions .btn,
+  .filter-buttons .btn,
+  .page-size {
+    flex: 1 1 auto;
+  }
+}

@@ -14,7 +14,7 @@ export class CustomerDetailsComponent implements OnInit {
   detail: CustomerDetail | null = null;
   loading = false;
   errorMessage = '';
-  activeTab: 'invoices' | 'returns' | 'ledger' | 'notes' = 'invoices';
+  activeTab: 'invoices' | 'returns' | 'receipts' | 'ledger' | 'notes' = 'invoices';
 
   constructor(
     private route: ActivatedRoute,
@@ -57,6 +57,14 @@ export class CustomerDetailsComponent implements OnInit {
     }
   }
 
+  newReceipt(): void {
+    if (this.detail?.customer.id) {
+      this.router.navigate(['/customers/receipts/create'], {
+        queryParams: { customerId: this.detail.customer.id }
+      });
+    }
+  }
+
   statusClass(status?: Status): string {
     if (status === 'ACTIVE') {
       return 'active';
@@ -77,11 +85,15 @@ export class CustomerDetailsComponent implements OnInit {
     return 'normal';
   }
 
-  setActiveTab(tab: 'invoices' | 'returns' | 'ledger' | 'notes'): void {
+  setActiveTab(tab: 'invoices' | 'returns' | 'receipts' | 'ledger' | 'notes'): void {
     this.activeTab = tab;
   }
 
   trackTransaction(_: number, transaction: CustomerTransaction): number {
     return transaction.id;
+  }
+
+  trackReceipt(_: number, receipt: { id?: number | null }): number | null | undefined {
+    return receipt.id;
   }
 }

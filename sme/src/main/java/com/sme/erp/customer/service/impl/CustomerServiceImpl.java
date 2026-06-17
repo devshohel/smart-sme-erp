@@ -15,6 +15,9 @@ import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.mapper.CustomerMapper;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.customer.service.CustomerService;
+import com.sme.erp.customer.receipt.dto.CustomerReceiptDTO;
+import com.sme.erp.customer.receipt.mapper.CustomerReceiptMapper;
+import com.sme.erp.customer.receipt.repository.CustomerReceiptRepository;
 import com.sme.erp.enums.Status;
 import com.sme.erp.sales.entity.SalesInvoice;
 import com.sme.erp.sales.entity.SalesReturn;
@@ -40,6 +43,8 @@ public class CustomerServiceImpl implements CustomerService {
     private final AuditLogService auditLogService;
     private final SalesInvoiceRepository salesInvoiceRepository;
     private final SalesReturnRepository salesReturnRepository;
+    private final CustomerReceiptRepository customerReceiptRepository;
+    private final CustomerReceiptMapper customerReceiptMapper;
 
     public CustomerServiceImpl(
             CustomerRepository customerRepository,
@@ -47,13 +52,17 @@ public class CustomerServiceImpl implements CustomerService {
             ActivityLogService activityLogService,
             AuditLogService auditLogService,
             SalesInvoiceRepository salesInvoiceRepository,
-            SalesReturnRepository salesReturnRepository) {
+            SalesReturnRepository salesReturnRepository,
+            CustomerReceiptRepository customerReceiptRepository,
+            CustomerReceiptMapper customerReceiptMapper) {
         this.customerRepository = customerRepository;
         this.customerMapper = customerMapper;
         this.activityLogService = activityLogService;
         this.auditLogService = auditLogService;
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.salesReturnRepository = salesReturnRepository;
+        this.customerReceiptRepository = customerReceiptRepository;
+        this.customerReceiptMapper = customerReceiptMapper;
     }
 
     @Override
@@ -102,6 +111,11 @@ public class CustomerServiceImpl implements CustomerService {
         BigDecimal currentBalance = safe(dto.getCurrentBalance());
         BigDecimal availableCredit = creditLimit.subtract(currentBalance);
         BigDecimal totalDue = safe(salesInvoiceRepository.sumDueByCustomerId(id));
+        List<CustomerReceiptDTO> recentReceipts = customerReceiptRepository
+                .findByCustomerIdOrderByReceiptDateDescIdDesc(id, PageRequest.of(0, 5))
+                .stream()
+                .map(customerReceiptMapper::toDTO)
+                .collect(Collectors.toList());
 
         return new CustomerDetailDTO(
                 dto,
@@ -111,6 +125,7 @@ public class CustomerServiceImpl implements CustomerService {
                 totalDue,
                 salesInvoiceRepository.findLastInvoiceDateByCustomerId(id),
                 salesInvoiceRepository.findLastPaymentDateByCustomerId(id),
+                recentReceipts,
                 salesInvoiceRepository.findByCustomerIdOrderBySaleDateDescIdDesc(id, PageRequest.of(0, 5))
                         .stream().map(this::invoiceTransaction).collect(Collectors.toList()),
                 salesReturnRepository.findByCustomerIdOrderByReturnDateDescIdDesc(id, PageRequest.of(0, 5))
@@ -152,10 +167,9 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional
     public CustomerDTO update(Long id, CustomerDTO dto) {
+        Customer customer = findCustomerById(id);
         normalizeDto(dto);
         validateFinancials(dto);
-
-        Customer customer = findCustomerById(id);
         CustomerDTO oldData = customerMapper.toDTO(customer);
         String requestedCustomerCode = dto.getCustomerCode();
         if (requestedCustomerCode != null) {

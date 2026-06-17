@@ -1,4 +1,5 @@
 import { Status } from './product.model';
+import { CustomerReceipt } from './customer-receipt.model';
 
 export interface Customer {
   id?: number;
@@ -65,6 +66,7 @@ export interface CustomerDetail {
   totalDue: number;
   lastInvoiceDate?: string | null;
   lastPaymentDate?: string | null;
+  recentReceipts: CustomerReceipt[];
   recentSalesInvoices: CustomerTransaction[];
   recentSalesReturns: CustomerTransaction[];
 }
