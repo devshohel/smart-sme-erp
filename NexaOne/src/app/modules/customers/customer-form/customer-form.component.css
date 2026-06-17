@@ -1,21 +1,21 @@
 .customer-form-page {
   background: #f5f8f6;
   min-height: 100%;
-  padding: 1.1rem 1.25rem 1.4rem;
+  padding: 1rem 1.15rem 1.25rem;
 }
 
 .customer-form-panel {
   background: #fff;
-  border: 1px solid #d7e1db;
+  border: 1px solid #dfe8e4;
   border-radius: 8px;
   box-shadow: 0 8px 18px rgba(22, 37, 29, .06);
-  padding: 1.15rem;
+  padding: 1rem;
 }
 
 .form-section {
-  padding: 0 0 1.05rem;
-  margin-bottom: 1.05rem;
-  border-bottom: 1px solid #dfe8e3;
+  padding: 0 0 .95rem;
+  margin-bottom: .95rem;
+  border-bottom: 1px solid #e4ece7;
 }
 
 .form-section:last-of-type {
@@ -23,19 +23,19 @@
 }
 
 .section-heading {
-  margin-bottom: .75rem;
+  margin-bottom: .7rem;
 }
 
 .section-heading h5 {
   margin: 0;
   color: #17221c;
-  font-size: .98rem;
-  font-weight: 800;
+  font-size: .96rem;
+  font-weight: 700;
 }
 
 .form-grid {
   display: grid;
-  gap: .85rem 1rem;
+  gap: .78rem .9rem;
 }
 
 .form-grid.three {
@@ -61,22 +61,22 @@
 .form-label {
   color: #526158;
   font-size: .78rem;
-  font-weight: 800;
+  font-weight: 700;
   margin-bottom: .34rem;
 }
 
 .form-control,
 .form-select {
-  min-height: 40px;
-  border: 1px solid #cbd8d1;
-  border-radius: 7px;
+  min-height: 38px;
+  border: 1px solid #c7d4cd;
+  border-radius: 6px;
   color: #25342c;
-  font-size: .9rem;
+  font-size: .88rem;
 }
 
 .form-control:focus,
 .form-select:focus {
-  box-shadow: 0 0 0 .16rem rgba(39, 174, 96, .12);
+  box-shadow: 0 0 0 .14rem rgba(39, 174, 96, .12);
   border-color: #27ae60;
 }
 
@@ -87,7 +87,7 @@
 }
 
 .address-input {
-  min-height: 88px;
+  min-height: 84px;
   resize: vertical;
 }
 
@@ -110,8 +110,8 @@
 
 .form-actions .btn {
   min-height: 38px;
-  border-radius: 7px;
-  font-weight: 700;
+  border-radius: 6px;
+  font-weight: 600;
 }
 
 @media (max-width: 991px) {

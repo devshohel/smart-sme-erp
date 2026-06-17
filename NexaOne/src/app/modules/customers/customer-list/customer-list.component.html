@@ -1,4 +1,4 @@
-<div class="customer-list-page">
+<div class="container-fluid p-4 customer-list-page">
   <div class="page-title-row">
     <div>
       <h4 class="fw-bold mb-0">Customers</h4>
@@ -49,13 +49,11 @@
   <div class="list-card">
     <div class="list-toolbar">
       <div class="record-summary">
-        <strong>{{ totalElements }}</strong>
-        <span>total records</span>
+        <strong>{{ totalElements }}</strong> records
       </div>
-      <div class="page-size-control">
-        <span>Rows</span>
+      <div class="bulk-actions">
         <select class="form-select form-select-sm page-size" [(ngModel)]="size" (change)="changePageSize()">
-          <option *ngFor="let option of pageSizes" [ngValue]="option">{{ option }}</option>
+          <option *ngFor="let option of pageSizes" [ngValue]="option">{{ option }} / page</option>
         </select>
       </div>
     </div>
@@ -73,7 +71,7 @@
     </div>
 
     <div class="table-responsive customer-table-wrap" *ngIf="!loading && customers.length">
-      <table class="table erp-data-table customer-table align-middle mb-0">
+      <table class="table table-hover customer-table align-middle mb-0">
         <colgroup>
           <col class="code-col">
           <col class="name-col">
@@ -84,7 +82,7 @@
           <col class="status-col">
           <col class="action-col">
         </colgroup>
-        <thead>
+        <thead class="table-light text-uppercase small fw-bold">
           <tr>
             <th class="sortable" (click)="setSort('customerCode')">Customer Code <i class="bi" [ngClass]="sortIcon('customerCode')"></i></th>
             <th class="sortable" (click)="setSort('name')">Name <i class="bi" [ngClass]="sortIcon('name')"></i></th>
@@ -93,7 +91,7 @@
             <th class="text-end">Total Due</th>
             <th class="text-end sortable" (click)="setSort('currentBalance')">Current Balance <i class="bi" [ngClass]="sortIcon('currentBalance')"></i></th>
             <th class="text-center sortable" (click)="setSort('status')">Status <i class="bi" [ngClass]="sortIcon('status')"></i></th>
-            <th class="text-center">Action</th>
+            <th class="text-center pe-4">Action</th>
           </tr>
         </thead>
         <tbody>
@@ -138,8 +136,8 @@
                 {{ customer.status || 'ACTIVE' }}
               </span>
             </td>
-            <td class="text-center">
-              <div class="row-actions">
+            <td class="text-center pe-4">
+              <div class="d-flex justify-content-center gap-2 row-actions">
                 <button type="button" class="btn-action btn-view" title="View" (click)="viewCustomer(customer)">
                   <i class="bi bi-eye"></i>
                 </button>
