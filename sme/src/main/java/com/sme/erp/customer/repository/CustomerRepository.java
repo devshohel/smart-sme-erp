@@ -2,6 +2,8 @@ package com.sme.erp.customer.repository;
 
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.enums.Status;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -52,4 +54,29 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
               )
             """)
     List<Customer> search(@Param("keyword") String keyword, @Param("status") Status status);
+
+    @Query("""
+            SELECT c
+            FROM Customer c
+            WHERE (:status IS NULL OR c.status = :status)
+              AND (
+                    :keyword IS NULL
+                    OR LOWER(COALESCE(c.customerCode, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(COALESCE(c.name, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(COALESCE(c.phone, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(COALESCE(c.email, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+              )
+            """)
+    Page<Customer> searchPage(@Param("keyword") String keyword, @Param("status") Status status, Pageable pageable);
+
+    @Query("""
+            SELECT c
+            FROM Customer c
+            WHERE :keyword IS NULL
+               OR LOWER(COALESCE(c.customerCode, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(COALESCE(c.name, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+               OR LOWER(COALESCE(c.phone, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+            ORDER BY c.name ASC
+            """)
+    List<Customer> autocomplete(@Param("keyword") String keyword, Pageable pageable);
 }

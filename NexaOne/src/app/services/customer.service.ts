@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
-import { Customer } from '../models/customer.model';
+import { Customer, CustomerDetail, CustomerOption, CustomerPage, CustomerSearchParams } from '../models/customer.model';
 import { Status } from '../models/product.model';
 import { ApiResponse, unwrapApiResponse } from '../shared/utils/api-response.util';
 
@@ -31,13 +31,38 @@ export class CustomerService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
-  searchCustomers(keyword: string): Observable<Customer[]> {
+  getCustomerPage(params: CustomerSearchParams): Observable<CustomerPage> {
+    let httpParams = new HttpParams()
+      .set('page', String(params.page ?? 0))
+      .set('size', String(params.size ?? 10))
+      .set('sort', params.sort || 'name')
+      .set('direction', params.direction || 'asc');
+
+    if (params.keyword?.trim()) {
+      httpParams = httpParams.set('keyword', params.keyword.trim());
+    }
+    if (params.status) {
+      httpParams = httpParams.set('status', params.status);
+    }
+
+    return this.http
+      .get<CustomerPage | ApiResponse<CustomerPage>>(`${this.baseUrl}/page`, { params: httpParams })
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  searchCustomers(keyword: string): Observable<CustomerOption[]> {
     const params = keyword.trim()
       ? new HttpParams().set('keyword', keyword.trim())
       : undefined;
 
     return this.http
-      .get<Customer[] | ApiResponse<Customer[]>>(`${this.baseUrl}/search`, { params })
+      .get<CustomerOption[] | ApiResponse<CustomerOption[]>>(`${this.baseUrl}/search`, { params })
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  getCustomerDetail(id: number): Observable<CustomerDetail> {
+    return this.http
+      .get<CustomerDetail | ApiResponse<CustomerDetail>>(`${this.baseUrl}/${id}/detail`)
       .pipe(map(response => unwrapApiResponse(response)));
   }
 

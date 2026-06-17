@@ -10,6 +10,10 @@ import com.sme.erp.customer.mapper.CustomerMapper;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.customer.service.impl.CustomerServiceImpl;
 import com.sme.erp.enums.Status;
+import com.sme.erp.sales.repository.SalesInvoiceRepository;
+import com.sme.erp.sales.repository.SalesReturnRepository;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,12 +40,22 @@ class CustomerServiceImplTest {
     private ActivityLogService activityLogService;
     @Mock
     private AuditLogService auditLogService;
+    @Mock
+    private SalesInvoiceRepository salesInvoiceRepository;
+    @Mock
+    private SalesReturnRepository salesReturnRepository;
 
     private CustomerServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new CustomerServiceImpl(customerRepository, new CustomerMapper(), activityLogService, auditLogService);
+        service = new CustomerServiceImpl(
+                customerRepository,
+                new CustomerMapper(),
+                activityLogService,
+                auditLogService,
+                salesInvoiceRepository,
+                salesReturnRepository);
     }
 
     @Test
@@ -99,6 +113,23 @@ class CustomerServiceImplTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getCustomerCode()).isEqualTo("CUS-0001");
         verify(customerRepository).search("acme", Status.ACTIVE);
+    }
+
+    @Test
+    void searchPage_returnsPagedCustomers() {
+        Customer customer = new Customer();
+        customer.setId(1L);
+        customer.setCustomerCode("CUS-0001");
+        customer.setName("Acme Trading");
+        customer.setStatus(Status.ACTIVE);
+
+        when(customerRepository.searchPage(org.mockito.ArgumentMatchers.eq("acme"), org.mockito.ArgumentMatchers.eq(Status.ACTIVE), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(customer)));
+
+        var result = service.searchPage(" acme ", Status.ACTIVE, 0, 10, "name", "asc");
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getTotalElements()).isEqualTo(1);
     }
 
     @Test

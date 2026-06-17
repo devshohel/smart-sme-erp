@@ -1,6 +1,9 @@
 package com.sme.erp.customer.controller;
 
 import com.sme.erp.customer.dto.CustomerDTO;
+import com.sme.erp.customer.dto.CustomerDetailDTO;
+import com.sme.erp.customer.dto.CustomerOptionDTO;
+import com.sme.erp.customer.dto.CustomerPageDTO;
 import com.sme.erp.customer.service.CustomerService;
 import com.sme.erp.enums.Status;
 import jakarta.validation.Valid;
@@ -38,6 +41,24 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.getAll(keyword, status));
     }
 
+    @GetMapping("/page")
+    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
+    public ResponseEntity<CustomerPageDTO> getPage(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Status status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "name") String sort,
+            @RequestParam(defaultValue = "asc") String direction) {
+        return ResponseEntity.ok(customerService.searchPage(keyword, status, page, size, sort, direction));
+    }
+
+    @GetMapping("/{id}/detail")
+    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
+    public ResponseEntity<CustomerDetailDTO> getDetail(@PathVariable Long id) {
+        return ResponseEntity.ok(customerService.getDetail(id));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
     public ResponseEntity<CustomerDTO> getById(@PathVariable Long id) {
@@ -46,8 +67,8 @@ public class CustomerController {
 
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
-    public ResponseEntity<List<CustomerDTO>> search(@RequestParam(required = false) String keyword) {
-        return ResponseEntity.ok(customerService.getAll(keyword, null));
+    public ResponseEntity<List<CustomerOptionDTO>> search(@RequestParam(required = false) String keyword) {
+        return ResponseEntity.ok(customerService.autocomplete(keyword));
     }
 
     @PostMapping

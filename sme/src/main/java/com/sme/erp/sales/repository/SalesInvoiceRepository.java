@@ -3,6 +3,7 @@ package com.sme.erp.sales.repository;
 import com.sme.erp.sales.entity.SalesInvoice;
 import com.sme.erp.reports.dto.CustomerDueReportRowDTO;
 import com.sme.erp.reports.dto.SalesReportRowDTO;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -58,4 +59,17 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
             order by coalesce(sum(i.dueAmount), 0) desc
             """)
     List<CustomerDueReportRowDTO> findCustomerDueReportRows();
+
+    long countByCustomerId(Long customerId);
+
+    @Query("select coalesce(sum(i.dueAmount), 0) from SalesInvoice i where i.customer.id = :customerId")
+    java.math.BigDecimal sumDueByCustomerId(@Param("customerId") Long customerId);
+
+    @Query("select max(i.saleDate) from SalesInvoice i where i.customer.id = :customerId")
+    LocalDateTime findLastInvoiceDateByCustomerId(@Param("customerId") Long customerId);
+
+    @Query("select max(i.saleDate) from SalesInvoice i where i.customer.id = :customerId and i.paidAmount > 0")
+    LocalDateTime findLastPaymentDateByCustomerId(@Param("customerId") Long customerId);
+
+    List<SalesInvoice> findByCustomerIdOrderBySaleDateDescIdDesc(Long customerId, Pageable pageable);
 }

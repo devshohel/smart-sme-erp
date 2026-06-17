@@ -42,7 +42,7 @@ export class CustomerFormComponent implements OnInit {
       postalCode: ['', [Validators.maxLength(50)]],
       creditLimit: [0, [Validators.min(0)]],
       openingBalance: [0, [Validators.min(0)]],
-      currentBalance: [0],
+      currentBalance: [{ value: 0, disabled: true }],
       taxNumber: ['', [Validators.maxLength(100)]],
       status: ['ACTIVE', Validators.required]
     });
@@ -147,9 +147,7 @@ export class CustomerFormComponent implements OnInit {
       postalCode: this.optionalTextValue(value.postalCode),
       creditLimit: value.creditLimit === null || value.creditLimit === '' ? 0 : Number(value.creditLimit),
       openingBalance: value.openingBalance === null || value.openingBalance === '' ? 0 : Number(value.openingBalance),
-      currentBalance: this.isEditMode
-        ? (value.currentBalance === null || value.currentBalance === '' ? 0 : Number(value.currentBalance))
-        : undefined,
+      currentBalance: undefined,
       taxNumber: this.optionalTextValue(value.taxNumber),
       status: value.status
     };

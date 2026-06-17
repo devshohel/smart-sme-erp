@@ -1,0 +1,173 @@
+<div class="container-fluid customer-details-page">
+  <app-page-header
+    title="Customer Details"
+    subtitle="Read-only customer account summary.">
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-outline-secondary" (click)="backToList()">
+        <i class="bi bi-arrow-left me-1"></i> Back
+      </button>
+      <button type="button" class="btn btn-success" *ngIf="detail" (click)="editCustomer()">
+        <i class="bi bi-pencil-square me-1"></i> Edit
+      </button>
+    </div>
+  </app-page-header>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="details-loading" *ngIf="loading">
+    <span class="spinner-border spinner-border-sm me-2"></span> Loading customer...
+  </div>
+
+  <div *ngIf="detail && !loading" class="details-shell">
+    <section class="header-panel">
+      <div>
+        <span class="customer-code">{{ detail.customer.customerCode || 'Auto generated' }}</span>
+        <h4>{{ detail.customer.name }}</h4>
+        <p>{{ detail.customer.companyName || 'No company name' }}</p>
+      </div>
+      <span class="status-pill" [ngClass]="statusClass(detail.customer.status)">
+        {{ detail.customer.status || 'ACTIVE' }}
+      </span>
+    </section>
+
+    <section class="summary-grid">
+      <div class="summary-card">
+        <span>Credit Limit</span>
+        <strong>{{ (detail.customer.creditLimit ?? 0) | number:'1.2-2' }}</strong>
+      </div>
+      <div class="summary-card">
+        <span>Opening Balance</span>
+        <strong>{{ (detail.customer.openingBalance ?? 0) | number:'1.2-2' }}</strong>
+      </div>
+      <div class="summary-card">
+        <span>Current Balance</span>
+        <strong>{{ (detail.customer.currentBalance ?? 0) | number:'1.2-2' }}</strong>
+      </div>
+      <div class="summary-card" [ngClass]="balanceStatusClass(detail.balanceStatus)">
+        <span>Available Credit</span>
+        <strong>{{ detail.availableCredit | number:'1.2-2' }}</strong>
+        <small>{{ detail.balanceStatus }}</small>
+      </div>
+    </section>
+
+    <section class="content-grid">
+      <div class="panel">
+        <div class="panel-heading">
+          <h5>Contact Information</h5>
+        </div>
+        <div class="info-grid">
+          <div><span>Phone</span><strong>{{ detail.customer.phone || 'N/A' }}</strong></div>
+          <div><span>Email</span><strong>{{ detail.customer.email || 'N/A' }}</strong></div>
+          <div><span>Contact Person</span><strong>{{ detail.customer.contactPerson || 'N/A' }}</strong></div>
+          <div><span>Tax Number</span><strong>{{ detail.customer.taxNumber || 'N/A' }}</strong></div>
+          <div class="span-2"><span>Address</span><strong>{{ detail.customer.address || 'N/A' }}</strong></div>
+          <div><span>City</span><strong>{{ detail.customer.city || 'N/A' }}</strong></div>
+          <div><span>Country</span><strong>{{ detail.customer.country || 'N/A' }}</strong></div>
+          <div><span>Postal Code</span><strong>{{ detail.customer.postalCode || 'N/A' }}</strong></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-heading">
+          <h5>Related Summary</h5>
+        </div>
+        <div class="metric-list">
+          <div><span>Total Sales Invoices</span><strong>{{ detail.totalSalesInvoices }}</strong></div>
+          <div><span>Total Due</span><strong>{{ detail.totalDue | number:'1.2-2' }}</strong></div>
+          <div><span>Last Invoice Date</span><strong>{{ detail.lastInvoiceDate ? (detail.lastInvoiceDate | date:'medium') : 'Not available' }}</strong></div>
+          <div><span>Last Payment Date</span><strong>{{ detail.lastPaymentDate ? (detail.lastPaymentDate | date:'medium') : 'Not available' }}</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tabs-shell">
+      <ul class="nav nav-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" [class.active]="activeTab === 'invoices'" type="button" (click)="setActiveTab('invoices')">Recent Sales Invoices</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" [class.active]="activeTab === 'returns'" type="button" (click)="setActiveTab('returns')">Recent Sales Returns</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" [class.active]="activeTab === 'ledger'" type="button" (click)="setActiveTab('ledger')">Customer Ledger</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" [class.active]="activeTab === 'notes'" type="button" (click)="setActiveTab('notes')">Notes</button>
+        </li>
+      </ul>
+      <div class="tab-content">
+        <div class="tab-pane" *ngIf="activeTab === 'invoices'">
+          <div class="table-responsive" *ngIf="detail.recentSalesInvoices.length; else noInvoices">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Invoice No</th>
+                  <th>Date</th>
+                  <th class="text-end">Amount</th>
+                  <th class="text-end">Paid</th>
+                  <th class="text-end">Due</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let invoice of detail.recentSalesInvoices; trackBy: trackTransaction">
+                  <td>{{ invoice.documentNo }}</td>
+                  <td>{{ invoice.date | date:'mediumDate' }}</td>
+                  <td class="text-end">{{ invoice.amount | number:'1.2-2' }}</td>
+                  <td class="text-end">{{ invoice.paid | number:'1.2-2' }}</td>
+                  <td class="text-end fw-semibold">{{ invoice.due | number:'1.2-2' }}</td>
+                  <td>{{ invoice.status || 'N/A' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #noInvoices>
+            <div class="empty-state">No recent sales invoices found.</div>
+          </ng-template>
+        </div>
+
+        <div class="tab-pane" *ngIf="activeTab === 'returns'">
+          <div class="table-responsive" *ngIf="detail.recentSalesReturns.length; else noReturns">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Return No</th>
+                  <th>Date</th>
+                  <th class="text-end">Amount</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let salesReturn of detail.recentSalesReturns; trackBy: trackTransaction">
+                  <td>{{ salesReturn.documentNo }}</td>
+                  <td>{{ salesReturn.date | date:'mediumDate' }}</td>
+                  <td class="text-end">{{ salesReturn.amount | number:'1.2-2' }}</td>
+                  <td>{{ salesReturn.status }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #noReturns>
+            <div class="empty-state">No recent sales returns found.</div>
+          </ng-template>
+        </div>
+
+        <div class="tab-pane" *ngIf="activeTab === 'ledger'">
+          <div class="placeholder-panel">
+            <h6>Existing Customer Ledger</h6>
+            <p>The current application has an accounting customer ledger screen, but this batch does not create a real customer ledger table or change posting logic.</p>
+            <a class="btn btn-outline-success btn-sm" routerLink="/accounting/customer-ledger">
+              Open Ledger
+            </a>
+          </div>
+        </div>
+
+        <div class="tab-pane" *ngIf="activeTab === 'notes'">
+          <div class="placeholder-panel">
+            <h6>Notes</h6>
+            <p>Customer notes are reserved for a future batch.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

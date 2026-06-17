@@ -6,12 +6,24 @@ import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
 import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.audit.service.AuditLogService;
+import com.sme.erp.customer.dto.CustomerDetailDTO;
 import com.sme.erp.customer.dto.CustomerDTO;
+import com.sme.erp.customer.dto.CustomerOptionDTO;
+import com.sme.erp.customer.dto.CustomerPageDTO;
+import com.sme.erp.customer.dto.CustomerTransactionDTO;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.mapper.CustomerMapper;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.customer.service.CustomerService;
 import com.sme.erp.enums.Status;
+import com.sme.erp.sales.entity.SalesInvoice;
+import com.sme.erp.sales.entity.SalesReturn;
+import com.sme.erp.sales.repository.SalesInvoiceRepository;
+import com.sme.erp.sales.repository.SalesReturnRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,16 +38,22 @@ public class CustomerServiceImpl implements CustomerService {
     private final CustomerMapper customerMapper;
     private final ActivityLogService activityLogService;
     private final AuditLogService auditLogService;
+    private final SalesInvoiceRepository salesInvoiceRepository;
+    private final SalesReturnRepository salesReturnRepository;
 
     public CustomerServiceImpl(
             CustomerRepository customerRepository,
             CustomerMapper customerMapper,
             ActivityLogService activityLogService,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService,
+            SalesInvoiceRepository salesInvoiceRepository,
+            SalesReturnRepository salesReturnRepository) {
         this.customerRepository = customerRepository;
         this.customerMapper = customerMapper;
         this.activityLogService = activityLogService;
         this.auditLogService = auditLogService;
+        this.salesInvoiceRepository = salesInvoiceRepository;
+        this.salesReturnRepository = salesReturnRepository;
     }
 
     @Override
@@ -46,6 +64,57 @@ public class CustomerServiceImpl implements CustomerService {
                 .stream()
                 .map(customerMapper::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CustomerPageDTO searchPage(String keyword, Status status, int page, int size, String sort, String direction) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), safeSize(size), sortFor(sort, direction));
+        Page<Customer> result = customerRepository.searchPage(RequestValueUtils.normalize(keyword), status, pageable);
+        return new CustomerPageDTO(
+                result.getContent().stream().map(customerMapper::toDTO).collect(Collectors.toList()),
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.getNumber(),
+                result.getSize());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CustomerOptionDTO> autocomplete(String keyword) {
+        return customerRepository.autocomplete(RequestValueUtils.normalize(keyword), PageRequest.of(0, 10))
+                .stream()
+                .map(customer -> new CustomerOptionDTO(
+                        customer.getId(),
+                        customer.getCustomerCode(),
+                        customer.getName(),
+                        customer.getPhone(),
+                        customer.getCurrentBalance() != null ? customer.getCurrentBalance() : BigDecimal.ZERO))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CustomerDetailDTO getDetail(Long id) {
+        Customer customer = findCustomerById(id);
+        CustomerDTO dto = customerMapper.toDTO(customer);
+        BigDecimal creditLimit = safe(dto.getCreditLimit());
+        BigDecimal currentBalance = safe(dto.getCurrentBalance());
+        BigDecimal availableCredit = creditLimit.subtract(currentBalance);
+        BigDecimal totalDue = safe(salesInvoiceRepository.sumDueByCustomerId(id));
+
+        return new CustomerDetailDTO(
+                dto,
+                availableCredit,
+                balanceStatus(creditLimit, currentBalance),
+                salesInvoiceRepository.countByCustomerId(id),
+                totalDue,
+                salesInvoiceRepository.findLastInvoiceDateByCustomerId(id),
+                salesInvoiceRepository.findLastPaymentDateByCustomerId(id),
+                salesInvoiceRepository.findByCustomerIdOrderBySaleDateDescIdDesc(id, PageRequest.of(0, 5))
+                        .stream().map(this::invoiceTransaction).collect(Collectors.toList()),
+                salesReturnRepository.findByCustomerIdOrderByReturnDateDescIdDesc(id, PageRequest.of(0, 5))
+                        .stream().map(this::returnTransaction).collect(Collectors.toList()));
     }
 
     @Override
@@ -215,5 +284,62 @@ public class CustomerServiceImpl implements CustomerService {
     private Customer findCustomerById(Long id) {
         return customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
+    }
+
+    private CustomerTransactionDTO invoiceTransaction(SalesInvoice invoice) {
+        return new CustomerTransactionDTO(
+                invoice.getId(),
+                invoice.getInvoiceNo(),
+                invoice.getSaleDate(),
+                safe(invoice.getNetTotal()),
+                safe(invoice.getPaidAmount()),
+                safe(invoice.getDueAmount()),
+                invoice.getStatus() != null ? invoice.getStatus().name() : null);
+    }
+
+    private CustomerTransactionDTO returnTransaction(SalesReturn salesReturn) {
+        return new CustomerTransactionDTO(
+                salesReturn.getId(),
+                salesReturn.getReturnCode(),
+                salesReturn.getReturnDate(),
+                safe(salesReturn.getTotalAmount()),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                "RETURNED");
+    }
+
+    private String balanceStatus(BigDecimal creditLimit, BigDecimal currentBalance) {
+        if (creditLimit == null || creditLimit.compareTo(BigDecimal.ZERO) <= 0) {
+            return currentBalance != null && currentBalance.compareTo(BigDecimal.ZERO) > 0 ? "Over Limit" : "Normal";
+        }
+        if (currentBalance.compareTo(creditLimit) > 0) {
+            return "Over Limit";
+        }
+        if (currentBalance.compareTo(creditLimit.multiply(new BigDecimal("0.80"))) >= 0) {
+            return "Near Credit Limit";
+        }
+        return "Normal";
+    }
+
+    private Sort sortFor(String sort, String direction) {
+        String property = switch (sort == null ? "" : sort) {
+            case "customerCode" -> "customerCode";
+            case "name" -> "name";
+            case "phone" -> "phone";
+            case "email" -> "email";
+            case "status" -> "status";
+            case "currentBalance" -> "currentBalance";
+            default -> "name";
+        };
+        Sort.Direction dir = "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        return Sort.by(dir, property).and(Sort.by(Sort.Direction.ASC, "id"));
+    }
+
+    private int safeSize(int size) {
+        return size == 25 || size == 50 || size == 100 ? size : 10;
+    }
+
+    private BigDecimal safe(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
     }
 }
