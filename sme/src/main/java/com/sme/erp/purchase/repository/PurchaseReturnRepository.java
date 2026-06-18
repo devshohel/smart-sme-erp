@@ -40,4 +40,16 @@ public interface PurchaseReturnRepository extends JpaRepository<PurchaseReturn, 
     List<PurchaseReturn> findBySupplierForLedger(@Param("supplierId") Long supplierId,
                                                  @Param("fromDate") LocalDateTime fromDate,
                                                  @Param("toDate") LocalDateTime toDate);
+
+    @Query("""
+            select r.supplier.id, coalesce(sum(r.totalAmount), 0)
+            from PurchaseReturn r
+            where (:supplierId is null or r.supplier.id = :supplierId)
+              and (:fromDate is null or r.returnDate >= :fromDate)
+              and (:toDate is null or r.returnDate < :toDate)
+            group by r.supplier.id
+            """)
+    List<Object[]> findApReconciliationReturnRows(@Param("supplierId") Long supplierId,
+                                                  @Param("fromDate") LocalDateTime fromDate,
+                                                  @Param("toDate") LocalDateTime toDate);
 }

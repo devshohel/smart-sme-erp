@@ -1,0 +1,83 @@
+<div class="container-fluid p-4 expense-list-page">
+  <app-page-header title="Expenses" subtitle="Record draft expenses, post approved records, and review accounting status.">
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-outline-secondary btn-sm" [disabled]="!expenses.length" (click)="exportCsv()">
+        <i class="bi bi-download me-1"></i> Export CSV
+      </button>
+      <button type="button" class="btn btn-success btn-sm" *ngIf="hasPermission('EXPENSE_CREATE')" (click)="create()">
+        <i class="bi bi-plus-circle me-1"></i> New Expense
+      </button>
+    </div>
+  </app-page-header>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <form class="filter-form" (ngSubmit)="search()">
+    <input class="form-control" [(ngModel)]="filters.keyword" name="keyword" placeholder="Search expense no, reference, notes, category">
+    <input type="date" class="form-control" [(ngModel)]="filters.fromDate" name="fromDate">
+    <input type="date" class="form-control" [(ngModel)]="filters.toDate" name="toDate">
+    <select class="form-select" [(ngModel)]="filters.categoryId" name="categoryId">
+      <option value="">All categories</option>
+      <option *ngFor="let category of categories" [ngValue]="category.id">{{ category.name }}</option>
+    </select>
+    <select class="form-select" [(ngModel)]="filters.paymentMethod" name="paymentMethod">
+      <option value="">All methods</option>
+      <option *ngFor="let method of methods" [value]="method">{{ method }}</option>
+    </select>
+    <select class="form-select" [(ngModel)]="filters.status" name="status">
+      <option value="">All statuses</option>
+      <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+    </select>
+    <button type="submit" class="btn btn-success"><i class="bi bi-search me-1"></i> Search</button>
+    <button type="button" class="btn btn-outline-secondary" (click)="reset()">Reset</button>
+  </form>
+
+  <div class="table-wrap">
+    <div class="loading-panel" *ngIf="loading"><span class="spinner-border spinner-border-sm me-2"></span> Loading expenses...</div>
+    <table class="table table-hover align-middle mb-0 expense-table" *ngIf="!loading">
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Date</th>
+          <th>Category</th>
+          <th>Payment</th>
+          <th>Reference</th>
+          <th class="text-end">Amount</th>
+          <th>Status</th>
+          <th class="text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let expense of expenses; trackBy: trackExpense">
+          <td class="fw-semibold">{{ expense.expenseNo }}</td>
+          <td>{{ expense.expenseDate | date:'mediumDate' }}</td>
+          <td>{{ expense.categoryName }}</td>
+          <td>{{ expense.paymentMethod }}</td>
+          <td>{{ expense.referenceNo || 'N/A' }}</td>
+          <td class="text-end">{{ expense.amount | number:'1.2-2' }}</td>
+          <td><span class="status-badge" [ngClass]="statusClass(expense.status)">{{ expense.status }}</span></td>
+          <td class="text-center">
+            <button type="button" class="btn-action btn-view" title="View" (click)="view(expense)"><i class="bi bi-eye"></i></button>
+            <button type="button" class="btn-action btn-edit" *ngIf="canEdit(expense)" title="Edit" (click)="edit(expense)"><i class="bi bi-pencil-square"></i></button>
+            <button type="button" class="btn-action btn-post" *ngIf="canPost(expense)" title="Post" (click)="post(expense)"><i class="bi bi-check2-circle"></i></button>
+            <button type="button" class="btn-action btn-cancel" *ngIf="canCancel(expense)" title="Cancel" (click)="cancel(expense)"><i class="bi bi-x-circle"></i></button>
+          </td>
+        </tr>
+        <tr *ngIf="!expenses.length"><td colspan="8" class="empty-state">No expenses found.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination-row">
+    <select class="form-select form-select-sm page-size" [(ngModel)]="filters.size" (change)="changePageSize()">
+      <option *ngFor="let option of pageSizes" [ngValue]="option">{{ option }} / page</option>
+    </select>
+    <span>Page {{ filters.page + 1 }} of {{ totalPages }} - {{ totalElements }} records</span>
+    <div class="btn-group">
+      <button class="btn btn-sm btn-outline-secondary" [disabled]="filters.page === 0" (click)="goToPage(0)">First</button>
+      <button class="btn btn-sm btn-outline-secondary" [disabled]="filters.page === 0" (click)="goToPage(filters.page - 1)">Prev</button>
+      <button class="btn btn-sm btn-outline-secondary" [disabled]="filters.page + 1 >= totalPages" (click)="goToPage(filters.page + 1)">Next</button>
+      <button class="btn btn-sm btn-outline-secondary" [disabled]="filters.page + 1 >= totalPages" (click)="goToPage(totalPages - 1)">Last</button>
+    </div>
+  </div>
+</div>

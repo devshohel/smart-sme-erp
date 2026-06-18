@@ -1,0 +1,84 @@
+<div class="container-fluid p-4 ap-reconciliation-page">
+  <app-page-header title="AP Reconciliation" subtitle="Compare purchase due, supplier advances, and GL Accounts Payable.">
+    <button type="button" class="btn btn-outline-secondary" [disabled]="!(report?.rows?.length)" (click)="exportCsv()">
+      <i class="bi bi-filetype-csv me-1"></i> CSV
+    </button>
+  </app-page-header>
+
+  <div class="filter-card">
+    <div class="row g-3 align-items-end">
+      <div class="col-lg-4 position-relative">
+        <label class="form-label">Supplier</label>
+        <input class="form-control" [ngModel]="supplierSearchTerm" (ngModelChange)="searchSuppliers($event)" placeholder="Search supplier">
+        <div class="supplier-suggestions" *ngIf="supplierSuggestions.length">
+          <button type="button" class="supplier-suggestion" *ngFor="let supplier of supplierSuggestions" (click)="selectSupplier(supplier)">
+            <strong>{{ supplier.supplierCode || 'SUP' }} - {{ supplier.name }}</strong>
+            <small>{{ supplier.phone || 'No phone' }}</small>
+          </button>
+        </div>
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <label class="form-label">From</label>
+        <input type="date" class="form-control" [(ngModel)]="filters.fromDate">
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <label class="form-label">To</label>
+        <input type="date" class="form-control" [(ngModel)]="filters.toDate">
+      </div>
+      <div class="col-lg-4 d-flex gap-2 justify-content-end">
+        <button type="button" class="btn btn-success" (click)="loadReport()" [disabled]="loading"><i class="bi bi-search"></i></button>
+        <button type="button" class="btn btn-outline-secondary" (click)="resetFilters()" [disabled]="loading"><i class="bi bi-x-lg"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-card"><span>Purchase Due</span><strong>{{ (report?.summary?.totalPurchaseDue ?? 0) | number:'1.2-2' }}</strong></div>
+    <div class="summary-card"><span>Supplier Advance</span><strong>{{ (report?.summary?.totalSupplierAdvance ?? 0) | number:'1.2-2' }}</strong></div>
+    <div class="summary-card"><span>GL Accounts Payable</span><strong>{{ (report?.summary?.totalGlAccountsPayable ?? 0) | number:'1.2-2' }}</strong></div>
+    <div class="summary-card" [class.has-variance]="(report?.summary?.totalVariance ?? 0) !== 0"><span>Variance</span><strong>{{ (report?.summary?.totalVariance ?? 0) | number:'1.2-2' }}</strong></div>
+    <div class="summary-card"><span>Net Supplier Exposure</span><strong>{{ (report?.summary?.netSupplierExposure ?? 0) | number:'1.2-2' }}</strong></div>
+  </div>
+
+  <div class="report-card">
+    <div class="breakdown-row" *ngIf="report">
+      <span>Purchases {{ report.breakdown.purchaseGross | number:'1.2-2' }}</span>
+      <span>Returns {{ report.breakdown.purchaseReturns | number:'1.2-2' }}</span>
+      <span>Allocated Payments {{ report.breakdown.allocatedPayments | number:'1.2-2' }}</span>
+      <span>Reversals {{ report.breakdown.paymentReversals | number:'1.2-2' }}</span>
+      <span>Manual AP {{ report.breakdown.manualApAdjustments | number:'1.2-2' }}</span>
+    </div>
+    <div class="alert alert-danger m-3 mb-0" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div class="loading-panel" *ngIf="loading"><span class="spinner-border spinner-border-sm me-2"></span> Loading reconciliation...</div>
+    <div class="table-responsive" *ngIf="!loading && report?.rows?.length">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-uppercase small fw-bold">
+          <tr>
+            <th class="ps-4">Supplier</th>
+            <th class="text-end">Purchase Due</th>
+            <th class="text-end">Supplier Advance</th>
+            <th class="text-end">GL AP</th>
+            <th class="text-end">Variance</th>
+            <th class="text-end">Net Exposure</th>
+            <th class="text-center pe-4">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of report?.rows; trackBy: trackRow">
+            <td class="ps-4">
+              <div class="fw-semibold">{{ row.supplierName }}</div>
+              <div class="text-muted small">{{ row.supplierCode }}</div>
+            </td>
+            <td class="text-end">{{ row.purchaseDue | number:'1.2-2' }}</td>
+            <td class="text-end">{{ row.supplierAdvance | number:'1.2-2' }}</td>
+            <td class="text-end">{{ row.glAccountsPayable | number:'1.2-2' }}</td>
+            <td class="text-end fw-semibold">{{ row.variance | number:'1.2-2' }}</td>
+            <td class="text-end fw-bold">{{ row.netExposure | number:'1.2-2' }}</td>
+            <td class="text-center pe-4"><span class="badge px-2 py-1 border-0" [ngClass]="statusClass(row.status)">{{ row.status }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="empty-state" *ngIf="!loading && !report?.rows?.length">No AP reconciliation rows found.</div>
+  </div>
+</div>

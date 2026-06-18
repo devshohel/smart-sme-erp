@@ -53,7 +53,7 @@
       <button type="button" [class.active]="activeTab === 'purchases'" (click)="setActiveTab('purchases')">Purchases</button>
       <button type="button" [class.active]="activeTab === 'payments'" (click)="setActiveTab('payments')">Payments</button>
       <button type="button" [class.active]="activeTab === 'ledger'" (click)="setActiveTab('ledger')">Ledger</button>
-      <button type="button" [class.active]="activeTab === 'statement'" (click)="setActiveTab('statement')">Statement</button>
+      <button type="button" *ngIf="hasPermission('SUPPLIER_LEDGER_VIEW')" [class.active]="activeTab === 'statement'" (click)="setActiveTab('statement')">Statement</button>
     </nav>
 
     <section class="content-grid" *ngIf="activeTab === 'overview'">
@@ -82,7 +82,7 @@
         <div class="placeholder-list">
           <button type="button" class="btn btn-outline-success" *ngIf="hasPermission('SUPPLIER_PAYMENT_CREATE')" (click)="newPayment()">New Payment</button>
           <button type="button" class="btn btn-outline-secondary" (click)="setActiveTab('ledger')">View Ledger</button>
-          <button type="button" class="btn btn-outline-secondary" (click)="setActiveTab('statement')">Statement Preview</button>
+          <button type="button" class="btn btn-outline-secondary" *ngIf="hasPermission('SUPPLIER_LEDGER_VIEW')" (click)="setActiveTab('statement')">Statement Preview</button>
         </div>
       </div>
     </section>
@@ -232,47 +232,97 @@
     </section>
 
     <section class="panel mt-3 statement-panel" *ngIf="activeTab === 'statement'">
-      <div class="panel-heading ledger-heading">
-        <h5>Supplier Statement Preview</h5>
-        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="printStatement()"><i class="bi bi-printer me-1"></i> Print Preview</button>
-      </div>
-      <div class="statement-head">
-        <div>
-          <h5>{{ detail.supplier.name }}</h5>
-          <p>{{ detail.supplier.supplierCode }}<span *ngIf="detail.supplier.companyName"> · {{ detail.supplier.companyName }}</span></p>
-          <p>{{ detail.supplier.phone || 'N/A' }} · {{ detail.supplier.email || 'N/A' }}</p>
+      <div class="panel-heading ledger-heading statement-toolbar no-print">
+        <h5>Supplier Statement</h5>
+        <div class="ledger-actions">
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="statementFilters.fromDate">
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="statementFilters.toDate">
+          <button type="button" class="btn btn-sm btn-success" *ngIf="hasPermission('SUPPLIER_LEDGER_VIEW')" (click)="loadStatement()">
+            <i class="bi bi-arrow-clockwise me-1"></i> Reload
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="resetStatementFilters()">Reset</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" *ngIf="hasPermission('SUPPLIER_EXPORT')" [disabled]="!statementRows.length" (click)="exportStatementCsv()">
+            <i class="bi bi-download me-1"></i> CSV
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" *ngIf="hasPermission('SUPPLIER_STATEMENT_PRINT')" [disabled]="!statement" (click)="printStatement()">
+            <i class="bi bi-printer me-1"></i> Print
+          </button>
         </div>
-        <div class="text-end">
-          <span>Opening Balance</span>
-          <strong>{{ (ledger?.openingBalance ?? detail.supplier.openingBalance ?? 0) | number:'1.2-2' }}</strong>
-          <span>Closing Balance</span>
-          <strong>{{ (ledger?.closingBalance ?? detail.supplierDue ?? 0) | number:'1.2-2' }}</strong>
+      </div>
+      <div class="alert alert-danger m-3 mb-0 no-print" *ngIf="statementError">{{ statementError }}</div>
+      <div class="loading-panel no-print" *ngIf="statementLoading"><span class="spinner-border spinner-border-sm me-2"></span> Loading statement...</div>
+
+      <div class="statement-print-area" *ngIf="!statementLoading && statement">
+        <div class="statement-head">
+          <div>
+            <span class="statement-title">Supplier Statement</span>
+            <h5>{{ statement.supplier.name }}</h5>
+            <p>{{ statement.supplier.supplierCode || 'N/A' }}<span *ngIf="statement.supplier.companyName"> - {{ statement.supplier.companyName }}</span></p>
+            <p>{{ statement.supplier.contactPerson || 'No contact person' }} | {{ statement.supplier.phone || 'No phone' }} | {{ statement.supplier.email || 'No email' }}</p>
+          </div>
+          <div class="text-end statement-period">
+            <span>Period</span>
+            <strong>{{ statement.fromDate ? (statement.fromDate | date:'mediumDate') : 'Beginning' }} to {{ statement.toDate ? (statement.toDate | date:'mediumDate') : 'Current' }}</strong>
+          </div>
+        </div>
+
+        <div class="statement-summary-grid">
+          <div class="statement-summary-item">
+            <span>Opening Balance</span>
+            <strong>{{ statement.openingBalance | number:'1.2-2' }}</strong>
+          </div>
+          <div class="statement-summary-item">
+            <span>Payable Balance</span>
+            <strong>{{ statement.closingPayableBalance | number:'1.2-2' }}</strong>
+          </div>
+          <div class="statement-summary-item advance">
+            <span>Supplier Advance</span>
+            <strong>{{ statement.supplierAdvanceBalance | number:'1.2-2' }}</strong>
+          </div>
+          <div class="statement-summary-item net">
+            <span>Net Position</span>
+            <strong>{{ statement.netSupplierPosition | number:'1.2-2' }}</strong>
+          </div>
+        </div>
+
+        <div class="table-responsive statement-table-wrap">
+          <table class="table table-hover align-middle mb-0 statement-table">
+            <thead class="table-light">
+              <tr>
+                <th>Date</th>
+                <th>Reference Type</th>
+                <th>Reference No</th>
+                <th>Description</th>
+                <th class="text-end">Debit</th>
+                <th class="text-end">Credit</th>
+                <th class="text-end">Running Balance</th>
+                <th class="text-end">Advance</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of statementRows; trackBy: trackStatement" [class.reversal-row]="row.referenceType === 'SUPPLIER_PAYMENT_REVERSAL'">
+                <td>{{ row.date | date:'mediumDate' }}</td>
+                <td>{{ row.referenceType }}</td>
+                <td class="fw-semibold">{{ row.referenceNo }}</td>
+                <td>{{ row.description }}</td>
+                <td class="text-end">{{ row.debit | number:'1.2-2' }}</td>
+                <td class="text-end">{{ row.credit | number:'1.2-2' }}</td>
+                <td class="text-end fw-bold">{{ row.runningBalance | number:'1.2-2' }}</td>
+                <td class="text-end">{{ row.advanceAmount | number:'1.2-2' }}</td>
+                <td><span class="statement-status">{{ row.status }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="statement-notes">
+          <p>Debit reduces payable. Credit increases payable. Supplier advance is shown separately and does not reduce payable balance until allocated.</p>
+          <p>Reversed payments are listed with the original payment row and a reversal row so the payable and advance movement remains auditable.</p>
         </div>
       </div>
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
-            <tr>
-              <th>Date</th>
-              <th>Reference</th>
-              <th>Description</th>
-              <th class="text-end">Debit</th>
-              <th class="text-end">Credit</th>
-              <th class="text-end">Balance</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let entry of ledgerEntries">
-              <td>{{ entry.date | date:'mediumDate' }}</td>
-              <td>{{ entry.referenceNo }}</td>
-              <td>{{ entry.description }}</td>
-              <td class="text-end">{{ entry.debit | number:'1.2-2' }}</td>
-              <td class="text-end">{{ entry.credit | number:'1.2-2' }}</td>
-              <td class="text-end fw-bold">{{ entry.runningBalance | number:'1.2-2' }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <div class="empty-state no-print" *ngIf="!statementLoading && !statement">No statement loaded.</div>
     </section>
   </ng-container>
 </div>
+

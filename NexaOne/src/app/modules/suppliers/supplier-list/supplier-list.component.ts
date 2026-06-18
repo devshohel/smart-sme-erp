@@ -153,6 +153,10 @@ export class SupplierListComponent implements OnInit {
     });
   }
 
+  viewApReconciliation(): void {
+    this.router.navigate(['/suppliers/ap-reconciliation']);
+  }
+
   deleteSupplier(supplier: Supplier): void {
     if (!supplier.id) {
       return;

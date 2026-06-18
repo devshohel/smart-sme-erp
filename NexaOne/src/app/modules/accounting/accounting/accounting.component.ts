@@ -39,7 +39,7 @@ export class AccountingComponent implements OnInit {
   accountTypeFilter: AccountType | '' = '';
   journalStatusFilter: JournalStatus | '' = '';
 
-  readonly paymentMethods: PaymentMethod[] = ['CASH', 'BANK', 'OTHER'];
+  readonly paymentMethods: PaymentMethod[] = ['CASH', 'BANK', 'MOBILE_BANKING', 'OTHER'];
   readonly accountTypes: AccountType[] = ['ASSET', 'LIABILITY', 'EQUITY', 'INCOME', 'EXPENSE'];
   readonly journalStatuses: JournalStatus[] = ['DRAFT', 'POSTED', 'CANCELLED'];
 
@@ -154,7 +154,7 @@ export class AccountingComponent implements OnInit {
   }
 
   expenseTotal(): number {
-    return this.expenses.filter(expense => expense.status !== 'CANCELLED').reduce((sum, expense) => sum + this.toNumber(expense.amount), 0);
+    return this.expenses.filter(expense => expense.status === 'POSTED').reduce((sum, expense) => sum + this.toNumber(expense.amount), 0);
   }
 
   bookInTotal(): number {
@@ -276,11 +276,11 @@ export class AccountingComponent implements OnInit {
   }
 
   private emptyCategory(): ExpenseCategory {
-    return { name: '', description: '', status: 'ACTIVE' };
+    return { name: '', description: '', accountId: null, status: 'ACTIVE' };
   }
 
   private emptyExpense(): Expense {
-    return { expenseDate: new Date().toISOString().slice(0, 10), categoryId: null, amount: 0, paymentMethod: 'CASH', referenceNo: '', notes: '', status: 'ACTIVE' };
+    return { expenseDate: new Date().toISOString().slice(0, 10), categoryId: null, amount: 0, paymentMethod: 'CASH', referenceNo: '', notes: '', status: 'DRAFT' };
   }
 
   private emptyAccount(): Account {

@@ -79,6 +79,23 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
     BigDecimal calculateSupplierDue(@Param("supplierId") Long supplierId);
 
     @Query("""
+            select p.supplier.id, coalesce(sum(p.dueAmount), 0), coalesce(sum(p.netTotal), 0)
+            from PurchaseOrder p
+            where (:supplierId is null or p.supplier.id = :supplierId)
+              and p.status in (
+                com.sme.erp.purchase.enums.PurchaseStatus.RECEIVED,
+                com.sme.erp.purchase.enums.PurchaseStatus.PARTIAL_PAID,
+                com.sme.erp.purchase.enums.PurchaseStatus.PAID
+              )
+              and (:fromDate is null or p.purchaseDate >= :fromDate)
+              and (:toDate is null or p.purchaseDate < :toDate)
+            group by p.supplier.id
+            """)
+    List<Object[]> findApReconciliationPurchaseRows(@Param("supplierId") Long supplierId,
+                                                    @Param("fromDate") LocalDateTime fromDate,
+                                                    @Param("toDate") LocalDateTime toDate);
+
+    @Query("""
             select new com.sme.erp.supplier.dto.SupplierPurchaseSummaryDTO(
                 p.purchaseCode,
                 p.purchaseDate,

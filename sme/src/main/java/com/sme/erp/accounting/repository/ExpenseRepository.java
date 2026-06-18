@@ -3,6 +3,8 @@ package com.sme.erp.accounting.repository;
 import com.sme.erp.accounting.entity.Expense;
 import com.sme.erp.accounting.enums.AccountingPaymentMethod;
 import com.sme.erp.accounting.enums.ExpenseStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -30,9 +32,45 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
                          @Param("categoryId") Long categoryId,
                          @Param("paymentMethod") AccountingPaymentMethod paymentMethod);
 
+    @Query(value = """
+            select e from Expense e
+            join e.category c
+            where (:keyword is null
+                    or lower(coalesce(e.expenseNo, '')) like lower(concat('%', :keyword, '%'))
+                    or lower(coalesce(e.referenceNo, '')) like lower(concat('%', :keyword, '%'))
+                    or lower(coalesce(e.notes, '')) like lower(concat('%', :keyword, '%'))
+                    or lower(coalesce(c.name, '')) like lower(concat('%', :keyword, '%')))
+              and (:fromDate is null or e.expenseDate >= :fromDate)
+              and (:toDate is null or e.expenseDate <= :toDate)
+              and (:categoryId is null or c.id = :categoryId)
+              and (:paymentMethod is null or e.paymentMethod = :paymentMethod)
+              and (:status is null or e.status = :status)
+            """,
+            countQuery = """
+            select count(e) from Expense e
+            join e.category c
+            where (:keyword is null
+                    or lower(coalesce(e.expenseNo, '')) like lower(concat('%', :keyword, '%'))
+                    or lower(coalesce(e.referenceNo, '')) like lower(concat('%', :keyword, '%'))
+                    or lower(coalesce(e.notes, '')) like lower(concat('%', :keyword, '%'))
+                    or lower(coalesce(c.name, '')) like lower(concat('%', :keyword, '%')))
+              and (:fromDate is null or e.expenseDate >= :fromDate)
+              and (:toDate is null or e.expenseDate <= :toDate)
+              and (:categoryId is null or c.id = :categoryId)
+              and (:paymentMethod is null or e.paymentMethod = :paymentMethod)
+              and (:status is null or e.status = :status)
+            """)
+    Page<Expense> searchPage(@Param("keyword") String keyword,
+                             @Param("fromDate") LocalDate fromDate,
+                             @Param("toDate") LocalDate toDate,
+                             @Param("categoryId") Long categoryId,
+                             @Param("paymentMethod") AccountingPaymentMethod paymentMethod,
+                             @Param("status") ExpenseStatus status,
+                             Pageable pageable);
+
     @Query("""
             select coalesce(sum(e.amount), 0) from Expense e
-            where e.status = com.sme.erp.accounting.enums.ExpenseStatus.ACTIVE
+            where e.status = com.sme.erp.accounting.enums.ExpenseStatus.POSTED
               and (:fromDate is null or e.expenseDate >= :fromDate)
               and (:toDate is null or e.expenseDate <= :toDate)
             """)

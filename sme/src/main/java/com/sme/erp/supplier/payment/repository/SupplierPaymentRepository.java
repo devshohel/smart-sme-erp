@@ -36,6 +36,32 @@ public interface SupplierPaymentRepository extends JpaRepository<SupplierPayment
                                                         @Param("fromDate") LocalDate fromDate,
                                                         @Param("toDate") LocalDate toDate);
 
+    @EntityGraph(attributePaths = {"supplier", "allocations", "allocations.purchaseOrder"})
+    @Query("""
+            select p
+            from SupplierPayment p
+            where p.supplier.id = :supplierId
+              and p.status in (
+                com.sme.erp.supplier.payment.enums.SupplierPaymentStatus.POSTED,
+                com.sme.erp.supplier.payment.enums.SupplierPaymentStatus.REVERSED
+              )
+            order by p.paymentDate asc, p.id asc
+            """)
+    List<SupplierPayment> findStatementPaymentsBySupplier(@Param("supplierId") Long supplierId);
+
+    @Query("""
+            select p.supplier.id, coalesce(sum(p.unappliedAmount), 0)
+            from SupplierPayment p
+            where (:supplierId is null or p.supplier.id = :supplierId)
+              and p.status = com.sme.erp.supplier.payment.enums.SupplierPaymentStatus.POSTED
+              and (:fromDate is null or p.paymentDate >= :fromDate)
+              and (:toDate is null or p.paymentDate <= :toDate)
+            group by p.supplier.id
+            """)
+    List<Object[]> findApReconciliationAdvanceRows(@Param("supplierId") Long supplierId,
+                                                   @Param("fromDate") LocalDate fromDate,
+                                                   @Param("toDate") LocalDate toDate);
+
     @Query(value = """
             select p
             from SupplierPayment p

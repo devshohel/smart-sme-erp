@@ -17,6 +17,10 @@ public class ExpenseCategory {
 
     private String description;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id")
+    private Account account;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status = Status.ACTIVE;
@@ -41,6 +45,8 @@ public class ExpenseCategory {
     public void setName(String name) { this.name = name; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public Account getAccount() { return account; }
+    public void setAccount(Account account) { this.account = account; }
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
     public LocalDateTime getCreatedAt() { return createdAt; }

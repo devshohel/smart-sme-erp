@@ -1,0 +1,19 @@
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { PermissionGuard } from '../auth/permission.guard';
+import { ExpenseDetailsComponent } from './expense-details/expense-details.component';
+import { ExpenseFormComponent } from './expense-form/expense-form.component';
+import { ExpenseListComponent } from './expense-list/expense-list.component';
+
+const routes: Routes = [
+  { path: '', component: ExpenseListComponent, canActivate: [PermissionGuard], data: { permissions: ['EXPENSE_VIEW'] } },
+  { path: 'create', component: ExpenseFormComponent, canActivate: [PermissionGuard], data: { permissions: ['EXPENSE_CREATE'] } },
+  { path: 'edit/:id', component: ExpenseFormComponent, canActivate: [PermissionGuard], data: { permissions: ['EXPENSE_EDIT'] } },
+  { path: 'details/:id', component: ExpenseDetailsComponent, canActivate: [PermissionGuard], data: { permissions: ['EXPENSE_VIEW'] } }
+];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule]
+})
+export class ExpensesRoutingModule {}

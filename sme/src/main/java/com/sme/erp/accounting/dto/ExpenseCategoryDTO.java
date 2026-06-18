@@ -10,6 +10,9 @@ public class ExpenseCategoryDTO {
     @NotBlank(message = "Category name is required")
     private String name;
     private String description;
+    private Long accountId;
+    private String accountCode;
+    private String accountName;
     private Status status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -20,6 +23,12 @@ public class ExpenseCategoryDTO {
     public void setName(String name) { this.name = name; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public Long getAccountId() { return accountId; }
+    public void setAccountId(Long accountId) { this.accountId = accountId; }
+    public String getAccountCode() { return accountCode; }
+    public void setAccountCode(String accountCode) { this.accountCode = accountCode; }
+    public String getAccountName() { return accountName; }
+    public void setAccountName(String accountName) { this.accountName = accountName; }
     public Status getStatus() { return status; }
     public void setStatus(Status status) { this.status = status; }
     public LocalDateTime getCreatedAt() { return createdAt; }

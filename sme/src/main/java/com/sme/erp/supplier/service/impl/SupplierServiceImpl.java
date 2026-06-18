@@ -1,5 +1,9 @@
 package com.sme.erp.supplier.service.impl;
 
+import com.sme.erp.accounting.entity.Account;
+import com.sme.erp.accounting.entity.JournalEntryLine;
+import com.sme.erp.accounting.repository.AccountRepository;
+import com.sme.erp.accounting.repository.JournalEntryLineRepository;
 import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
@@ -11,6 +15,10 @@ import com.sme.erp.purchase.entity.PurchaseOrder;
 import com.sme.erp.purchase.entity.PurchaseReturn;
 import com.sme.erp.purchase.repository.PurchaseOrderRepository;
 import com.sme.erp.purchase.repository.PurchaseReturnRepository;
+import com.sme.erp.supplier.dto.ApReconciliationBreakdownDTO;
+import com.sme.erp.supplier.dto.ApReconciliationDTO;
+import com.sme.erp.supplier.dto.ApReconciliationRowDTO;
+import com.sme.erp.supplier.dto.ApReconciliationSummaryDTO;
 import com.sme.erp.supplier.dto.SupplierAgingReportDTO;
 import com.sme.erp.supplier.dto.SupplierAgingRowDTO;
 import com.sme.erp.supplier.dto.SupplierDetailDTO;
@@ -19,9 +27,12 @@ import com.sme.erp.supplier.dto.SupplierLedgerDTO;
 import com.sme.erp.supplier.dto.SupplierLedgerEntryDTO;
 import com.sme.erp.supplier.dto.SupplierOptionDTO;
 import com.sme.erp.supplier.dto.SupplierPageDTO;
+import com.sme.erp.supplier.dto.SupplierStatementDTO;
+import com.sme.erp.supplier.dto.SupplierStatementRowDTO;
 import com.sme.erp.supplier.entity.Supplier;
 import com.sme.erp.supplier.mapper.SupplierMapper;
 import com.sme.erp.supplier.payment.entity.SupplierPayment;
+import com.sme.erp.supplier.payment.enums.SupplierPaymentStatus;
 import com.sme.erp.supplier.payment.mapper.SupplierPaymentMapper;
 import com.sme.erp.supplier.payment.repository.SupplierPaymentRepository;
 import com.sme.erp.supplier.repository.SupplierRepository;
@@ -54,6 +65,8 @@ public class SupplierServiceImpl implements SupplierService {
     private final PurchaseReturnRepository purchaseReturnRepository;
     private final SupplierPaymentRepository supplierPaymentRepository;
     private final SupplierPaymentMapper supplierPaymentMapper;
+    private final AccountRepository accountRepository;
+    private final JournalEntryLineRepository journalEntryLineRepository;
     private final ActivityLogService activityLogService;
     private final AuditLogService auditLogService;
 
@@ -64,6 +77,8 @@ public class SupplierServiceImpl implements SupplierService {
             PurchaseReturnRepository purchaseReturnRepository,
             SupplierPaymentRepository supplierPaymentRepository,
             SupplierPaymentMapper supplierPaymentMapper,
+            AccountRepository accountRepository,
+            JournalEntryLineRepository journalEntryLineRepository,
             ActivityLogService activityLogService,
             AuditLogService auditLogService) {
         this.supplierRepository = supplierRepository;
@@ -72,6 +87,8 @@ public class SupplierServiceImpl implements SupplierService {
         this.purchaseReturnRepository = purchaseReturnRepository;
         this.supplierPaymentRepository = supplierPaymentRepository;
         this.supplierPaymentMapper = supplierPaymentMapper;
+        this.accountRepository = accountRepository;
+        this.journalEntryLineRepository = journalEntryLineRepository;
         this.activityLogService = activityLogService;
         this.auditLogService = auditLogService;
     }
@@ -180,6 +197,65 @@ public class SupplierServiceImpl implements SupplierService {
 
     @Override
     @Transactional(readOnly = true)
+    public SupplierStatementDTO getStatement(Long id, LocalDate fromDate, LocalDate toDate) {
+        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+            throw new BadRequestException("From date cannot be after to date.");
+        }
+
+        Supplier supplier = findSupplierById(id);
+        List<StatementEntry> allEntries = statementEntries(supplier.getId());
+        BigDecimal openingBalance = safe(supplier.getOpeningBalance());
+        if (fromDate != null) {
+            openingBalance = applyStatementEntries(openingBalance, allEntries.stream()
+                    .filter(entry -> entry.date().isBefore(fromDate))
+                    .collect(Collectors.toList()));
+        }
+
+        BigDecimal runningBalance = openingBalance;
+        List<SupplierStatementRowDTO> rows = new ArrayList<>();
+        rows.add(new SupplierStatementRowDTO(
+                fromDate != null ? fromDate : createdDate(supplier),
+                "OPENING_BALANCE",
+                supplier.getSupplierCode(),
+                fromDate != null ? "Opening payable balance before selected period" : "Supplier opening payable balance",
+                BigDecimal.ZERO,
+                openingBalance,
+                openingBalance,
+                BigDecimal.ZERO,
+                "OPEN"));
+
+        for (StatementEntry entry : allEntries) {
+            if (!withinPeriod(entry.date(), fromDate, toDate)) {
+                continue;
+            }
+            runningBalance = runningBalance.add(entry.credit()).subtract(entry.debit());
+            rows.add(new SupplierStatementRowDTO(
+                    entry.date(),
+                    entry.referenceType(),
+                    entry.referenceNo(),
+                    entry.description(),
+                    entry.debit(),
+                    entry.credit(),
+                    runningBalance,
+                    entry.advanceAmount(),
+                    entry.status()));
+        }
+
+        BigDecimal supplierAdvanceBalance = supplierAdvanceBalance(allEntries, toDate);
+        BigDecimal netSupplierPosition = runningBalance.subtract(supplierAdvanceBalance);
+        return new SupplierStatementDTO(
+                supplierMapper.toDTO(supplier),
+                fromDate,
+                toDate,
+                openingBalance,
+                runningBalance,
+                supplierAdvanceBalance,
+                netSupplierPosition,
+                rows);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public SupplierAgingReportDTO getAging(Long supplierId, LocalDate fromDate, LocalDate toDate) {
         if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
             throw new BadRequestException("From date cannot be after to date.");
@@ -207,6 +283,105 @@ public class SupplierServiceImpl implements SupplierService {
                 .map(SupplierAgingRowDTO::getTotalDue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return new SupplierAgingReportDTO(fromDate, toDate, totalDue, resultRows);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApReconciliationDTO getApReconciliation(Long supplierId, LocalDate fromDate, LocalDate toDate) {
+        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+            throw new BadRequestException("From date cannot be after to date.");
+        }
+
+        Map<Long, ApRowAccumulator> rows = new LinkedHashMap<>();
+        if (supplierId != null) {
+            Supplier supplier = findSupplierById(supplierId);
+            rows.put(supplier.getId(), new ApRowAccumulator(supplier.getId(), supplier.getSupplierCode(), supplier.getName()));
+        } else {
+            supplierRepository.search(null, null).forEach(supplier ->
+                    rows.put(supplier.getId(), new ApRowAccumulator(supplier.getId(), supplier.getSupplierCode(), supplier.getName())));
+        }
+
+        LocalDateTime fromDateTime = startOfDay(fromDate);
+        LocalDateTime toDateTime = exclusiveEnd(toDate);
+        BigDecimal purchaseGross = BigDecimal.ZERO;
+        BigDecimal purchaseReturns = BigDecimal.ZERO;
+        BigDecimal allocatedPayments = BigDecimal.ZERO;
+        BigDecimal paymentReversals = BigDecimal.ZERO;
+        BigDecimal manualApAdjustments = BigDecimal.ZERO;
+
+        for (Object[] row : purchaseOrderRepository.findApReconciliationPurchaseRows(supplierId, fromDateTime, toDateTime)) {
+            ApRowAccumulator accumulator = row(rows, id(row[0]));
+            accumulator.purchaseDue = accumulator.purchaseDue.add(amount(row[1]));
+        }
+
+        for (Object[] row : supplierPaymentRepository.findApReconciliationAdvanceRows(supplierId, fromDate, toDate)) {
+            ApRowAccumulator accumulator = row(rows, id(row[0]));
+            accumulator.supplierAdvance = accumulator.supplierAdvance.add(amount(row[1]));
+        }
+
+        Account apAccount = accountRepository.findByAccountNameIgnoreCase("Accounts Payable").orElse(null);
+        if (apAccount != null) {
+            for (JournalEntryLine line : journalEntryLineRepository.findPostedLedgerLines(apAccount.getId(), fromDate, toDate)) {
+                String sourceType = line.getJournalEntry().getSourceType();
+                BigDecimal signedAp = safe(line.getCredit()).subtract(safe(line.getDebit()));
+                Long sourceSupplierId = supplierIdForApSource(sourceType, line.getJournalEntry().getSourceId());
+                if (sourceSupplierId == null || (supplierId != null && !supplierId.equals(sourceSupplierId))) {
+                    if (supplierId == null) {
+                        manualApAdjustments = manualApAdjustments.add(signedAp);
+                    }
+                    continue;
+                }
+
+                ApRowAccumulator accumulator = row(rows, sourceSupplierId);
+                accumulator.glAccountsPayable = accumulator.glAccountsPayable.add(signedAp);
+                if ("PURCHASE".equals(sourceType)) {
+                    purchaseGross = purchaseGross.add(signedAp.max(BigDecimal.ZERO));
+                } else if ("PURCHASE_RETURN".equals(sourceType)) {
+                    purchaseReturns = purchaseReturns.add(signedAp.negate().max(BigDecimal.ZERO));
+                } else if ("SUPPLIER_PAYMENT".equals(sourceType)) {
+                    allocatedPayments = allocatedPayments.add(signedAp.negate().max(BigDecimal.ZERO));
+                } else if ("SUPPLIER_PAYMENT_REVERSAL".equals(sourceType)) {
+                    paymentReversals = paymentReversals.add(signedAp.max(BigDecimal.ZERO));
+                }
+            }
+        }
+
+        BigDecimal totalPurchaseDue = BigDecimal.ZERO;
+        BigDecimal totalSupplierAdvance = BigDecimal.ZERO;
+        BigDecimal totalGlAccountsPayable = BigDecimal.ZERO;
+        List<ApReconciliationRowDTO> resultRows = new ArrayList<>();
+        for (ApRowAccumulator row : rows.values()) {
+            if (!row.hasValues() && supplierId == null) {
+                continue;
+            }
+            totalPurchaseDue = totalPurchaseDue.add(row.purchaseDue);
+            totalSupplierAdvance = totalSupplierAdvance.add(row.supplierAdvance);
+            totalGlAccountsPayable = totalGlAccountsPayable.add(row.glAccountsPayable);
+            resultRows.add(row.toDTO(false));
+        }
+
+        if (supplierId == null && manualApAdjustments.compareTo(BigDecimal.ZERO) != 0) {
+            totalGlAccountsPayable = totalGlAccountsPayable.add(manualApAdjustments);
+            resultRows.add(new ApReconciliationRowDTO(
+                    null,
+                    "MANUAL",
+                    "Manual / Unknown AP Adjustments",
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    manualApAdjustments,
+                    manualApAdjustments,
+                    BigDecimal.ZERO,
+                    "REVIEW_NEEDED"));
+        }
+
+        resultRows.sort(Comparator.comparing(ApReconciliationRowDTO::getSupplierName));
+        BigDecimal totalVariance = totalGlAccountsPayable.subtract(totalPurchaseDue);
+        BigDecimal netSupplierExposure = totalPurchaseDue.subtract(totalSupplierAdvance);
+        return new ApReconciliationDTO(
+                new ApReconciliationSummaryDTO(totalPurchaseDue, totalSupplierAdvance, totalGlAccountsPayable, totalVariance, netSupplierExposure),
+                resultRows,
+                new ApReconciliationBreakdownDTO(purchaseGross, purchaseReturns, allocatedPayments, paymentReversals,
+                        totalSupplierAdvance, manualApAdjustments));
     }
 
     @Override
@@ -384,6 +559,46 @@ public class SupplierServiceImpl implements SupplierService {
         return value != null ? value : BigDecimal.ZERO;
     }
 
+    private Long supplierIdForApSource(String sourceType, Long sourceId) {
+        if (sourceType == null || sourceId == null) {
+            return null;
+        }
+        if ("PURCHASE".equals(sourceType)) {
+            return purchaseOrderRepository.findById(sourceId)
+                    .map(PurchaseOrder::getSupplier)
+                    .map(Supplier::getId)
+                    .orElse(null);
+        }
+        if ("PURCHASE_RETURN".equals(sourceType)) {
+            return purchaseReturnRepository.findById(sourceId)
+                    .map(PurchaseReturn::getSupplier)
+                    .map(Supplier::getId)
+                    .orElse(null);
+        }
+        if ("SUPPLIER_PAYMENT".equals(sourceType) || "SUPPLIER_PAYMENT_REVERSAL".equals(sourceType)) {
+            return supplierPaymentRepository.findById(sourceId)
+                    .map(SupplierPayment::getSupplier)
+                    .map(Supplier::getId)
+                    .orElse(null);
+        }
+        return null;
+    }
+
+    private ApRowAccumulator row(Map<Long, ApRowAccumulator> rows, Long supplierId) {
+        return rows.computeIfAbsent(supplierId, id -> {
+            Supplier supplier = findSupplierById(id);
+            return new ApRowAccumulator(supplier.getId(), supplier.getSupplierCode(), supplier.getName());
+        });
+    }
+
+    private Long id(Object value) {
+        return value == null ? null : ((Number) value).longValue();
+    }
+
+    private BigDecimal amount(Object value) {
+        return value instanceof BigDecimal ? (BigDecimal) value : BigDecimal.ZERO;
+    }
+
     private List<LedgerEntry> ledgerEntries(Long supplierId, LocalDate fromDate, LocalDate toDate) {
         LocalDateTime fromDateTime = startOfDay(fromDate);
         LocalDateTime toDateTime = exclusiveEnd(toDate);
@@ -432,6 +647,113 @@ public class SupplierServiceImpl implements SupplierService {
         return entries;
     }
 
+    private List<StatementEntry> statementEntries(Long supplierId) {
+        List<StatementEntry> entries = new ArrayList<>();
+
+        for (PurchaseOrder purchase : purchaseOrderRepository.findPostedBySupplierForLedger(supplierId, null, null)) {
+            entries.add(new StatementEntry(
+                    purchase.getPurchaseDate().toLocalDate(),
+                    1,
+                    purchase.getId(),
+                    "PURCHASE",
+                    purchase.getPurchaseCode(),
+                    "Purchase payable",
+                    BigDecimal.ZERO,
+                    safe(purchase.getNetTotal()),
+                    BigDecimal.ZERO,
+                    purchase.getStatus() != null ? purchase.getStatus().name() : ""));
+        }
+
+        for (PurchaseReturn purchaseReturn : purchaseReturnRepository.findBySupplierForLedger(supplierId, null, null)) {
+            entries.add(new StatementEntry(
+                    purchaseReturn.getReturnDate().toLocalDate(),
+                    2,
+                    purchaseReturn.getId(),
+                    "PURCHASE_RETURN",
+                    purchaseReturn.getReturnCode(),
+                    "Purchase return reduces payable",
+                    safe(purchaseReturn.getTotalAmount()),
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    "RETURNED"));
+        }
+
+        for (SupplierPayment payment : supplierPaymentRepository.findStatementPaymentsBySupplier(supplierId)) {
+            BigDecimal allocated = safe(payment.getTotalAllocatedAmount());
+            BigDecimal unapplied = safe(payment.getUnappliedAmount());
+            if (allocated.signum() > 0 || unapplied.signum() > 0) {
+                entries.add(new StatementEntry(
+                        payment.getPaymentDate(),
+                        3,
+                        payment.getId(),
+                        "SUPPLIER_PAYMENT",
+                        payment.getPaymentNo(),
+                        paymentDescription(payment, allocated, unapplied),
+                        allocated,
+                        BigDecimal.ZERO,
+                        unapplied,
+                        payment.getStatus() != null ? payment.getStatus().name() : ""));
+            }
+
+            if (payment.getStatus() == SupplierPaymentStatus.REVERSED) {
+                entries.add(new StatementEntry(
+                        reversalDate(payment),
+                        4,
+                        payment.getId(),
+                        "SUPPLIER_PAYMENT_REVERSAL",
+                        payment.getPaymentNo() + "-REV",
+                        "Payment reversal restores payable and reverses supplier advance",
+                        BigDecimal.ZERO,
+                        allocated,
+                        unapplied.negate(),
+                        "REVERSED"));
+            }
+        }
+
+        entries.sort(Comparator
+                .comparing(StatementEntry::date)
+                .thenComparing(StatementEntry::sortOrder)
+                .thenComparing(StatementEntry::id));
+        return entries;
+    }
+
+    private String paymentDescription(SupplierPayment payment, BigDecimal allocated, BigDecimal unapplied) {
+        if (allocated.signum() > 0 && unapplied.signum() > 0) {
+            return "Supplier payment allocated to purchases; unapplied amount held as supplier advance";
+        }
+        if (allocated.signum() > 0) {
+            return "Supplier payment allocated to purchases";
+        }
+        return "Unapplied supplier advance";
+    }
+
+    private LocalDate reversalDate(SupplierPayment payment) {
+        return payment.getReversedAt() != null ? payment.getReversedAt().toLocalDate() : payment.getPaymentDate();
+    }
+
+    private boolean withinPeriod(LocalDate date, LocalDate fromDate, LocalDate toDate) {
+        return (fromDate == null || !date.isBefore(fromDate))
+                && (toDate == null || !date.isAfter(toDate));
+    }
+
+    private BigDecimal applyStatementEntries(BigDecimal balance, List<StatementEntry> entries) {
+        BigDecimal running = balance;
+        for (StatementEntry entry : entries) {
+            running = running.add(entry.credit()).subtract(entry.debit());
+        }
+        return running;
+    }
+
+    private BigDecimal supplierAdvanceBalance(List<StatementEntry> entries, LocalDate toDate) {
+        BigDecimal balance = BigDecimal.ZERO;
+        for (StatementEntry entry : entries) {
+            if (toDate == null || !entry.date().isAfter(toDate)) {
+                balance = balance.add(entry.advanceAmount());
+            }
+        }
+        return balance;
+    }
+
     private BigDecimal applyEntries(BigDecimal balance, List<LedgerEntry> entries) {
         BigDecimal running = balance;
         for (LedgerEntry entry : entries) {
@@ -468,6 +790,46 @@ public class SupplierServiceImpl implements SupplierService {
 
     private record LedgerEntry(LocalDate date, int sortOrder, Long id, String referenceType, String referenceNo,
                                String description, BigDecimal debit, BigDecimal credit) {
+    }
+
+    private record StatementEntry(LocalDate date, int sortOrder, Long id, String referenceType, String referenceNo,
+                                  String description, BigDecimal debit, BigDecimal credit,
+                                  BigDecimal advanceAmount, String status) {
+    }
+
+    private static class ApRowAccumulator {
+        private final Long supplierId;
+        private final String supplierCode;
+        private final String supplierName;
+        private BigDecimal purchaseDue = BigDecimal.ZERO;
+        private BigDecimal supplierAdvance = BigDecimal.ZERO;
+        private BigDecimal glAccountsPayable = BigDecimal.ZERO;
+
+        ApRowAccumulator(Long supplierId, String supplierCode, String supplierName) {
+            this.supplierId = supplierId;
+            this.supplierCode = supplierCode;
+            this.supplierName = supplierName;
+        }
+
+        boolean hasValues() {
+            return purchaseDue.compareTo(BigDecimal.ZERO) != 0
+                    || supplierAdvance.compareTo(BigDecimal.ZERO) != 0
+                    || glAccountsPayable.compareTo(BigDecimal.ZERO) != 0;
+        }
+
+        ApReconciliationRowDTO toDTO(boolean reviewNeeded) {
+            BigDecimal variance = glAccountsPayable.subtract(purchaseDue);
+            return new ApReconciliationRowDTO(
+                    supplierId,
+                    supplierCode,
+                    supplierName,
+                    purchaseDue,
+                    supplierAdvance,
+                    glAccountsPayable,
+                    variance,
+                    purchaseDue.subtract(supplierAdvance),
+                    reviewNeeded ? "REVIEW_NEEDED" : variance.compareTo(BigDecimal.ZERO) == 0 ? "MATCHED" : "VARIANCE");
+        }
     }
 
     private static class AgingAccumulator {

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { SupplierDetail, SupplierLedger, SupplierLedgerEntry } from '../../../models/supplier.model';
+import { SupplierDetail, SupplierLedger, SupplierLedgerEntry, SupplierStatement, SupplierStatementRow } from '../../../models/supplier.model';
 import { SupplierService } from '../../../services/supplier.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 import { AuthService } from '../../auth/auth.service';
@@ -13,12 +13,16 @@ import { AuthService } from '../../auth/auth.service';
 export class SupplierDetailsComponent implements OnInit {
   detail: SupplierDetail | null = null;
   ledger: SupplierLedger | null = null;
+  statement: SupplierStatement | null = null;
   loading = false;
   ledgerLoading = false;
+  statementLoading = false;
   errorMessage = '';
   ledgerError = '';
+  statementError = '';
   activeTab: 'overview' | 'purchases' | 'payments' | 'ledger' | 'statement' = 'overview';
   ledgerFilters = { fromDate: '', toDate: '' };
+  statementFilters = { fromDate: '', toDate: '' };
   ledgerPage = 0;
   ledgerSize = 10;
   readonly ledgerPageSizes = [10, 25, 50];
@@ -39,6 +43,8 @@ export class SupplierDetailsComponent implements OnInit {
     const tab = this.route.snapshot.queryParamMap.get('tab');
     if (tab === 'ledger') {
       this.activeTab = 'ledger';
+    } else if (tab === 'statement') {
+      this.activeTab = 'statement';
     }
     this.loadSupplier(id);
   }
@@ -51,6 +57,9 @@ export class SupplierDetailsComponent implements OnInit {
         this.detail = detail;
         this.loading = false;
         this.loadLedger();
+        if (this.activeTab === 'statement') {
+          this.loadStatement();
+        }
       },
       error: error => {
         this.loading = false;
@@ -86,6 +95,9 @@ export class SupplierDetailsComponent implements OnInit {
 
   setActiveTab(tab: 'overview' | 'purchases' | 'payments' | 'ledger' | 'statement'): void {
     this.activeTab = tab;
+    if (tab === 'statement' && !this.statement) {
+      this.loadStatement();
+    }
   }
 
   loadLedger(): void {
@@ -112,6 +124,31 @@ export class SupplierDetailsComponent implements OnInit {
   resetLedgerFilters(): void {
     this.ledgerFilters = { fromDate: '', toDate: '' };
     this.loadLedger();
+  }
+
+  loadStatement(): void {
+    const supplierId = this.detail?.supplier.id;
+    if (!supplierId) {
+      return;
+    }
+    this.statementLoading = true;
+    this.statementError = '';
+    this.supplierService.getSupplierStatement(supplierId, this.statementFilters.fromDate, this.statementFilters.toDate).subscribe({
+      next: statement => {
+        this.statement = statement;
+        this.statementLoading = false;
+      },
+      error: error => {
+        this.statementLoading = false;
+        this.statementError = extractApiErrorMessage(error, 'Supplier statement could not be loaded.');
+        debugApiError('SupplierDetailsComponent.loadStatement', error);
+      }
+    });
+  }
+
+  resetStatementFilters(): void {
+    this.statementFilters = { fromDate: '', toDate: '' };
+    this.loadStatement();
   }
 
   get ledgerEntries(): SupplierLedgerEntry[] {
@@ -152,8 +189,29 @@ export class SupplierDetailsComponent implements OnInit {
     this.downloadCsv('supplier-ledger.csv', [header, ...rows]);
   }
 
+  exportStatementCsv(): void {
+    const supplierCode = this.statement?.supplier.supplierCode || 'supplier';
+    const header = ['Date', 'Reference Type', 'Reference No', 'Description', 'Debit', 'Credit', 'Running Balance', 'Advance Amount', 'Status'];
+    const rows = this.statementRows.map(row => [
+      row.date || '',
+      row.referenceType || '',
+      row.referenceNo || '',
+      row.description || '',
+      this.formatNumber(row.debit),
+      this.formatNumber(row.credit),
+      this.formatNumber(row.runningBalance),
+      this.formatNumber(row.advanceAmount),
+      row.status || ''
+    ]);
+    this.downloadCsv(`${supplierCode}-statement.csv`, [header, ...rows]);
+  }
+
   printStatement(): void {
     window.print();
+  }
+
+  get statementRows(): SupplierStatementRow[] {
+    return this.statement?.rows || [];
   }
 
   hasPermission(permission: string): boolean {
@@ -161,6 +219,10 @@ export class SupplierDetailsComponent implements OnInit {
   }
 
   trackLedger(index: number): number {
+    return index;
+  }
+
+  trackStatement(index: number): number {
     return index;
   }
 

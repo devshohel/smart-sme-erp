@@ -56,7 +56,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     { label: 'Customer Due Report', route: '/reports/customer-dues', keywords: ['customer due report'] },
     { label: 'Supplier Due Report', route: '/reports/supplier-dues', keywords: ['supplier due report'] },
     { label: 'Profit & Loss Summary', route: '/reports/profit-loss', keywords: ['profit loss', 'profit and loss', 'p&l'] },
-    { label: 'Expenses', route: '/accounting/expenses', keywords: ['accounting', 'expense', 'expenses'] },
+    { label: 'Expenses', route: '/expenses', keywords: ['accounting', 'expense', 'expenses'] },
     { label: 'Expense Categories', route: '/accounting/expense-categories', keywords: ['expense category'] },
     { label: 'Cash Book', route: '/accounting/cash-book', keywords: ['cash book'] },
     { label: 'Bank Book', route: '/accounting/bank-book', keywords: ['bank book'] },
@@ -177,7 +177,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       return '/purchases/invoices';
     }
     if (type.includes('expense')) {
-      return '/accounting/expenses';
+      return '/expenses';
     }
     if (type.includes('customer due')) {
       return '/reports/customer-dues';

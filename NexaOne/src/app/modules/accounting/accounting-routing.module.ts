@@ -6,7 +6,7 @@ import { PermissionGuard } from '../auth/permission.guard';
 const routes: Routes = [
   { path: '', redirectTo: 'expenses', pathMatch: 'full' },
   { path: 'expense-categories', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'categories', permissions: ['ACCOUNTING_VIEW'] } },
-  { path: 'expenses', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'expenses', permissions: ['ACCOUNTING_VIEW'] } },
+  { path: 'expenses', redirectTo: '/expenses', pathMatch: 'full' },
   { path: 'accounts', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'accounts', permissions: ['ACCOUNTING_VIEW'] } },
   { path: 'journal-entries', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'journals', permissions: ['ACCOUNTING_VIEW'] } },
   { path: 'cash-book', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'cash-book', permissions: ['ACCOUNTING_VIEW'] } },

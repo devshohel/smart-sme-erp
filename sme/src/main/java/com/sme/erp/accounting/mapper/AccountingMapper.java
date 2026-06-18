@@ -17,6 +17,11 @@ public class AccountingMapper {
         dto.setStatus(entity.getStatus());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
+        if (entity.getAccount() != null) {
+            dto.setAccountId(entity.getAccount().getId());
+            dto.setAccountCode(entity.getAccount().getAccountCode());
+            dto.setAccountName(entity.getAccount().getAccountName());
+        }
         return dto;
     }
 

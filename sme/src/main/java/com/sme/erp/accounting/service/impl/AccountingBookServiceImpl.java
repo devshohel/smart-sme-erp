@@ -2,13 +2,10 @@ package com.sme.erp.accounting.service.impl;
 
 import com.sme.erp.accounting.dto.BookEntryDTO;
 import com.sme.erp.accounting.entity.Account;
-import com.sme.erp.accounting.entity.Expense;
 import com.sme.erp.accounting.entity.JournalEntryLine;
 import com.sme.erp.accounting.enums.AccountingPaymentMethod;
-import com.sme.erp.accounting.enums.ExpenseStatus;
 import com.sme.erp.accounting.enums.JournalStatus;
 import com.sme.erp.accounting.repository.AccountRepository;
-import com.sme.erp.accounting.repository.ExpenseRepository;
 import com.sme.erp.accounting.repository.JournalEntryLineRepository;
 import com.sme.erp.accounting.service.AccountingBookService;
 import com.sme.erp.common.exception.ResourceNotFoundException;
@@ -23,12 +20,10 @@ import java.util.List;
 
 @Service
 public class AccountingBookServiceImpl implements AccountingBookService {
-    private final ExpenseRepository expenseRepository;
     private final AccountRepository accountRepository;
     private final JournalEntryLineRepository lineRepository;
 
-    public AccountingBookServiceImpl(ExpenseRepository expenseRepository, AccountRepository accountRepository, JournalEntryLineRepository lineRepository) {
-        this.expenseRepository = expenseRepository;
+    public AccountingBookServiceImpl(AccountRepository accountRepository, JournalEntryLineRepository lineRepository) {
         this.accountRepository = accountRepository;
         this.lineRepository = lineRepository;
     }
@@ -49,12 +44,6 @@ public class AccountingBookServiceImpl implements AccountingBookService {
         Account account = accountRepository.findByAccountNameIgnoreCase(accountName)
                 .orElseThrow(() -> new ResourceNotFoundException(accountName + " account not found"));
         List<BookSource> sources = new ArrayList<>();
-
-        for (Expense expense : expenseRepository.findUnpostedByStatusAndPaymentMethodForBook(ExpenseStatus.ACTIVE, method)) {
-            sources.add(new BookSource(expense.getExpenseDate(), expense.getExpenseNo(),
-                    "Expense: " + (expense.getCategory() == null ? "" : expense.getCategory().getName()),
-                    BigDecimal.ZERO, safe(expense.getAmount())));
-        }
 
         for (JournalEntryLine line : lineRepository.findBookLines(account.getId(), JournalStatus.POSTED)) {
             sources.add(new BookSource(line.getJournalEntry().getJournalDate(), line.getJournalEntry().getJournalNo(),

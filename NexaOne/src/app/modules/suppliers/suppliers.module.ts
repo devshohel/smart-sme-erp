@@ -11,6 +11,7 @@ import { SupplierPaymentListComponent } from './supplier-payments/supplier-payme
 import { SupplierPaymentFormComponent } from './supplier-payments/supplier-payment-form/supplier-payment-form.component';
 import { SupplierPaymentDetailsComponent } from './supplier-payments/supplier-payment-details/supplier-payment-details.component';
 import { SupplierAgingComponent } from './supplier-aging/supplier-aging.component';
+import { SupplierApReconciliationComponent } from './supplier-ap-reconciliation/supplier-ap-reconciliation.component';
 
 @NgModule({
   declarations: [
@@ -20,7 +21,8 @@ import { SupplierAgingComponent } from './supplier-aging/supplier-aging.componen
     SupplierPaymentListComponent,
     SupplierPaymentFormComponent,
     SupplierPaymentDetailsComponent,
-    SupplierAgingComponent
+    SupplierAgingComponent,
+    SupplierApReconciliationComponent
   ],
   imports: [
     CommonModule,

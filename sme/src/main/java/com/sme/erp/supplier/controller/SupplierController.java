@@ -1,12 +1,14 @@
 package com.sme.erp.supplier.controller;
 
 import com.sme.erp.enums.Status;
+import com.sme.erp.supplier.dto.ApReconciliationDTO;
 import com.sme.erp.supplier.dto.SupplierDetailDTO;
 import com.sme.erp.supplier.dto.SupplierDTO;
 import com.sme.erp.supplier.dto.SupplierOptionDTO;
 import com.sme.erp.supplier.dto.SupplierPageDTO;
 import com.sme.erp.supplier.dto.SupplierLedgerDTO;
 import com.sme.erp.supplier.dto.SupplierAgingReportDTO;
+import com.sme.erp.supplier.dto.SupplierStatementDTO;
 import com.sme.erp.supplier.service.SupplierService;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -72,6 +74,15 @@ public class SupplierController {
         return ResponseEntity.ok(supplierService.getLedger(id, fromDate, toDate));
     }
 
+    @GetMapping("/{id}/statement")
+    @PreAuthorize("hasAuthority('SUPPLIER_LEDGER_VIEW')")
+    public ResponseEntity<SupplierStatementDTO> getStatement(
+            @PathVariable Long id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        return ResponseEntity.ok(supplierService.getStatement(id, fromDate, toDate));
+    }
+
     @GetMapping("/aging")
     @PreAuthorize("hasAnyAuthority('SUPPLIER_LEDGER_VIEW','SUPPLIER_VIEW')")
     public ResponseEntity<SupplierAgingReportDTO> getAging(
@@ -79,6 +90,15 @@ public class SupplierController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
         return ResponseEntity.ok(supplierService.getAging(supplierId, fromDate, toDate));
+    }
+
+    @GetMapping("/ap-reconciliation")
+    @PreAuthorize("hasAuthority('SUPPLIER_LEDGER_VIEW')")
+    public ResponseEntity<ApReconciliationDTO> getApReconciliation(
+            @RequestParam(required = false) Long supplierId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        return ResponseEntity.ok(supplierService.getApReconciliation(supplierId, fromDate, toDate));
     }
 
     @GetMapping("/options")

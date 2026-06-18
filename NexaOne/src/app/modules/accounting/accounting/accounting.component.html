@@ -14,9 +14,16 @@
           <label class="form-label">Name</label>
           <input class="form-control" [(ngModel)]="categoryForm.name" name="categoryName" required>
         </div>
-        <div class="col-md-5">
+        <div class="col-md-3">
           <label class="form-label">Description</label>
           <input class="form-control" [(ngModel)]="categoryForm.description" name="categoryDescription">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">GL Account</label>
+          <select class="form-select" [(ngModel)]="categoryForm.accountId" name="categoryAccount">
+            <option [ngValue]="null">None</option>
+            <option *ngFor="let account of accounts" [ngValue]="account.id">{{ account.accountCode }} - {{ account.accountName }}</option>
+          </select>
         </div>
         <div class="col-md-2">
           <label class="form-label">Status</label>
@@ -36,19 +43,20 @@
     <app-card title="Category List">
       <div class="table-responsive">
         <table class="table table-hover align-middle mb-0">
-          <thead class="table-light"><tr><th>Name</th><th>Description</th><th>Status</th><th class="text-center">Actions</th></tr></thead>
+          <thead class="table-light"><tr><th>Name</th><th>Description</th><th>GL Account</th><th>Status</th><th class="text-center">Actions</th></tr></thead>
           <tbody>
             <tr *ngFor="let category of categories">
               <td class="fw-semibold">{{ category.name }}</td>
               <td>{{ category.description || 'N/A' }}</td>
+              <td>{{ category.accountCode ? (category.accountCode + ' - ' + category.accountName) : 'Not mapped' }}</td>
               <td><span class="badge px-3 py-2" [ngClass]="badgeClass(category.status)">{{ category.status }}</span></td>
               <td class="text-center">
                 <button *ngIf="hasPermission('ACCOUNTING_EDIT')" class="btn btn-sm btn-outline-primary me-1" (click)="editCategory(category)"><i class="bi bi-pencil"></i></button>
                 <button *ngIf="hasPermission('ACCOUNTING_DELETE')" class="btn btn-sm btn-outline-danger" (click)="deactivateCategory(category)"><i class="bi bi-slash-circle"></i></button>
               </td>
             </tr>
-            <tr *ngIf="!loading && categories.length === 0"><td colspan="4" class="text-center text-muted py-5">No categories found.</td></tr>
-            <tr *ngIf="loading"><td colspan="4" class="text-center text-muted py-5">Loading...</td></tr>
+            <tr *ngIf="!loading && categories.length === 0"><td colspan="5" class="text-center text-muted py-5">No categories found.</td></tr>
+            <tr *ngIf="loading"><td colspan="5" class="text-center text-muted py-5">Loading...</td></tr>
           </tbody>
         </table>
       </div>

@@ -1,13 +1,16 @@
 export type AccountType = 'ASSET' | 'LIABILITY' | 'EQUITY' | 'INCOME' | 'EXPENSE';
 export type AccountingStatus = 'ACTIVE' | 'INACTIVE';
-export type PaymentMethod = 'CASH' | 'BANK' | 'OTHER';
-export type ExpenseStatus = 'ACTIVE' | 'CANCELLED';
+export type PaymentMethod = 'CASH' | 'BANK' | 'MOBILE_BANKING' | 'OTHER';
+export type ExpenseStatus = 'DRAFT' | 'POSTED' | 'CANCELLED';
 export type JournalStatus = 'DRAFT' | 'POSTED' | 'CANCELLED';
 
 export interface ExpenseCategory {
   id?: number;
   name: string;
   description?: string | null;
+  accountId?: number | null;
+  accountCode?: string | null;
+  accountName?: string | null;
   status?: AccountingStatus;
   createdAt?: string;
   updatedAt?: string;

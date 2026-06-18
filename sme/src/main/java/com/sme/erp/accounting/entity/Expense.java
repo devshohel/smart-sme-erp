@@ -37,7 +37,7 @@ public class Expense {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ExpenseStatus status = ExpenseStatus.ACTIVE;
+    private ExpenseStatus status = ExpenseStatus.DRAFT;
 
     private String createdBy;
     private LocalDateTime createdAt;

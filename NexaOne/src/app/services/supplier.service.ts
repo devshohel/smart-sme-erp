@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { Status } from '../models/product.model';
-import { Supplier, SupplierAgingReport, SupplierDetail, SupplierLedger, SupplierOption, SupplierPage } from '../models/supplier.model';
+import { ApReconciliationReport, Supplier, SupplierAgingReport, SupplierDetail, SupplierLedger, SupplierOption, SupplierPage, SupplierStatement } from '../models/supplier.model';
 import { ApiResponse, unwrapApiResponse } from '../shared/utils/api-response.util';
 
 @Injectable({
@@ -104,6 +104,20 @@ export class SupplierService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
+  getSupplierStatement(id: number, fromDate?: string, toDate?: string): Observable<SupplierStatement> {
+    let params = new HttpParams();
+    if (fromDate) {
+      params = params.set('fromDate', fromDate);
+    }
+    if (toDate) {
+      params = params.set('toDate', toDate);
+    }
+
+    return this.http
+      .get<SupplierStatement | ApiResponse<SupplierStatement>>(`${this.baseUrl}/${id}/statement`, { params })
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
   getSupplierAging(supplierId?: number | null, fromDate?: string, toDate?: string): Observable<SupplierAgingReport> {
     let params = new HttpParams();
     if (supplierId) {
@@ -118,6 +132,23 @@ export class SupplierService {
 
     return this.http
       .get<SupplierAgingReport | ApiResponse<SupplierAgingReport>>(`${this.baseUrl}/aging`, { params })
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  getApReconciliation(supplierId?: number | null, fromDate?: string, toDate?: string): Observable<ApReconciliationReport> {
+    let params = new HttpParams();
+    if (supplierId) {
+      params = params.set('supplierId', String(supplierId));
+    }
+    if (fromDate) {
+      params = params.set('fromDate', fromDate);
+    }
+    if (toDate) {
+      params = params.set('toDate', toDate);
+    }
+
+    return this.http
+      .get<ApReconciliationReport | ApiResponse<ApReconciliationReport>>(`${this.baseUrl}/ap-reconciliation`, { params })
       .pipe(map(response => unwrapApiResponse(response)));
   }
 

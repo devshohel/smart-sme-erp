@@ -1,8 +1,10 @@
 package com.sme.erp.accounting.service.impl;
 
+import com.sme.erp.accounting.entity.Account;
 import com.sme.erp.accounting.dto.ExpenseCategoryDTO;
 import com.sme.erp.accounting.entity.ExpenseCategory;
 import com.sme.erp.accounting.mapper.AccountingMapper;
+import com.sme.erp.accounting.repository.AccountRepository;
 import com.sme.erp.accounting.repository.ExpenseCategoryRepository;
 import com.sme.erp.accounting.service.ExpenseCategoryService;
 import com.sme.erp.common.exception.DuplicateResourceException;
@@ -17,10 +19,12 @@ import java.util.List;
 @Service
 public class ExpenseCategoryServiceImpl implements ExpenseCategoryService {
     private final ExpenseCategoryRepository repository;
+    private final AccountRepository accountRepository;
     private final AccountingMapper mapper;
 
-    public ExpenseCategoryServiceImpl(ExpenseCategoryRepository repository, AccountingMapper mapper) {
+    public ExpenseCategoryServiceImpl(ExpenseCategoryRepository repository, AccountRepository accountRepository, AccountingMapper mapper) {
         this.repository = repository;
+        this.accountRepository = accountRepository;
         this.mapper = mapper;
     }
 
@@ -46,6 +50,7 @@ public class ExpenseCategoryServiceImpl implements ExpenseCategoryService {
         ExpenseCategory category = new ExpenseCategory();
         category.setName(name);
         category.setDescription(RequestValueUtils.normalize(dto.getDescription()));
+        category.setAccount(resolveAccount(dto.getAccountId()));
         category.setStatus(dto.getStatus() != null ? dto.getStatus() : Status.ACTIVE);
         return mapper.toDTO(repository.save(category));
     }
@@ -60,6 +65,7 @@ public class ExpenseCategoryServiceImpl implements ExpenseCategoryService {
         }
         category.setName(name);
         category.setDescription(RequestValueUtils.normalize(dto.getDescription()));
+        category.setAccount(resolveAccount(dto.getAccountId()));
         category.setStatus(dto.getStatus() != null ? dto.getStatus() : Status.ACTIVE);
         return mapper.toDTO(repository.save(category));
     }
@@ -75,5 +81,13 @@ public class ExpenseCategoryServiceImpl implements ExpenseCategoryService {
     private ExpenseCategory find(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense category not found with id: " + id));
+    }
+
+    private Account resolveAccount(Long accountId) {
+        if (accountId == null) {
+            return null;
+        }
+        return accountRepository.findById(accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId));
     }
 }

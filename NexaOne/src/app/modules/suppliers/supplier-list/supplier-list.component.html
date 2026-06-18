@@ -11,6 +11,9 @@
       <button *ngIf="hasPermission('SUPPLIER_EXPORT') || hasPermission('SUPPLIER_VIEW')" class="btn btn-outline-secondary btn-sm" [disabled]="!suppliers.length" (click)="exportExcel()">
         <i class="bi bi-file-earmark-spreadsheet me-1"></i> Excel
       </button>
+      <button *ngIf="hasPermission('SUPPLIER_LEDGER_VIEW')" class="btn btn-outline-secondary btn-sm" (click)="viewApReconciliation()">
+        <i class="bi bi-clipboard-data me-1"></i> AP Reconciliation
+      </button>
       <button *ngIf="hasPermission('SUPPLIER_CREATE')" class="btn btn-success btn-sm px-3" (click)="createSupplier()">
         <i class="bi bi-person-plus me-1"></i> New Supplier
       </button>

@@ -2,6 +2,7 @@ package com.sme.erp.accounting.service.impl;
 
 import com.sme.erp.accounting.entity.Account;
 import com.sme.erp.accounting.entity.Expense;
+import com.sme.erp.accounting.entity.ExpenseCategory;
 import com.sme.erp.accounting.entity.JournalEntry;
 import com.sme.erp.accounting.entity.JournalEntryLine;
 import com.sme.erp.accounting.enums.AccountingPaymentMethod;
@@ -10,6 +11,7 @@ import com.sme.erp.accounting.repository.AccountRepository;
 import com.sme.erp.accounting.repository.JournalEntryRepository;
 import com.sme.erp.accounting.service.AccountingPostingService;
 import com.sme.erp.audit.service.ActivityLogService;
+import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.purchase.entity.PurchaseOrder;
 import com.sme.erp.purchase.entity.PurchaseReturn;
@@ -40,12 +42,9 @@ public class AccountingPostingServiceImpl implements AccountingPostingService {
             return;
         }
         Account paymentAccount = paymentAccount(expense.getPaymentMethod());
-        if (paymentAccount == null) {
-            // OTHER payments are skipped until a clearing account is configured.
-            return;
-        }
+        Account expenseAccount = expenseAccount(expense.getCategory());
         JournalEntry entry = baseEntry("EXPENSE", expense.getId(), expense.getExpenseNo(), expense.getExpenseDate(), "Expense posting " + expense.getExpenseNo());
-        addLine(entry, account("Operating Expense"), safe(expense.getAmount()), BigDecimal.ZERO, "Expense");
+        addLine(entry, expenseAccount, safe(expense.getAmount()), BigDecimal.ZERO, "Expense");
         addLine(entry, paymentAccount, BigDecimal.ZERO, safe(expense.getAmount()), "Expense payment");
         saveIfBalanced(entry);
         activityLogService.log("ACCOUNTING_POST_EXPENSE", "ACCOUNTING", "accounting_journal_entries", entry.getId(), "Posted expense " + expense.getExpenseNo());
@@ -169,10 +168,20 @@ public class AccountingPostingServiceImpl implements AccountingPostingService {
         if (method == AccountingPaymentMethod.CASH) {
             return account("Cash");
         }
-        if (method == AccountingPaymentMethod.BANK) {
+        if (method == AccountingPaymentMethod.BANK || method == AccountingPaymentMethod.MOBILE_BANKING) {
             return account("Bank");
         }
-        return null;
+        if (method == AccountingPaymentMethod.OTHER) {
+            return account("Expense Clearing");
+        }
+        throw new BadRequestException("Payment method is required for expense posting");
+    }
+
+    private Account expenseAccount(ExpenseCategory category) {
+        if (category == null || category.getAccount() == null) {
+            throw new BadRequestException("Expense category must have a mapped GL account before posting");
+        }
+        return category.getAccount();
     }
 
     private Account account(String name) {

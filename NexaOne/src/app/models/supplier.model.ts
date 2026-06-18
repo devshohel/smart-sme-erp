@@ -84,6 +84,29 @@ export interface SupplierLedger {
   entries: SupplierLedgerEntry[];
 }
 
+export interface SupplierStatementRow {
+  date: string;
+  referenceType: string;
+  referenceNo: string;
+  description: string;
+  debit: number;
+  credit: number;
+  runningBalance: number;
+  advanceAmount: number;
+  status: string;
+}
+
+export interface SupplierStatement {
+  supplier: Supplier;
+  fromDate?: string | null;
+  toDate?: string | null;
+  openingBalance: number;
+  closingPayableBalance: number;
+  supplierAdvanceBalance: number;
+  netSupplierPosition: number;
+  rows: SupplierStatementRow[];
+}
+
 export interface SupplierAgingRow {
   supplierId: number;
   supplierCode: string;
@@ -101,4 +124,41 @@ export interface SupplierAgingReport {
   toDate?: string | null;
   totalDue: number;
   rows: SupplierAgingRow[];
+}
+
+export type ApReconciliationStatus = 'MATCHED' | 'VARIANCE' | 'REVIEW_NEEDED';
+
+export interface ApReconciliationSummary {
+  totalPurchaseDue: number;
+  totalSupplierAdvance: number;
+  totalGlAccountsPayable: number;
+  totalVariance: number;
+  netSupplierExposure: number;
+}
+
+export interface ApReconciliationRow {
+  supplierId?: number | null;
+  supplierCode: string;
+  supplierName: string;
+  purchaseDue: number;
+  supplierAdvance: number;
+  glAccountsPayable: number;
+  variance: number;
+  netExposure: number;
+  status: ApReconciliationStatus;
+}
+
+export interface ApReconciliationBreakdown {
+  purchaseGross: number;
+  purchaseReturns: number;
+  allocatedPayments: number;
+  paymentReversals: number;
+  supplierAdvance: number;
+  manualApAdjustments: number;
+}
+
+export interface ApReconciliationReport {
+  summary: ApReconciliationSummary;
+  rows: ApReconciliationRow[];
+  breakdown: ApReconciliationBreakdown;
 }

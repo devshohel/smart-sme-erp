@@ -1,0 +1,50 @@
+<div class="container-fluid p-4 expense-form-page">
+  <app-page-header [title]="expenseId ? 'Edit Expense' : 'New Expense'" subtitle="Draft expenses can be edited before posting.">
+    <button type="button" class="btn btn-outline-secondary" (click)="cancel()"><i class="bi bi-arrow-left me-1"></i> Back</button>
+  </app-page-header>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="loading-panel" *ngIf="loading"><span class="spinner-border spinner-border-sm me-2"></span> Loading expense...</div>
+
+  <form class="expense-form" *ngIf="!loading" (ngSubmit)="save()">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Date</label>
+        <input type="date" class="form-control" [(ngModel)]="expense.expenseDate" name="expenseDate" required>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Category</label>
+        <select class="form-select" [(ngModel)]="expense.categoryId" name="categoryId" required>
+          <option [ngValue]="null">Select category</option>
+          <option *ngFor="let category of categories" [ngValue]="category.id">
+            {{ category.name }}{{ category.accountCode ? ' - ' + category.accountCode : ' - no GL account' }}
+          </option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Amount</label>
+        <input type="number" min="0.01" step="0.01" class="form-control text-end" [(ngModel)]="expense.amount" name="amount" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Payment Method</label>
+        <select class="form-select" [(ngModel)]="expense.paymentMethod" name="paymentMethod" required>
+          <option *ngFor="let method of methods" [value]="method">{{ method }}</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Reference</label>
+        <input class="form-control" [(ngModel)]="expense.referenceNo" name="referenceNo">
+      </div>
+      <div class="col-md-8">
+        <label class="form-label">Notes</label>
+        <input class="form-control" [(ngModel)]="expense.notes" name="notes">
+      </div>
+      <div class="col-12 text-end">
+        <button type="button" class="btn btn-outline-secondary me-2" (click)="cancel()">Cancel</button>
+        <button type="submit" class="btn btn-success" [disabled]="saving || expense.status !== 'DRAFT'">
+          <i class="bi bi-save me-1"></i> Save Draft
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
