@@ -47,6 +47,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class SupplierPaymentServiceImpl implements SupplierPaymentService {
+    private com.sme.erp.accounting.service.AccountingPeriodService periodService;
+    @org.springframework.beans.factory.annotation.Autowired public void setPeriodService(com.sme.erp.accounting.service.AccountingPeriodService s){periodService=s;}
     private static final String SOURCE_TYPE = "SUPPLIER_PAYMENT";
     private static final String REVERSAL_SOURCE_TYPE = "SUPPLIER_PAYMENT_REVERSAL";
 
@@ -156,6 +158,7 @@ public class SupplierPaymentServiceImpl implements SupplierPaymentService {
     @Transactional
     public SupplierPaymentDTO post(Long id) {
         SupplierPayment payment = findPaymentByIdDetailed(id);
+        if(periodService!=null) periodService.assertOpen(payment.getPaymentDate());
         if (payment.getStatus() == SupplierPaymentStatus.POSTED) {
             throw new BadRequestException("Supplier payment is already posted.");
         }
@@ -184,6 +187,7 @@ public class SupplierPaymentServiceImpl implements SupplierPaymentService {
     @Transactional
     public SupplierPaymentDTO reverse(Long id, String reversalReason) {
         SupplierPayment payment = findPaymentByIdDetailed(id);
+        if(periodService!=null) periodService.assertOpen(payment.getPaymentDate());
         if (payment.getStatus() == SupplierPaymentStatus.DRAFT) {
             throw new BadRequestException("Draft supplier payment cannot be reversed.");
         }
@@ -218,6 +222,7 @@ public class SupplierPaymentServiceImpl implements SupplierPaymentService {
     @Transactional
     public SupplierPaymentDTO cancel(Long id) {
         SupplierPayment payment = findPaymentByIdDetailed(id);
+        if(periodService!=null) periodService.assertOpen(payment.getPaymentDate());
         if (payment.getStatus() == SupplierPaymentStatus.POSTED) {
             throw new BadRequestException("Posted supplier payment cancellation requires reversal workflow and is not available in Batch-2.");
         }

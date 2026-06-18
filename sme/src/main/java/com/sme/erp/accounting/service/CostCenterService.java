@@ -1,0 +1,2 @@
+package com.sme.erp.accounting.service; import com.sme.erp.accounting.dto.CostCenterDTO; import com.sme.erp.enums.Status; import org.springframework.data.domain.Page; import java.util.List;
+public interface CostCenterService { List<CostCenterDTO> all(); Page<CostCenterDTO> page(String q,Status status,int page,int size); CostCenterDTO get(Long id); CostCenterDTO create(CostCenterDTO dto); CostCenterDTO update(Long id,CostCenterDTO dto); void deactivate(Long id); }

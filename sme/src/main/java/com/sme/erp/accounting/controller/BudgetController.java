@@ -1,0 +1,11 @@
+package com.sme.erp.accounting.controller;
+import com.sme.erp.accounting.dto.*; import com.sme.erp.accounting.enums.BudgetStatus; import com.sme.erp.accounting.service.BudgetService; import jakarta.validation.Valid; import org.springframework.data.domain.Page; import org.springframework.format.annotation.DateTimeFormat; import org.springframework.security.access.prepost.PreAuthorize; import org.springframework.web.bind.annotation.*; import java.time.LocalDate;
+@RestController @RequestMapping("/api/v1/accounting") public class BudgetController {private final BudgetService service;public BudgetController(BudgetService s){service=s;}
+ @GetMapping("/budgets/page") @PreAuthorize("hasAuthority('BUDGET_VIEW')") public Page<BudgetDTO> page(@RequestParam(required=false)String keyword,@RequestParam(required=false)Integer fiscalYear,@RequestParam(required=false)BudgetStatus status,@RequestParam(defaultValue="0")int page,@RequestParam(defaultValue="10")int size){return service.page(keyword,fiscalYear,status,page,size);}
+ @GetMapping("/budgets/{id}") @PreAuthorize("hasAuthority('BUDGET_VIEW')") public BudgetDTO get(@PathVariable Long id){return service.get(id);}
+ @PostMapping("/budgets") @PreAuthorize("hasAuthority('BUDGET_CREATE')") public BudgetDTO create(@Valid @RequestBody BudgetDTO d){return service.create(d);}
+ @PutMapping("/budgets/{id}") @PreAuthorize("hasAuthority('BUDGET_EDIT')") public BudgetDTO update(@PathVariable Long id,@Valid @RequestBody BudgetDTO d){return service.update(id,d);}
+ @PostMapping("/budgets/{id}/approve") @PreAuthorize("hasAuthority('BUDGET_APPROVE')") public BudgetDTO approve(@PathVariable Long id){return service.approve(id);}
+ @PostMapping("/budgets/{id}/cancel") @PreAuthorize("hasAuthority('BUDGET_CANCEL')") public BudgetDTO cancel(@PathVariable Long id){return service.cancel(id);}
+ @GetMapping("/budget-vs-actual") @PreAuthorize("hasAuthority('BUDGET_VIEW')") public BudgetActualDTO actual(@RequestParam(required=false)Integer fiscalYear,@RequestParam(required=false)@DateTimeFormat(iso=DateTimeFormat.ISO.DATE)LocalDate fromDate,@RequestParam(required=false)@DateTimeFormat(iso=DateTimeFormat.ISO.DATE)LocalDate toDate,@RequestParam(required=false)Long accountId,@RequestParam(required=false)Long costCenterId){return service.actual(fiscalYear,fromDate,toDate,accountId,costCenterId);}
+}

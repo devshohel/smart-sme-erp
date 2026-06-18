@@ -119,6 +119,11 @@ public class AccountingMapper {
             dto.setAccountCode(entity.getAccount().getAccountCode());
             dto.setAccountName(entity.getAccount().getAccountName());
         }
+        if (entity.getCostCenter() != null) {
+            dto.setCostCenterId(entity.getCostCenter().getId());
+            dto.setCostCenterCode(entity.getCostCenter().getCode());
+            dto.setCostCenterName(entity.getCostCenter().getName());
+        }
         return dto;
     }
 }

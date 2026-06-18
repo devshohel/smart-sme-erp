@@ -150,6 +150,8 @@ public class AccountingReportServiceImpl implements AccountingReportService {
                     ? line.getJournalEntry().getReferenceNo() : line.getJournalEntry().getSourceNo();
             transactions.add(new AccountLedgerEntryDTO(line.getJournalEntry().getJournalDate(),
                     line.getJournalEntry().getJournalNo(), referenceType, referenceNo,
+                    line.getCostCenter() == null ? "Unassigned" : line.getCostCenter().getCode(),
+                    line.getCostCenter() == null ? "Unassigned" : line.getCostCenter().getName(),
                     line.getDescription() != null ? line.getDescription() : line.getJournalEntry().getDescription(),
                     debit, credit, running));
         }

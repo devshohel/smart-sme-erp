@@ -5,11 +5,13 @@ import com.sme.erp.accounting.dto.JournalEntryLineDTO;
 import com.sme.erp.accounting.entity.Account;
 import com.sme.erp.accounting.entity.JournalEntry;
 import com.sme.erp.accounting.entity.JournalEntryLine;
+import com.sme.erp.accounting.entity.CostCenter;
 import com.sme.erp.accounting.enums.AccountType;
 import com.sme.erp.accounting.enums.JournalStatus;
 import com.sme.erp.accounting.mapper.AccountingMapper;
 import com.sme.erp.accounting.repository.AccountRepository;
 import com.sme.erp.accounting.repository.JournalEntryRepository;
+import com.sme.erp.accounting.repository.CostCenterRepository;
 import com.sme.erp.accounting.service.impl.JournalEntryServiceImpl;
 import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.audit.service.AuditLogService;
@@ -38,10 +40,12 @@ class JournalEntryServiceImplTest {
     @Mock AccountRepository accountRepository;
     @Mock ActivityLogService activityLogService;
     @Mock AuditLogService auditLogService;
+    @Mock CostCenterRepository costCenterRepository;
     private JournalEntryServiceImpl service;
 
     @BeforeEach void setUp() {
         service = new JournalEntryServiceImpl(repository, accountRepository, new AccountingMapper(), activityLogService, auditLogService);
+        service.setCostCenterRepository(costCenterRepository);
         lenient().when(repository.save(any(JournalEntry.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
@@ -68,6 +72,18 @@ class JournalEntryServiceImplTest {
         when(repository.findWithLinesById(1L)).thenReturn(Optional.of(entry(JournalStatus.POSTED, "100.00", "100.00")));
         assertThatThrownBy(() -> service.post(1L)).isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("Only draft");
+    }
+
+    @Test void manualJournalLineSupportsOptionalCostCenter() {
+        CostCenter center = new CostCenter(); center.setId(7L); center.setCode("OPS"); center.setName("Operations"); center.setStatus(Status.ACTIVE);
+        when(repository.findMaxId()).thenReturn(0L); when(repository.existsByJournalNo("JRN-0001")).thenReturn(false);
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account(1L,"1000","Cash")));
+        when(accountRepository.findById(2L)).thenReturn(Optional.of(account(2L,"3000","Equity")));
+        when(costCenterRepository.findById(7L)).thenReturn(Optional.of(center));
+        JournalEntryDTO request=dto(); request.getLines().get(0).setCostCenterId(7L);
+        JournalEntryDTO saved=service.create(request);
+        assertThat(saved.getLines().get(0).getCostCenterCode()).isEqualTo("OPS");
+        assertThat(saved.getLines().get(1).getCostCenterId()).isNull();
     }
 
     private JournalEntry entry(JournalStatus status, String debit, String credit) {

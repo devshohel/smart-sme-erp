@@ -43,6 +43,8 @@ import java.util.Set;
 
 @Service
 public class ExpenseServiceImpl implements ExpenseService {
+    private com.sme.erp.accounting.service.AccountingPeriodService periodService;
+    @org.springframework.beans.factory.annotation.Autowired public void setPeriodService(com.sme.erp.accounting.service.AccountingPeriodService s){periodService=s;}
     private final ExpenseRepository repository;
     private final ExpenseCategoryRepository categoryRepository;
     private final AccountingMapper mapper;
@@ -221,6 +223,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Transactional
     public ExpenseDTO cancel(Long id) {
         Expense expense = find(id);
+        if(periodService!=null) periodService.assertOpen(expense.getExpenseDate());
         if (expense.getStatus() != ExpenseStatus.DRAFT) {
             throw new BadRequestException("Only draft expenses can be cancelled");
         }
@@ -236,6 +239,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Transactional
     public ExpenseDTO post(Long id) {
         Expense expense = find(id);
+        if(periodService!=null) periodService.assertOpen(expense.getExpenseDate());
         if (expense.getStatus() == ExpenseStatus.POSTED || journalEntryRepository.existsBySourceTypeAndSourceId("EXPENSE", id)) {
             throw new BadRequestException("Expense is already posted");
         }
@@ -257,6 +261,7 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Transactional
     public ExpenseDTO reverse(Long id, String reversalReason) {
         Expense expense = find(id);
+        if(periodService!=null) periodService.assertOpen(expense.getExpenseDate());
         if (expense.getStatus() == ExpenseStatus.REVERSED || journalEntryRepository.existsBySourceTypeAndSourceId("EXPENSE_REVERSAL", id)) {
             throw new BadRequestException("Expense is already reversed");
         }

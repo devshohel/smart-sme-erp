@@ -1,0 +1,2 @@
+package com.sme.erp.accounting.dto; import java.math.BigDecimal; import java.util.List;
+public record FinancialDashboardDTO(BigDecimal cashBalance,BigDecimal bankBalance,BigDecimal accountsReceivable,BigDecimal accountsPayable,BigDecimal netProfitLoss,BigDecimal totalExpense,BigDecimal budgetUtilization,BigDecimal trialBalanceDifference,List<ChartPointDTO> monthlyIncomeExpense,List<ChartPointDTO> cashBankTrend,List<ChartPointDTO> expenseByCategory,List<ChartPointDTO> budgetVsActual) { public record ChartPointDTO(String label,BigDecimal value,BigDecimal secondaryValue){} }

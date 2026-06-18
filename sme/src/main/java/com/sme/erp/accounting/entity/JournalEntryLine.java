@@ -19,6 +19,10 @@ public class JournalEntryLine {
     @JoinColumn(name = "account_id", nullable = false)
     private Account account;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cost_center_id")
+    private CostCenter costCenter;
+
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal debit = BigDecimal.ZERO;
 
@@ -33,6 +37,8 @@ public class JournalEntryLine {
     public void setJournalEntry(JournalEntry journalEntry) { this.journalEntry = journalEntry; }
     public Account getAccount() { return account; }
     public void setAccount(Account account) { this.account = account; }
+    public CostCenter getCostCenter() { return costCenter; }
+    public void setCostCenter(CostCenter costCenter) { this.costCenter = costCenter; }
     public BigDecimal getDebit() { return debit; }
     public void setDebit(BigDecimal debit) { this.debit = debit; }
     public BigDecimal getCredit() { return credit; }

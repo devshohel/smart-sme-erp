@@ -10,6 +10,9 @@ public class JournalEntryLineDTO {
     private Long accountId;
     private String accountCode;
     private String accountName;
+    private Long costCenterId;
+    private String costCenterCode;
+    private String costCenterName;
     private BigDecimal debit = BigDecimal.ZERO;
     private BigDecimal credit = BigDecimal.ZERO;
     private String description;
@@ -22,6 +25,12 @@ public class JournalEntryLineDTO {
     public void setAccountCode(String accountCode) { this.accountCode = accountCode; }
     public String getAccountName() { return accountName; }
     public void setAccountName(String accountName) { this.accountName = accountName; }
+    public Long getCostCenterId() { return costCenterId; }
+    public void setCostCenterId(Long v) { costCenterId = v; }
+    public String getCostCenterCode() { return costCenterCode; }
+    public void setCostCenterCode(String v) { costCenterCode = v; }
+    public String getCostCenterName() { return costCenterName; }
+    public void setCostCenterName(String v) { costCenterName = v; }
     public BigDecimal getDebit() { return debit; }
     public void setDebit(BigDecimal debit) { this.debit = debit; }
     public BigDecimal getCredit() { return credit; }

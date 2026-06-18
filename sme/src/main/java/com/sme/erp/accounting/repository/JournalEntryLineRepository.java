@@ -10,7 +10,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface JournalEntryLineRepository extends JpaRepository<JournalEntryLine, Long> {
-    @EntityGraph(attributePaths = {"journalEntry", "account"})
+    @EntityGraph(attributePaths = {"journalEntry", "account", "costCenter"})
     @Query("""
             select l from JournalEntryLine l
             where l.account.id = :accountId and l.journalEntry.status = :status

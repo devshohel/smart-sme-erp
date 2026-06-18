@@ -1,0 +1,2 @@
+package com.sme.erp.accounting.service; import com.sme.erp.accounting.dto.*; import com.sme.erp.accounting.enums.BudgetStatus; import org.springframework.data.domain.Page; import java.time.LocalDate;
+public interface BudgetService { Page<BudgetDTO> page(String q,Integer year,BudgetStatus status,int page,int size); BudgetDTO get(Long id); BudgetDTO create(BudgetDTO d); BudgetDTO update(Long id,BudgetDTO d); BudgetDTO approve(Long id); BudgetDTO cancel(Long id); BudgetActualDTO actual(Integer year,LocalDate from,LocalDate to,Long accountId,Long costCenterId); }

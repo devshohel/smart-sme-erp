@@ -9,7 +9,9 @@ import com.sme.erp.accounting.enums.JournalStatus;
 import com.sme.erp.accounting.mapper.AccountingMapper;
 import com.sme.erp.accounting.repository.AccountRepository;
 import com.sme.erp.accounting.repository.JournalEntryRepository;
+import com.sme.erp.accounting.repository.CostCenterRepository;
 import com.sme.erp.accounting.service.JournalEntryService;
+import com.sme.erp.accounting.service.AccountingPeriodService;
 import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.common.exception.BadRequestException;
@@ -33,6 +35,8 @@ public class JournalEntryServiceImpl implements JournalEntryService {
     private final AccountingMapper mapper;
     private final ActivityLogService activityLogService;
     private final AuditLogService auditLogService;
+    private CostCenterRepository costCenterRepository;
+    private AccountingPeriodService periodService;
 
     public JournalEntryServiceImpl(JournalEntryRepository repository, AccountRepository accountRepository, AccountingMapper mapper, ActivityLogService activityLogService, AuditLogService auditLogService) {
         this.repository = repository;
@@ -74,6 +78,11 @@ public class JournalEntryServiceImpl implements JournalEntryService {
         return saved;
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setCostCenterRepository(CostCenterRepository repository) { this.costCenterRepository = repository; }
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setPeriodService(AccountingPeriodService service) { this.periodService = service; }
+
     @Override
     @Transactional
     public JournalEntryDTO update(Long id, JournalEntryDTO dto) {
@@ -103,6 +112,7 @@ public class JournalEntryServiceImpl implements JournalEntryService {
     @Transactional
     public JournalEntryDTO post(Long id) {
         JournalEntry entry = findWithLines(id);
+        if (periodService != null) periodService.assertOpen(entry.getJournalDate());
         if (entry.getStatus() != JournalStatus.DRAFT) {
             throw new BadRequestException("Only draft journal entries can be posted");
         }
@@ -122,6 +132,7 @@ public class JournalEntryServiceImpl implements JournalEntryService {
     @Transactional
     public JournalEntryDTO cancel(Long id) {
         JournalEntry entry = findWithLines(id);
+        if (periodService != null) periodService.assertOpen(entry.getJournalDate());
         if (entry.getStatus() == JournalStatus.CANCELLED) {
             throw new BadRequestException("Journal entry is already cancelled");
         }
@@ -146,6 +157,11 @@ public class JournalEntryServiceImpl implements JournalEntryService {
         }
         JournalEntryLine line = new JournalEntryLine();
         line.setAccount(account);
+        if (dto.getCostCenterId() != null) {
+            if (costCenterRepository == null) throw new BadRequestException("Cost center service is unavailable");
+            line.setCostCenter(costCenterRepository.findById(dto.getCostCenterId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Cost center not found with id: " + dto.getCostCenterId())));
+        }
         line.setDebit(safe(dto.getDebit()));
         line.setCredit(safe(dto.getCredit()));
         line.setDescription(RequestValueUtils.normalize(dto.getDescription()));

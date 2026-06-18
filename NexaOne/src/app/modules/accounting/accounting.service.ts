@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { ApiResponse, unwrapApiResponse } from '../../shared/utils/api-response.util';
-import { Account, AccountLedger, AccountType, AccountingBook, BalanceSheet, Expense, ExpenseCategory, GeneralLedger, JournalEntry, JournalStatus, LedgerEntry, PaymentMethod, ProfitLoss, TrialBalance } from './accounting.model';
+import { Account, AccountLedger, AccountingPeriod, AccountType, AccountingBook, BalanceSheet, Budget, BudgetActual, BudgetStatus, CostCenter, Expense, ExpenseCategory, FinancialDashboard, GeneralLedger, JournalEntry, JournalStatus, LedgerEntry, PageResult, PaymentMethod, ProfitLoss, TrialBalance, YearEndClosing } from './accounting.model';
 
 @Injectable({ providedIn: 'root' })
 export class AccountingService {
@@ -140,6 +140,23 @@ export class AccountingService {
     return this.http.get<BalanceSheet | ApiResponse<BalanceSheet>>(`${this.baseUrl}/balance-sheet`, { params })
       .pipe(map(response => unwrapApiResponse(response)));
   }
+
+  getCostCenters(): Observable<CostCenter[]> { return this.http.get<CostCenter[] | ApiResponse<CostCenter[]>>(`${this.baseUrl}/cost-centers`).pipe(map(unwrapApiResponse)); }
+  getCostCenterPage(filters: {keyword?:string;status?:string;page:number;size:number}): Observable<PageResult<CostCenter>> { let p=new HttpParams().set('page',filters.page).set('size',filters.size);if(filters.keyword)p=p.set('keyword',filters.keyword);if(filters.status)p=p.set('status',filters.status);return this.http.get<PageResult<CostCenter>|ApiResponse<PageResult<CostCenter>>>(`${this.baseUrl}/cost-centers/page`,{params:p}).pipe(map(unwrapApiResponse)); }
+  saveCostCenter(value: CostCenter): Observable<CostCenter> { const r=value.id?this.http.put<CostCenter|ApiResponse<CostCenter>>(`${this.baseUrl}/cost-centers/${value.id}`,value):this.http.post<CostCenter|ApiResponse<CostCenter>>(`${this.baseUrl}/cost-centers`,value);return r.pipe(map(unwrapApiResponse)); }
+  deactivateCostCenter(id:number):Observable<void>{return this.http.delete<void>(`${this.baseUrl}/cost-centers/${id}`);}
+  getBudgetPage(filters:{keyword?:string;fiscalYear?:number|string;status?:BudgetStatus|string;page:number;size:number}):Observable<PageResult<Budget>>{let p=new HttpParams().set('page',filters.page).set('size',filters.size);if(filters.keyword)p=p.set('keyword',filters.keyword);if(filters.fiscalYear)p=p.set('fiscalYear',filters.fiscalYear);if(filters.status)p=p.set('status',filters.status);return this.http.get<PageResult<Budget>|ApiResponse<PageResult<Budget>>>(`${this.baseUrl}/budgets/page`,{params:p}).pipe(map(unwrapApiResponse));}
+  getBudget(id:number):Observable<Budget>{return this.http.get<Budget|ApiResponse<Budget>>(`${this.baseUrl}/budgets/${id}`).pipe(map(unwrapApiResponse));}
+  saveBudget(v:Budget):Observable<Budget>{const r=v.id?this.http.put<Budget|ApiResponse<Budget>>(`${this.baseUrl}/budgets/${v.id}`,v):this.http.post<Budget|ApiResponse<Budget>>(`${this.baseUrl}/budgets`,v);return r.pipe(map(unwrapApiResponse));}
+  budgetAction(id:number,action:'approve'|'cancel'):Observable<Budget>{return this.http.post<Budget|ApiResponse<Budget>>(`${this.baseUrl}/budgets/${id}/${action}`,{}).pipe(map(unwrapApiResponse));}
+  getBudgetActual(filters:Record<string,string|number|undefined>):Observable<BudgetActual>{let p=new HttpParams();Object.entries(filters).forEach(([k,v])=>{if(v!==undefined&&v!=='')p=p.set(k,String(v));});return this.http.get<BudgetActual|ApiResponse<BudgetActual>>(`${this.baseUrl}/budget-vs-actual`,{params:p}).pipe(map(unwrapApiResponse));}
+  getPeriods():Observable<AccountingPeriod[]>{return this.http.get<AccountingPeriod[]|ApiResponse<AccountingPeriod[]>>(`${this.baseUrl}/periods`).pipe(map(unwrapApiResponse));}
+  createPeriod(v:AccountingPeriod):Observable<AccountingPeriod>{return this.http.post<AccountingPeriod|ApiResponse<AccountingPeriod>>(`${this.baseUrl}/periods`,v).pipe(map(unwrapApiResponse));}
+  periodAction(id:number,action:'close'|'reopen'):Observable<AccountingPeriod>{return this.http.post<AccountingPeriod|ApiResponse<AccountingPeriod>>(`${this.baseUrl}/periods/${id}/${action}`,{}).pipe(map(unwrapApiResponse));}
+  getYearEnds():Observable<YearEndClosing[]>{return this.http.get<YearEndClosing[]|ApiResponse<YearEndClosing[]>>(`${this.baseUrl}/year-end-closings`).pipe(map(unwrapApiResponse));}
+  prepareYearEnd(year:number):Observable<YearEndClosing>{return this.http.post<YearEndClosing|ApiResponse<YearEndClosing>>(`${this.baseUrl}/year-end-closings/prepare`,{},{params:new HttpParams().set('fiscalYear',year)}).pipe(map(unwrapApiResponse));}
+  completeYearEnd(id:number):Observable<YearEndClosing>{return this.http.post<YearEndClosing|ApiResponse<YearEndClosing>>(`${this.baseUrl}/year-end-closings/${id}/complete`,{}).pipe(map(unwrapApiResponse));}
+  getFinancialDashboard(year?:number):Observable<FinancialDashboard>{const params=year?new HttpParams().set('fiscalYear',year):undefined;return this.http.get<FinancialDashboard|ApiResponse<FinancialDashboard>>(`${this.baseUrl}/financial-dashboard`,{params}).pipe(map(unwrapApiResponse));}
 
   private getReport<T>(url: string, filters: { fromDate?: string; toDate?: string }): Observable<T> {
     let params = new HttpParams();

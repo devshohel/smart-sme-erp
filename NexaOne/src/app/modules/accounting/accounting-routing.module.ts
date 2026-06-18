@@ -22,6 +22,15 @@ const routes: Routes = [
   { path: 'profit-loss', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'profit-loss', anyPermissions: ['ACCOUNTING_VIEW', 'REPORT_VIEW'] } },
   { path: 'trial-balance', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'trial-balance', permissions: ['ACCOUNTING_VIEW'] } },
   { path: 'balance-sheet', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'balance-sheet', anyPermissions: ['ACCOUNTING_VIEW', 'REPORT_VIEW'] } }
+  ,{ path: 'cost-centers', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'cost-centers', permissions: ['COST_CENTER_VIEW'] } }
+  ,{ path: 'budgets', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'budgets', mode: 'list', permissions: ['BUDGET_VIEW'] } }
+  ,{ path: 'budgets/create', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'budgets', mode: 'create', permissions: ['BUDGET_CREATE'] } }
+  ,{ path: 'budgets/edit/:id', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'budgets', mode: 'edit', permissions: ['BUDGET_EDIT'] } }
+  ,{ path: 'budgets/details/:id', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'budgets', mode: 'details', permissions: ['BUDGET_VIEW'] } }
+  ,{ path: 'budget-vs-actual', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'budget-vs-actual', permissions: ['BUDGET_VIEW'] } }
+  ,{ path: 'financial-dashboard', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'financial-dashboard', permissions: ['FINANCIAL_DASHBOARD_VIEW'] } }
+  ,{ path: 'periods', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'periods', permissions: ['ACCOUNTING_PERIOD_VIEW'] } }
+  ,{ path: 'year-end-closings', component: AccountingComponent, canActivate: [PermissionGuard], data: { section: 'year-end-closings', permissions: ['YEAR_END_VIEW'] } }
 ];
 
 @NgModule({

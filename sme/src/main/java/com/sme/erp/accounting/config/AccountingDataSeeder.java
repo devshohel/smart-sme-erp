@@ -28,6 +28,7 @@ public class AccountingDataSeeder implements CommandLineRunner {
                 new SeedAccount("1030", "Supplier Advance", AccountType.ASSET),
                 new SeedAccount("2000", "Accounts Payable", AccountType.LIABILITY),
                 new SeedAccount("3000", "Owner Equity", AccountType.EQUITY),
+                new SeedAccount("3010", "Retained Earnings", AccountType.EQUITY),
                 new SeedAccount("4000", "Sales Income", AccountType.INCOME),
                 new SeedAccount("5000", "Purchase Cost", AccountType.EXPENSE),
                 new SeedAccount("5100", "Operating Expense", AccountType.EXPENSE),

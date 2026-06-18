@@ -47,6 +47,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class CustomerReceiptServiceImpl implements CustomerReceiptService {
+    private com.sme.erp.accounting.service.AccountingPeriodService periodService;
+    @org.springframework.beans.factory.annotation.Autowired public void setPeriodService(com.sme.erp.accounting.service.AccountingPeriodService s){periodService=s;}
     private static final String SOURCE_TYPE = "CUSTOMER_RECEIPT";
 
     private final CustomerReceiptRepository receiptRepository;
@@ -162,6 +164,7 @@ public class CustomerReceiptServiceImpl implements CustomerReceiptService {
     @Transactional
     public CustomerReceiptDTO post(Long id) {
         CustomerReceipt receipt = findReceiptByIdDetailed(id);
+        if(periodService!=null) periodService.assertOpen(receipt.getReceiptDate());
         if (receipt.getStatus() == CustomerReceiptStatus.POSTED) {
             throw new BadRequestException("Receipt is already posted.");
         }
@@ -191,6 +194,7 @@ public class CustomerReceiptServiceImpl implements CustomerReceiptService {
     @Transactional
     public CustomerReceiptDTO cancel(Long id) {
         CustomerReceipt receipt = findReceiptByIdDetailed(id);
+        if(periodService!=null) periodService.assertOpen(receipt.getReceiptDate());
         if (receipt.getStatus() == CustomerReceiptStatus.POSTED) {
             throw new BadRequestException("Posted receipt cancellation requires reversal workflow and is not available in Batch-2A.");
         }

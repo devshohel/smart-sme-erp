@@ -24,6 +24,8 @@
 .profit-positive { border-left: 4px solid #198754 !important; }
 .profit-negative { border-left: 4px solid #dc3545 !important; }
 .section-title { cursor: pointer; }
+.chart-row { display:grid; grid-template-columns:45px 1fr 150px; gap:8px; align-items:center; padding:6px 0; }
+.chart-bar { min-width:2px; height:10px; border-radius:4px; background:#198754; }
 
 .badge {
   min-width: 92px;

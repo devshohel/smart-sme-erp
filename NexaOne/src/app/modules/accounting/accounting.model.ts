@@ -47,6 +47,9 @@ export interface JournalLine {
   accountId: number | null;
   accountCode?: string;
   accountName?: string;
+  costCenterId?: number | null;
+  costCenterCode?: string;
+  costCenterName?: string;
   debit: number;
   credit: number;
   description?: string | null;
@@ -72,6 +75,18 @@ export interface JournalEntry {
   totalCredit?: number;
   sourceType?: string | null;
 }
+
+export interface PageResult<T> { content: T[]; totalElements: number; totalPages: number; number: number; size: number; }
+export interface CostCenter { id?: number; code: string; name: string; description?: string; status: AccountingStatus; createdAt?: string; updatedAt?: string; }
+export type BudgetStatus = 'DRAFT' | 'APPROVED' | 'CANCELLED';
+export type BudgetPeriodType = 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
+export interface Budget { id?: number; budgetNo?: string; fiscalYear: number; periodType: BudgetPeriodType; fromDate: string; toDate: string; accountId: number | null; accountCode?: string; accountName?: string; costCenterId?: number | null; costCenterCode?: string; costCenterName?: string; amount: number; status?: BudgetStatus; approvedAt?: string; approvedBy?: string; }
+export interface BudgetActualRow { accountId: number; accountCode: string; accountName: string; costCenterId?: number; costCenterCode: string; costCenterName: string; budgetAmount: number; actualAmount: number; variance: number; variancePercentage: number; }
+export interface BudgetActual { rows: BudgetActualRow[]; totalBudget: number; totalActual: number; totalVariance: number; utilizationPercentage: number; }
+export interface AccountingPeriod { id?: number; periodName: string; startDate: string; endDate: string; status?: 'OPEN'|'CLOSED'; closedAt?: string; closedBy?: string; remarks?: string; }
+export interface YearEndClosing { id?: number; fiscalYear: number; closingDate: string; status: 'DRAFT'|'COMPLETED'|'CANCELLED'; retainedEarningsAmount: number; closingJournalId?: number; completedAt?: string; completedBy?: string; }
+export interface ChartPoint { label: string; value: number; secondaryValue: number; }
+export interface FinancialDashboard { cashBalance:number; bankBalance:number; accountsReceivable:number; accountsPayable:number; netProfitLoss:number; totalExpense:number; budgetUtilization:number; trialBalanceDifference:number; monthlyIncomeExpense:ChartPoint[]; cashBankTrend:ChartPoint[]; expenseByCategory:ChartPoint[]; budgetVsActual:ChartPoint[]; }
 
 export interface BookEntry {
   date: string;
@@ -140,6 +155,8 @@ export interface AccountLedgerEntry {
   journalNo: string;
   referenceType?: string;
   referenceNo?: string;
+  costCenterCode?: string;
+  costCenterName?: string;
   description?: string;
   debit: number;
   credit: number;
