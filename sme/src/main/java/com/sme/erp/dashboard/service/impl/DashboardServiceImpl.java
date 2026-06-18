@@ -266,8 +266,8 @@ public class DashboardServiceImpl implements DashboardService {
                 .filter(invoice -> isPositive(invoice.getDueAmount()))
                 .forEach(invoice -> alerts.add(new DueAlertDTO(
                         "Customer Due",
-                        invoice.getInvoiceNo(),
-                        invoice.getCustomer().getName(),
+                        defaultText(invoice.getInvoiceNo(), "N/A"),
+                        invoice.getCustomer() != null ? defaultText(invoice.getCustomer().getName(), "Customer") : "Customer",
                         safe(invoice.getDueAmount()),
                         invoice.getSaleDate().toLocalDate().toString())));
 
@@ -276,8 +276,8 @@ public class DashboardServiceImpl implements DashboardService {
                 .filter(order -> isPositive(order.getDueAmount()))
                 .forEach(order -> alerts.add(new DueAlertDTO(
                         "Supplier Due",
-                        order.getPurchaseCode(),
-                        order.getSupplier().getName(),
+                        defaultText(order.getPurchaseCode(), "N/A"),
+                        order.getSupplier() != null ? defaultText(order.getSupplier().getName(), "Supplier") : "Supplier",
                         safe(order.getDueAmount()),
                         order.getPurchaseDate().toLocalDate().toString())));
 
@@ -397,6 +397,10 @@ public class DashboardServiceImpl implements DashboardService {
 
     private BigDecimal add(BigDecimal left, BigDecimal right) {
         return safe(left).add(safe(right));
+    }
+
+    private String defaultText(String value, String fallback) {
+        return value != null && !value.isBlank() ? value : fallback;
     }
 
     private static class ProductSalesTotal {

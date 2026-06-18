@@ -296,6 +296,10 @@ export class AccountingComponent implements OnInit {
     return this.authService.hasPermission(permission);
   }
 
+  hasAnyPermission(permissions: string[]): boolean {
+    return this.authService.hasAnyPermission(permissions);
+  }
+
   badgeClass(status?: string): string {
     if (status === 'ACTIVE' || status === 'POSTED') return 'bg-success-subtle text-success';
     if (status === 'DRAFT') return 'bg-warning-subtle text-warning';
@@ -304,21 +308,27 @@ export class AccountingComponent implements OnInit {
   }
 
   private loadReferenceData(): void {
-    if (!this.categories.length) this.loadCategories(false);
-    if (!this.accounts.length) this.loadAccounts(false);
-    if (!this.costCenters.length && this.hasPermission('COST_CENTER_VIEW')) this.loadCostCenterOptions();
+    if (this.requiresCategoryOptions() && !this.categories.length && this.hasAnyPermission(['ACCOUNTING_VIEW', 'EXPENSE_VIEW', 'EXPENSE_CREATE', 'EXPENSE_EDIT'])) {
+      this.loadCategories(false, true);
+    }
+    if (this.requiresAccountOptions() && !this.accounts.length && this.hasAnyPermission(['ACCOUNTING_VIEW', 'ACCOUNTING_CREATE', 'ACCOUNTING_EDIT', 'BUDGET_VIEW', 'BUDGET_CREATE', 'BUDGET_EDIT'])) {
+      this.loadAccounts(false, true);
+    }
+    if (this.requiresCostCenterOptions() && !this.costCenters.length && this.hasAnyPermission(['COST_CENTER_VIEW', 'ACCOUNTING_VIEW', 'ACCOUNTING_CREATE', 'ACCOUNTING_EDIT', 'BUDGET_VIEW', 'BUDGET_CREATE', 'BUDGET_EDIT'])) {
+      this.loadCostCenterOptions(true);
+    }
   }
 
-  private loadCategories(showLoading = true): void {
-    this.fetch(showLoading, this.accountingService.getCategories(), categories => this.categories = categories, 'Categories could not be loaded.');
+  private loadCategories(showLoading = true, suppressError = false): void {
+    this.fetch(showLoading, this.accountingService.getCategories(), categories => this.categories = categories || [], 'Categories could not be loaded.', suppressError);
   }
 
   private loadExpenses(): void {
     this.fetch(true, this.accountingService.getExpenses(this.expenseFilters), expenses => this.expenses = expenses, 'Expenses could not be loaded.');
   }
 
-  private loadAccounts(showLoading = true): void {
-    this.fetch(showLoading, this.accountingService.getAccounts(this.accountTypeFilter), accounts => this.accounts = accounts, 'Accounts could not be loaded.');
+  private loadAccounts(showLoading = true, suppressError = false): void {
+    this.fetch(showLoading, this.accountingService.getAccounts(this.accountTypeFilter), accounts => this.accounts = accounts || [], 'Accounts could not be loaded.', suppressError);
   }
 
   private loadJournals(): void {
@@ -367,9 +377,9 @@ export class AccountingComponent implements OnInit {
     this.fetch(true, this.accountingService.getBalanceSheet(this.balanceSheetAsOfDate), report => this.balanceSheet = report, 'Balance sheet could not be loaded.');
   }
 
-  private fetch<T>(showLoading: boolean, request: Observable<T>, next: (value: T) => void, fallback: string): void {
+  private fetch<T>(showLoading: boolean, request: Observable<T>, next: (value: T) => void, fallback: string, suppressError = false): void {
     if (showLoading) this.loading = true;
-    this.errorMessage = '';
+    if (!suppressError) this.errorMessage = '';
     request.subscribe({
       next: (value: T) => {
         next(value);
@@ -377,7 +387,7 @@ export class AccountingComponent implements OnInit {
       },
       error: (error: unknown) => {
         this.loading = false;
-        this.errorMessage = extractApiErrorMessage(error, fallback);
+        if (!suppressError) this.errorMessage = extractApiErrorMessage(error, fallback);
         debugApiError('AccountingComponent.fetch', error);
       }
     });
@@ -409,7 +419,7 @@ export class AccountingComponent implements OnInit {
     return { name: '', description: '', accountId: null, status: 'ACTIVE' };
   }
 
-  private loadCostCenterOptions():void{this.fetch(false,this.accountingService.getCostCenters(),rows=>this.costCenters=rows,'Cost centers could not be loaded.');}
+  private loadCostCenterOptions(suppressError = false):void{this.fetch(false,this.accountingService.getCostCenters(),rows=>this.costCenters=rows || [],'Cost centers could not be loaded.',suppressError);}
   private loadCostCentersPage():void{this.fetch(true,this.accountingService.getCostCenterPage({...this.costCenterFilters,page:this.costCenterPage,size:10}),p=>{this.costCenters=p.content;this.costCenterTotalPages=p.totalPages||1;},'Cost centers could not be loaded.');}
   private loadBudgets():void{this.fetch(true,this.accountingService.getBudgetPage({...this.budgetFilters,page:this.budgetPage,size:10}),p=>{this.budgets=p.content;this.budgetTotalPages=p.totalPages||1;},'Budgets could not be loaded.');}
   private loadBudget(id:number):void{this.fetch(true,this.accountingService.getBudget(id),v=>this.budgetForm=v,'Budget could not be loaded.');}
@@ -417,6 +427,9 @@ export class AccountingComponent implements OnInit {
   private loadFinancialDashboard():void{this.fetch(true,this.accountingService.getFinancialDashboard(this.dashboardYear),v=>this.financialDashboard=v,'Financial dashboard could not be loaded.');}
   private loadPeriods():void{this.fetch(true,this.accountingService.getPeriods(),v=>this.periods=v,'Accounting periods could not be loaded.');}
   private loadYearEnds():void{this.fetch(true,this.accountingService.getYearEnds(),v=>this.yearEnds=v,'Year-end closings could not be loaded.');}
+  private requiresCategoryOptions(): boolean { return this.section === 'categories' || this.section === 'expenses'; }
+  private requiresAccountOptions(): boolean { return this.section === 'categories' || this.section === 'accounts' || this.section === 'journals' || this.section === 'budgets' || this.section === 'budget-vs-actual'; }
+  private requiresCostCenterOptions(): boolean { return this.section === 'journals' || this.section === 'cost-centers' || this.section === 'budgets' || this.section === 'budget-vs-actual'; }
 
   private emptyExpense(): Expense {
     return { expenseDate: new Date().toISOString().slice(0, 10), categoryId: null, amount: 0, paymentMethod: 'CASH', referenceNo: '', notes: '', status: 'DRAFT' };

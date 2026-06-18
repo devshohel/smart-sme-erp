@@ -26,7 +26,7 @@ export class DashboardComponent implements OnInit {
 
     this.dashboardService.getSummary().subscribe({
       next: summary => {
-        this.summary = summary;
+        this.summary = summary ?? this.emptySummary();
         this.loading = false;
       },
       error: error => {
@@ -96,5 +96,32 @@ export class DashboardComponent implements OnInit {
       return 'bg-danger-subtle text-danger';
     }
     return 'bg-warning-subtle text-warning';
+  }
+
+  private emptySummary(): DashboardSummary {
+    return {
+      todaySales: 0,
+      todayPurchase: 0,
+      todayExpense: 0,
+      todayProfit: 0,
+      totalStockValue: 0,
+      customerDue: 0,
+      supplierDue: 0,
+      netProfit: 0,
+      totalCustomers: 0,
+      totalSuppliers: 0,
+      lowStockItemsCount: 0,
+      thisMonthProfit: 0,
+      expenseTaxAmount: 0,
+      postedExpenses: 0,
+      pendingApprovalExpenses: 0,
+      reversedExpenses: 0,
+      monthlyExpenseTrend: [],
+      monthlySalesPurchase: [],
+      topSellingProducts: [],
+      lowStockAlerts: [],
+      dueAlerts: [],
+      recentTransactions: []
+    };
   }
 }

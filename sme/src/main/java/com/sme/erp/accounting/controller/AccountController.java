@@ -22,13 +22,13 @@ public class AccountController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('ACCOUNTING_VIEW')")
+    @PreAuthorize("hasAnyAuthority('ACCOUNTING_VIEW','ACCOUNTING_CREATE','ACCOUNTING_EDIT','BUDGET_VIEW','BUDGET_CREATE','BUDGET_EDIT')")
     public ResponseEntity<List<AccountDTO>> getAll(@RequestParam(required = false) AccountType type, @RequestParam(required = false) Status status) {
         return ResponseEntity.ok(service.getAll(type, status));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('ACCOUNTING_VIEW')")
+    @PreAuthorize("hasAnyAuthority('ACCOUNTING_VIEW','ACCOUNTING_CREATE','ACCOUNTING_EDIT','BUDGET_VIEW','BUDGET_CREATE','BUDGET_EDIT')")
     public ResponseEntity<AccountDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }

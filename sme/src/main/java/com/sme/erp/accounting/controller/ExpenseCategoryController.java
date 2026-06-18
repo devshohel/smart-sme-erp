@@ -21,13 +21,13 @@ public class ExpenseCategoryController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('EXPENSE_VIEW','EXPENSE_CREATE','EXPENSE_EDIT')")
+    @PreAuthorize("hasAnyAuthority('ACCOUNTING_VIEW','EXPENSE_VIEW','EXPENSE_CREATE','EXPENSE_EDIT')")
     public ResponseEntity<List<ExpenseCategoryDTO>> getAll(@RequestParam(required = false) Status status) {
         return ResponseEntity.ok(service.getAll(status));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('EXPENSE_VIEW')")
+    @PreAuthorize("hasAnyAuthority('ACCOUNTING_VIEW','EXPENSE_VIEW')")
     public ResponseEntity<ExpenseCategoryDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
