@@ -85,9 +85,6 @@ public class SupplierMapper {
         if (dto.getOpeningBalance() != null) {
             entity.setOpeningBalance(dto.getOpeningBalance());
         }
-        if (dto.getCurrentBalance() != null) {
-            entity.setCurrentBalance(dto.getCurrentBalance());
-        }
         if (dto.isTaxNumberPresent()) {
             entity.setTaxNumber(dto.getTaxNumber());
         }

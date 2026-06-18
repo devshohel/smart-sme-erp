@@ -5,9 +5,14 @@ import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.enums.Status;
+import com.sme.erp.purchase.repository.PurchaseOrderRepository;
+import com.sme.erp.purchase.repository.PurchaseReturnRepository;
 import com.sme.erp.supplier.dto.SupplierDTO;
 import com.sme.erp.supplier.entity.Supplier;
 import com.sme.erp.supplier.mapper.SupplierMapper;
+import com.sme.erp.supplier.payment.mapper.SupplierPaymentAllocationMapper;
+import com.sme.erp.supplier.payment.mapper.SupplierPaymentMapper;
+import com.sme.erp.supplier.payment.repository.SupplierPaymentRepository;
 import com.sme.erp.supplier.repository.SupplierRepository;
 import com.sme.erp.supplier.service.impl.SupplierServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +38,12 @@ class SupplierServiceImplTest {
     @Mock
     private SupplierRepository supplierRepository;
     @Mock
+    private PurchaseOrderRepository purchaseOrderRepository;
+    @Mock
+    private PurchaseReturnRepository purchaseReturnRepository;
+    @Mock
+    private SupplierPaymentRepository supplierPaymentRepository;
+    @Mock
     private ActivityLogService activityLogService;
     @Mock
     private AuditLogService auditLogService;
@@ -41,7 +52,8 @@ class SupplierServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new SupplierServiceImpl(supplierRepository, new SupplierMapper(), activityLogService, auditLogService);
+        service = new SupplierServiceImpl(supplierRepository, new SupplierMapper(), purchaseOrderRepository, purchaseReturnRepository,
+                supplierPaymentRepository, new SupplierPaymentMapper(new SupplierPaymentAllocationMapper()), activityLogService, auditLogService);
     }
 
     @Test
@@ -125,6 +137,28 @@ class SupplierServiceImplTest {
         assertThat(result.getCompanyName()).isEqualTo("Existing Company");
         assertThat(result.getPhone()).isEqualTo("123456");
         assertThat(result.getOpeningBalance()).isEqualByComparingTo("75.00");
+    }
+
+    @Test
+    void update_preservesExistingCurrentBalanceEvenIfPayloadProvidesValue() {
+        Supplier existing = new Supplier();
+        existing.setId(1L);
+        existing.setSupplierCode("SUP-0001");
+        existing.setName("Old Name");
+        existing.setOpeningBalance(new BigDecimal("75.00"));
+        existing.setCurrentBalance(new BigDecimal("125.00"));
+        existing.setStatus(Status.ACTIVE);
+
+        SupplierDTO dto = new SupplierDTO();
+        dto.setName("New Name");
+        dto.setCurrentBalance(new BigDecimal("999.00"));
+
+        when(supplierRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(supplierRepository.save(any(Supplier.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SupplierDTO result = service.update(1L, dto);
+
+        assertThat(result.getCurrentBalance()).isEqualByComparingTo("125.00");
     }
 
     @Test

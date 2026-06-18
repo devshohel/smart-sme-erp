@@ -1,0 +1,55 @@
+<div class="container-fluid p-4 supplier-payment-details-page">
+  <app-page-header title="Supplier Payment" subtitle="Supplier payment voucher and allocation details.">
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-outline-secondary" (click)="backToList()"><i class="bi bi-arrow-left me-1"></i> Back</button>
+      <button type="button" class="btn btn-outline-success" *ngIf="payment?.status === 'DRAFT' && hasPermission('SUPPLIER_PAYMENT_EDIT')" (click)="editPayment()"><i class="bi bi-pencil-square me-1"></i> Edit</button>
+      <button type="button" class="btn btn-success" *ngIf="payment?.status === 'DRAFT' && hasPermission('SUPPLIER_PAYMENT_POST')" (click)="postPayment()"><i class="bi bi-check2-circle me-1"></i> Post</button>
+      <button type="button" class="btn btn-outline-danger" *ngIf="payment?.status === 'POSTED' && payment?.canReverse && hasPermission('SUPPLIER_PAYMENT_CANCEL')" (click)="reversePayment()"><i class="bi bi-arrow-counterclockwise me-1"></i> Reverse</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="print()"><i class="bi bi-printer me-1"></i> Print</button>
+    </div>
+  </app-page-header>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="loading-panel" *ngIf="loading"><span class="spinner-border spinner-border-sm me-2"></span> Loading payment...</div>
+
+  <ng-container *ngIf="payment && !loading">
+    <section class="voucher-card">
+      <div>
+        <span class="muted-label">Payment No</span>
+        <h4>{{ payment.paymentNo }}</h4>
+      </div>
+      <span class="status-pill" [class.posted]="payment.status === 'POSTED'" [class.cancelled]="payment.status === 'CANCELLED'">{{ payment.status || 'DRAFT' }}</span>
+    </section>
+
+    <section class="info-grid">
+      <div><span>Supplier</span><strong>{{ payment.supplierName }}</strong><small>{{ payment.supplierCode || 'N/A' }}</small></div>
+      <div><span>Payment Date</span><strong>{{ payment.paymentDate | date:'mediumDate' }}</strong></div>
+      <div><span>Method</span><strong>{{ payment.paymentMethod }}</strong></div>
+      <div><span>Amount</span><strong>{{ payment.amount | number:'1.2-2' }}</strong></div>
+      <div><span>Allocated</span><strong>{{ (payment.totalAllocatedAmount ?? 0) | number:'1.2-2' }}</strong></div>
+      <div><span>Unapplied</span><strong>{{ (payment.unappliedAmount ?? 0) | number:'1.2-2' }}</strong></div>
+      <div><span>Reference</span><strong>{{ payment.referenceNo || 'N/A' }}</strong></div>
+      <div><span>Journal</span><strong>{{ payment.journalNo || 'Not posted' }}</strong></div>
+      <div *ngIf="payment.status === 'REVERSED'"><span>Reversed At</span><strong>{{ payment.reversedAt | date:'medium' }}</strong></div>
+      <div class="span-2" *ngIf="payment.status === 'REVERSED'"><span>Reversal Reason</span><strong>{{ payment.reversalReason || 'N/A' }}</strong></div>
+      <div class="span-2"><span>Notes</span><strong>{{ payment.notes || 'N/A' }}</strong></div>
+    </section>
+
+    <section class="panel mt-3">
+      <div class="panel-heading"><h5>Allocations</h5></div>
+      <div class="table-responsive" *ngIf="payment.allocations?.length; else noAllocations">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light"><tr><th>Purchase</th><th class="text-end">Purchase Due</th><th class="text-end">Allocated</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let allocation of payment.allocations">
+              <td class="fw-semibold">{{ allocation.purchaseCode || allocation.purchaseOrderId }}</td>
+              <td class="text-end">{{ (allocation.purchaseDueAmount ?? 0) | number:'1.2-2' }}</td>
+              <td class="text-end fw-semibold">{{ allocation.allocatedAmount | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noAllocations><div class="empty-state">No allocations recorded.</div></ng-template>
+    </section>
+  </ng-container>
+</div>

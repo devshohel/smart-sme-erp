@@ -65,6 +65,7 @@ public class SupplierDTO {
     private BigDecimal openingBalance;
 
     private BigDecimal currentBalance;
+    private BigDecimal supplierDue;
 
     @Size(max = 100, message = "Tax number must be at most 100 characters")
     private String taxNumber;
@@ -172,6 +173,9 @@ public class SupplierDTO {
 
     public BigDecimal getCurrentBalance() { return currentBalance; }
     public void setCurrentBalance(BigDecimal currentBalance) { this.currentBalance = currentBalance; }
+
+    public BigDecimal getSupplierDue() { return supplierDue; }
+    public void setSupplierDue(BigDecimal supplierDue) { this.supplierDue = supplierDue; }
 
     public String getTaxNumber() { return taxNumber; }
     public void setTaxNumber(String taxNumber) {

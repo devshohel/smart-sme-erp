@@ -6,3 +6,19 @@
   font-weight: 600;
   margin-bottom: 0.75rem;
 }
+
+.form-control,
+.form-select {
+  border-color: #cfdcd2;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #198754;
+  box-shadow: 0 0 0 0.15rem rgba(25, 135, 84, 0.12);
+}
+
+.form-control[readonly] {
+  background: #f8faf9;
+  color: #64748b;
+}

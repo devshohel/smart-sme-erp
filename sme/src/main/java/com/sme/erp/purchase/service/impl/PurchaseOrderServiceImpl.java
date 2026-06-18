@@ -79,6 +79,17 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<PurchaseOrderDTO> getUnpaidBySupplier(Long supplierId) {
+        if (supplierId == null) {
+            return List.of();
+        }
+        return purchaseOrderRepository.findUnpaidBySupplierIdOrderByPurchaseDateAscIdAsc(supplierId).stream()
+                .map(purchaseOrderMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PurchaseOrderDTO getById(Long id) {
         return purchaseOrderMapper.toDTO(findPurchaseOrderById(id));
     }

@@ -1,0 +1,16 @@
+.supplier-payment-details-page { background: #f7faf8; min-height: calc(100vh - 70px); }
+.voucher-card, .info-grid, .panel { background: #fff; border: 1px solid #dfe8e1; border-radius: 8px; box-shadow: 0 4px 14px rgba(16, 86, 44, .04); }
+.voucher-card { padding: 1rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.muted-label, .info-grid span { display: block; color: #6c757d; font-size: .78rem; text-transform: uppercase; font-weight: 700; }
+.info-grid { padding: 1rem; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.info-grid strong { display: block; color: #20372a; }
+.info-grid small { color: #6c757d; }
+.span-2 { grid-column: span 2; }
+.status-pill { padding: .35rem .7rem; border-radius: 999px; background: #fff3cd; color: #8a6400; font-weight: 700; }
+.status-pill.posted { background: #d1e7dd; color: #146c43; }
+.status-pill.cancelled { background: #f8d7da; color: #b02a37; }
+.panel-heading { padding: .85rem 1rem; border-bottom: 1px solid #e6eee8; }
+.panel-heading h5 { margin: 0; font-size: 1rem; font-weight: 700; }
+.loading-panel, .empty-state { padding: 1.5rem; text-align: center; color: #6c757d; }
+@media (max-width: 992px) { .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media print { app-page-header, .btn { display: none !important; } .supplier-payment-details-page { background: #fff; padding: 0 !important; } }

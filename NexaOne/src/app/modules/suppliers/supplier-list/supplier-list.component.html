@@ -1,104 +1,157 @@
-<div class="container-fluid p-4">
-  <app-page-header
-    title="Suppliers"
-    subtitle="Manage supplier records, payable balances, and payment terms.">
-    <button *ngIf="hasPermission('SUPPLIER_CREATE')" class="btn btn-success" (click)="createSupplier()">
-      <i class="bi bi-person-plus me-1"></i>
-      New Supplier
-    </button>
-  </app-page-header>
+<div class="container-fluid p-4 supplier-list-page">
+  <div class="page-title-row">
+    <div>
+      <h4 class="fw-bold mb-0">Suppliers</h4>
+      <p class="text-muted mb-0">Browse supplier master records, payment terms, and payable snapshot.</p>
+    </div>
+    <div class="toolbar-actions">
+      <button *ngIf="hasPermission('SUPPLIER_EXPORT') || hasPermission('SUPPLIER_VIEW')" class="btn btn-outline-secondary btn-sm" [disabled]="!suppliers.length" (click)="exportCsv()">
+        <i class="bi bi-filetype-csv me-1"></i> CSV
+      </button>
+      <button *ngIf="hasPermission('SUPPLIER_EXPORT') || hasPermission('SUPPLIER_VIEW')" class="btn btn-outline-secondary btn-sm" [disabled]="!suppliers.length" (click)="exportExcel()">
+        <i class="bi bi-file-earmark-spreadsheet me-1"></i> Excel
+      </button>
+      <button *ngIf="hasPermission('SUPPLIER_CREATE')" class="btn btn-success btn-sm px-3" (click)="createSupplier()">
+        <i class="bi bi-person-plus me-1"></i> New Supplier
+      </button>
+    </div>
+  </div>
 
-  <app-card title="Supplier Filters" subtitle="Search suppliers by keyword and status.">
-    <form (ngSubmit)="search()">
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label">Keyword</label>
-          <input
-            type="text"
-            class="form-control"
-            [(ngModel)]="filters.keyword"
-            name="keyword"
-            placeholder="Code, name, company, contact, phone, email, city">
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">Status</label>
-          <select class="form-select" [(ngModel)]="filters.status" name="status">
-            <option value="">All Statuses</option>
-            <option *ngFor="let status of statusList" [value]="status">{{ status }}</option>
-          </select>
-        </div>
-        <div class="col-md-2 d-flex align-items-end">
-          <div class="d-grid gap-2 w-100">
-            <button type="submit" class="btn btn-success" [disabled]="loading">
-              {{ loading ? 'Loading...' : 'Search' }}
-            </button>
-            <button type="button" class="btn btn-outline-secondary" (click)="resetFilters()" [disabled]="loading">
-              Reset
-            </button>
-          </div>
-        </div>
+  <div class="filter-card">
+    <form class="supplier-filter-form" (ngSubmit)="search()">
+      <div class="filter-search">
+        <label class="form-label">Search</label>
+        <input
+          type="text"
+          class="form-control"
+          [(ngModel)]="filters.keyword"
+          name="keyword"
+          placeholder="Supplier code, name, company, phone, email, city">
+      </div>
+      <div class="filter-status">
+        <label class="form-label">Status</label>
+        <select class="form-select" [(ngModel)]="filters.status" name="status">
+          <option value="">All Statuses</option>
+          <option *ngFor="let status of statusList" [value]="status">{{ status }}</option>
+        </select>
+      </div>
+      <div class="filter-buttons">
+        <button type="submit" class="btn btn-success btn-filter" [disabled]="loading" title="Search">
+          <i class="bi bi-search"></i>
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-filter" (click)="resetFilters()" [disabled]="loading" title="Reset filters">
+          <i class="bi bi-x-lg"></i>
+        </button>
       </div>
     </form>
-  </app-card>
+  </div>
 
-  <app-card title="Supplier List" subtitle="Supplier master data and financial snapshot.">
-    <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="list-card">
+    <div class="list-toolbar">
+      <div class="record-summary">
+        <strong>{{ totalElements }}</strong> records
+      </div>
+      <select class="form-select form-select-sm page-size" [(ngModel)]="size" (change)="changePageSize()">
+        <option *ngFor="let option of pageSizes" [ngValue]="option">{{ option }} / page</option>
+      </select>
+    </div>
 
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
+    <div class="alert alert-danger m-3 mb-0" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+    <div class="loading-panel" *ngIf="loading">
+      <span class="spinner-border spinner-border-sm me-2"></span> Loading suppliers...
+    </div>
+
+    <div class="empty-state" *ngIf="!loading && suppliers.length === 0">
+      <i class="bi bi-truck"></i>
+      <strong>No suppliers found</strong>
+      <span>Try adjusting the search term or status filter.</span>
+    </div>
+
+    <div class="table-responsive supplier-table-wrap" *ngIf="!loading && suppliers.length">
+      <table class="table table-hover supplier-table align-middle mb-0">
+        <colgroup>
+          <col class="supplier-col">
+          <col class="contact-col">
+          <col class="location-col">
+          <col class="terms-col">
+          <col class="due-col">
+          <col class="balance-col">
+          <col class="status-col">
+          <col class="action-col">
+        </colgroup>
+        <thead class="table-light text-uppercase small fw-bold">
           <tr>
-            <th>Supplier</th>
+            <th class="sortable" (click)="setSort('name')">Supplier Info <i class="bi" [ngClass]="sortIcon('name')"></i></th>
             <th>Contact</th>
-            <th>Location</th>
+            <th class="sortable" (click)="setSort('city')">Location <i class="bi" [ngClass]="sortIcon('city')"></i></th>
             <th>Payment Terms</th>
-            <th class="text-end">Current Balance</th>
-            <th>Status</th>
-            <th class="text-center">Actions</th>
+            <th class="text-end">Supplier Due</th>
+            <th class="text-end sortable" (click)="setSort('currentBalance')">Current Balance <i class="bi" [ngClass]="sortIcon('currentBalance')"></i></th>
+            <th class="text-center sortable" (click)="setSort('status')">Status <i class="bi" [ngClass]="sortIcon('status')"></i></th>
+            <th class="text-center pe-4">Action</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let supplier of suppliers">
             <td>
-              <div class="fw-semibold">{{ supplier.name }}</div>
-              <div class="text-muted small">{{ supplier.supplierCode || 'Auto generated' }}</div>
-              <div class="text-muted small">{{ supplier.companyName || 'No company' }}</div>
+              <div class="supplier-name">{{ supplier.name }}</div>
+              <div class="supplier-code">{{ supplier.supplierCode || 'Auto generated' }}</div>
+              <div class="supplier-company" *ngIf="supplier.companyName">{{ supplier.companyName }}</div>
             </td>
             <td>
-              <div>{{ supplier.contactPerson || 'N/A' }}</div>
-              <div class="text-muted small">{{ supplier.phone || 'No phone' }}</div>
-              <div class="text-muted small">{{ supplier.email || 'No email' }}</div>
+              <div class="contact-line">{{ supplier.phone || 'N/A' }}</div>
+              <div class="contact-line text-muted">{{ supplier.email || 'N/A' }}</div>
             </td>
             <td>
               <div>{{ supplier.city || 'N/A' }}</div>
               <div class="text-muted small">{{ supplier.country || 'N/A' }}</div>
             </td>
             <td>{{ supplier.paymentTerms || 'N/A' }}</td>
-            <td class="text-end fw-semibold">{{ (supplier.currentBalance ?? 0) | number:'1.2-2' }}</td>
-            <td>
-              <span class="badge px-3 py-2" [ngClass]="statusClass(supplier.status)">
-                {{ supplier.status || 'ACTIVE' }}
-              </span>
+            <td class="text-end">
+              <span class="due-value" [class.has-due]="(supplier.supplierDue ?? 0) > 0">{{ (supplier.supplierDue ?? 0) | number:'1.2-2' }}</span>
+            </td>
+            <td class="text-end">
+              <span class="balance-value">{{ (supplier.currentBalance ?? 0) | number:'1.2-2' }}</span>
             </td>
             <td class="text-center">
-              <button *ngIf="hasPermission('SUPPLIER_EDIT')" type="button" class="btn btn-sm btn-outline-primary me-1" (click)="editSupplier(supplier)">
-                <i class="bi bi-pencil"></i>
-              </button>
-              <button *ngIf="hasPermission('SUPPLIER_DELETE')" type="button" class="btn btn-sm btn-outline-danger" (click)="deleteSupplier(supplier)">
-                <i class="bi bi-trash"></i>
-              </button>
+              <span class="status-badge" [ngClass]="statusClass(supplier.status)">{{ supplier.status || 'ACTIVE' }}</span>
             </td>
-          </tr>
-
-          <tr *ngIf="!loading && suppliers.length === 0">
-            <td colspan="7" class="text-center text-muted py-5">No suppliers found.</td>
-          </tr>
-
-          <tr *ngIf="loading">
-            <td colspan="7" class="text-center text-muted py-5">Loading suppliers...</td>
+            <td class="text-center pe-4">
+              <div class="row-actions">
+                <button type="button" class="btn-action btn-view" title="View" (click)="viewSupplier(supplier)">
+                  <i class="bi bi-eye"></i>
+                </button>
+                <button *ngIf="hasPermission('SUPPLIER_PAYMENT_CREATE')" type="button" class="btn-action btn-post" title="New Payment" (click)="newPayment(supplier)">
+                  <i class="bi bi-cash-coin"></i>
+                </button>
+                <button *ngIf="hasPermission('SUPPLIER_LEDGER_VIEW') || hasPermission('SUPPLIER_VIEW')" type="button" class="btn-action btn-ledger" title="Ledger" (click)="viewLedger(supplier)">
+                  <i class="bi bi-journal-text"></i>
+                </button>
+                <button *ngIf="hasPermission('SUPPLIER_VIEW')" type="button" class="btn-action btn-aging" title="Aging" (click)="viewAging(supplier)">
+                  <i class="bi bi-hourglass-split"></i>
+                </button>
+                <button *ngIf="hasPermission('SUPPLIER_EDIT')" type="button" class="btn-action btn-edit" title="Edit" (click)="editSupplier(supplier)">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+                <button *ngIf="hasPermission('SUPPLIER_DELETE')" type="button" class="btn-action btn-delete" title="Delete" (click)="deleteSupplier(supplier)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
-  </app-card>
+
+    <div class="pagination-row" *ngIf="totalElements > 0">
+      <span>Page {{ page + 1 }} of {{ totalPages || 1 }}</span>
+      <div class="btn-group">
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="page === 0" (click)="goToPage(0)">First</button>
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="page === 0" (click)="goToPage(page - 1)">Prev</button>
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="page + 1 >= totalPages" (click)="goToPage(page + 1)">Next</button>
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="page + 1 >= totalPages" (click)="goToPage(totalPages - 1)">Last</button>
+      </div>
+    </div>
+  </div>
 </div>

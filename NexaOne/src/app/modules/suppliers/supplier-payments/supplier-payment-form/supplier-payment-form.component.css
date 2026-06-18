@@ -1,0 +1,13 @@
+.supplier-payment-form-page { background: #f7faf8; min-height: calc(100vh - 70px); }
+.payment-card, .allocation-panel { background: #fff; border: 1px solid #dfe8e1; border-radius: 8px; padding: 1rem; box-shadow: 0 4px 14px rgba(16, 86, 44, .04); }
+.allocation-panel { margin-top: 1rem; padding: 0; overflow: hidden; }
+.panel-heading { display: flex; justify-content: space-between; align-items: center; padding: .85rem 1rem; border-bottom: 1px solid #e6eee8; }
+.panel-heading h6 { margin: 0; font-weight: 700; color: #20372a; }
+.form-label { font-weight: 600; color: #405247; }
+.form-control, .form-select { border-color: #cfdcd3; }
+.form-control:focus, .form-select:focus { border-color: #3b8f5a; box-shadow: 0 0 0 .2rem rgba(59,143,90,.12); }
+.form-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: 1rem; }
+.loading-panel, .empty-state { padding: 1.5rem; text-align: center; color: #6c757d; }
+.supplier-suggestions { position: absolute; left: .75rem; right: .75rem; top: 100%; z-index: 10; background: #fff; border: 1px solid #dfe8e1; border-radius: 6px; box-shadow: 0 8px 18px rgba(0,0,0,.08); overflow: hidden; }
+.supplier-suggestion { width: 100%; border: 0; background: #fff; padding: .55rem .75rem; text-align: left; display: flex; flex-direction: column; }
+.supplier-suggestion:hover { background: #f3fbf6; }

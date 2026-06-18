@@ -1,0 +1,76 @@
+<div class="container-fluid p-4 supplier-aging-page">
+  <app-page-header title="Supplier Aging" subtitle="Accounts Payable aging by unpaid purchase balances.">
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-outline-secondary" [disabled]="!(report?.rows?.length)" (click)="exportCsv()"><i class="bi bi-filetype-csv me-1"></i> CSV</button>
+      <button type="button" class="btn btn-outline-secondary" (click)="print()"><i class="bi bi-printer me-1"></i> Print</button>
+    </div>
+  </app-page-header>
+
+  <div class="filter-card">
+    <div class="row g-3 align-items-end">
+      <div class="col-lg-4 position-relative">
+        <label class="form-label">Supplier</label>
+        <input class="form-control" [ngModel]="supplierSearchTerm" (ngModelChange)="searchSuppliers($event)" placeholder="Search supplier">
+        <div class="supplier-suggestions" *ngIf="supplierSuggestions.length">
+          <button type="button" class="supplier-suggestion" *ngFor="let supplier of supplierSuggestions" (click)="selectSupplier(supplier)">
+            <strong>{{ supplier.supplierCode || 'SUP' }} - {{ supplier.name }}</strong>
+            <small>{{ supplier.phone || 'No phone' }}</small>
+          </button>
+        </div>
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <label class="form-label">From</label>
+        <input type="date" class="form-control" [(ngModel)]="filters.fromDate">
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <label class="form-label">To</label>
+        <input type="date" class="form-control" [(ngModel)]="filters.toDate">
+      </div>
+      <div class="col-lg-4 d-flex gap-2 justify-content-end">
+        <button type="button" class="btn btn-success" (click)="loadReport()" [disabled]="loading"><i class="bi bi-search"></i></button>
+        <button type="button" class="btn btn-outline-secondary" (click)="resetFilters()" [disabled]="loading"><i class="bi bi-x-lg"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="report-card">
+    <div class="report-summary">
+      <span>Total Due</span>
+      <strong>{{ (report?.totalDue ?? 0) | number:'1.2-2' }}</strong>
+    </div>
+    <div class="alert alert-danger m-3 mb-0" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div class="loading-panel" *ngIf="loading"><span class="spinner-border spinner-border-sm me-2"></span> Loading aging...</div>
+    <div class="table-responsive" *ngIf="!loading && report?.rows?.length">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-uppercase small fw-bold">
+          <tr>
+            <th class="ps-4">Supplier</th>
+            <th class="text-end">Current</th>
+            <th class="text-end">1-30</th>
+            <th class="text-end">31-60</th>
+            <th class="text-end">61-90</th>
+            <th class="text-end">90+</th>
+            <th class="text-end">Total Due</th>
+            <th class="text-center pe-4">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of report?.rows">
+            <td class="ps-4">
+              <div class="fw-semibold">{{ row.supplierName }}</div>
+              <div class="text-muted small">{{ row.supplierCode }}</div>
+            </td>
+            <td class="text-end">{{ row.current | number:'1.2-2' }}</td>
+            <td class="text-end">{{ row.days1To30 | number:'1.2-2' }}</td>
+            <td class="text-end">{{ row.days31To60 | number:'1.2-2' }}</td>
+            <td class="text-end">{{ row.days61To90 | number:'1.2-2' }}</td>
+            <td class="text-end">{{ row.days90Plus | number:'1.2-2' }}</td>
+            <td class="text-end fw-bold">{{ row.totalDue | number:'1.2-2' }}</td>
+            <td class="text-center pe-4"><button class="btn btn-sm btn-outline-success" (click)="viewSupplier(row)">View</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="empty-state" *ngIf="!loading && !report?.rows?.length">No supplier aging balances found.</div>
+  </div>
+</div>

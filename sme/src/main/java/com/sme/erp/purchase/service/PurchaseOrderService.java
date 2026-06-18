@@ -6,6 +6,7 @@ import java.util.List;
 
 public interface PurchaseOrderService {
     List<PurchaseOrderDTO> getAll();
+    List<PurchaseOrderDTO> getUnpaidBySupplier(Long supplierId);
     PurchaseOrderDTO getById(Long id);
     PurchaseOrderDTO create(PurchaseOrderDTO dto);
     PurchaseOrderDTO update(Long id, PurchaseOrderDTO dto);

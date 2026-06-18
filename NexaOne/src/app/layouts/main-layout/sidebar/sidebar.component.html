@@ -113,7 +113,7 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item" *ngIf="hasPermission('SUPPLIER_VIEW')">
+    <div class="menu-dropdown-item" *ngIf="hasPermission('SUPPLIER_VIEW') || hasPermission('SUPPLIER_PAYMENT_VIEW') || hasPermission('SUPPLIER_LEDGER_VIEW')">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          (click)="toggleSuppliers()"
          role="button"
@@ -128,6 +128,12 @@
         </a>
         <a *ngIf="hasPermission('SUPPLIER_CREATE')" routerLink="/suppliers/create" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-plus-square me-2"></i> Supplier Form
+        </a>
+        <a *ngIf="hasPermission('SUPPLIER_PAYMENT_VIEW')" routerLink="/suppliers/payments" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-cash-coin me-2"></i> Supplier Payments
+        </a>
+        <a *ngIf="hasPermission('SUPPLIER_VIEW') || hasPermission('SUPPLIER_LEDGER_VIEW')" routerLink="/suppliers/aging" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-hourglass-split me-2"></i> Supplier Aging
         </a>
       </div>
     </div>

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -31,6 +32,12 @@ public class PurchaseOrderController {
     @PreAuthorize("hasAuthority('PURCHASE_VIEW')")
     public ResponseEntity<List<PurchaseOrderDTO>> getAll() {
         return ResponseEntity.ok(purchaseOrderService.getAll());
+    }
+
+    @GetMapping("/unpaid")
+    @PreAuthorize("hasAuthority('PURCHASE_VIEW')")
+    public ResponseEntity<List<PurchaseOrderDTO>> getUnpaidBySupplier(@RequestParam Long supplierId) {
+        return ResponseEntity.ok(purchaseOrderService.getUnpaidBySupplier(supplierId));
     }
 
     @GetMapping("/{id}")

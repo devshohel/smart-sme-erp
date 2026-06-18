@@ -1,9 +1,15 @@
 package com.sme.erp.supplier.controller;
 
 import com.sme.erp.enums.Status;
+import com.sme.erp.supplier.dto.SupplierDetailDTO;
 import com.sme.erp.supplier.dto.SupplierDTO;
+import com.sme.erp.supplier.dto.SupplierOptionDTO;
+import com.sme.erp.supplier.dto.SupplierPageDTO;
+import com.sme.erp.supplier.dto.SupplierLedgerDTO;
+import com.sme.erp.supplier.dto.SupplierAgingReportDTO;
 import com.sme.erp.supplier.service.SupplierService;
 import jakarta.validation.Valid;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -17,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -36,6 +43,48 @@ public class SupplierController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Status status) {
         return ResponseEntity.ok(supplierService.getAll(keyword, status));
+    }
+
+    @GetMapping("/page")
+    @PreAuthorize("hasAuthority('SUPPLIER_VIEW')")
+    public ResponseEntity<SupplierPageDTO> getPage(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Status status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String direction) {
+        return ResponseEntity.ok(supplierService.searchPage(keyword, status, page, size, sort, direction));
+    }
+
+    @GetMapping("/{id}/detail")
+    @PreAuthorize("hasAuthority('SUPPLIER_VIEW')")
+    public ResponseEntity<SupplierDetailDTO> getDetail(@PathVariable Long id) {
+        return ResponseEntity.ok(supplierService.getDetail(id));
+    }
+
+    @GetMapping("/{id}/ledger")
+    @PreAuthorize("hasAnyAuthority('SUPPLIER_LEDGER_VIEW','SUPPLIER_VIEW')")
+    public ResponseEntity<SupplierLedgerDTO> getLedger(
+            @PathVariable Long id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        return ResponseEntity.ok(supplierService.getLedger(id, fromDate, toDate));
+    }
+
+    @GetMapping("/aging")
+    @PreAuthorize("hasAnyAuthority('SUPPLIER_LEDGER_VIEW','SUPPLIER_VIEW')")
+    public ResponseEntity<SupplierAgingReportDTO> getAging(
+            @RequestParam(required = false) Long supplierId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        return ResponseEntity.ok(supplierService.getAging(supplierId, fromDate, toDate));
+    }
+
+    @GetMapping("/options")
+    @PreAuthorize("hasAuthority('SUPPLIER_VIEW')")
+    public ResponseEntity<List<SupplierOptionDTO>> options(@RequestParam(required = false) String keyword) {
+        return ResponseEntity.ok(supplierService.autocomplete(keyword));
     }
 
     @GetMapping("/{id}")

@@ -1,0 +1,278 @@
+<div class="container-fluid p-4 supplier-details-page">
+  <app-page-header title="Supplier Details" subtitle="Read-only supplier master profile and purchase snapshot.">
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-outline-secondary" (click)="backToList()">
+        <i class="bi bi-arrow-left me-1"></i> Back To List
+      </button>
+      <button type="button" class="btn btn-success" *ngIf="detail && hasPermission('SUPPLIER_EDIT')" (click)="editSupplier()">
+        <i class="bi bi-pencil-square me-1"></i> Edit Supplier
+      </button>
+      <button type="button" class="btn btn-outline-success" *ngIf="detail && hasPermission('SUPPLIER_PAYMENT_CREATE')" (click)="newPayment()">
+        <i class="bi bi-cash-coin me-1"></i> New Payment
+      </button>
+      <button type="button" class="btn btn-outline-secondary" *ngIf="detail" (click)="openAgingReport()">
+        <i class="bi bi-hourglass-split me-1"></i> Aging
+      </button>
+    </div>
+  </app-page-header>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="loading-panel" *ngIf="loading">
+    <span class="spinner-border spinner-border-sm me-2"></span> Loading supplier...
+  </div>
+
+  <ng-container *ngIf="detail && !loading">
+    <section class="hero-panel">
+      <div>
+        <span class="supplier-code">{{ detail.supplier.supplierCode || 'Auto generated' }}</span>
+        <h4>{{ detail.supplier.name }}</h4>
+        <p *ngIf="detail.supplier.companyName">{{ detail.supplier.companyName }}</p>
+      </div>
+      <span class="status-pill" [class.inactive]="detail.supplier.status === 'INACTIVE'">
+        {{ detail.supplier.status || 'ACTIVE' }}
+      </span>
+    </section>
+
+    <section class="summary-grid">
+      <div class="summary-card">
+        <span>Opening Balance</span>
+        <strong>{{ (detail.supplier.openingBalance ?? 0) | number:'1.2-2' }}</strong>
+      </div>
+      <div class="summary-card">
+        <span>Current Balance</span>
+        <strong>{{ (detail.supplier.currentBalance ?? 0) | number:'1.2-2' }}</strong>
+      </div>
+      <div class="summary-card due" [class.has-due]="(detail.supplierDue ?? 0) > 0">
+        <span>Current Due</span>
+        <strong>{{ (detail.supplierDue ?? 0) | number:'1.2-2' }}</strong>
+      </div>
+    </section>
+
+    <nav class="detail-tabs">
+      <button type="button" [class.active]="activeTab === 'overview'" (click)="setActiveTab('overview')">Overview</button>
+      <button type="button" [class.active]="activeTab === 'purchases'" (click)="setActiveTab('purchases')">Purchases</button>
+      <button type="button" [class.active]="activeTab === 'payments'" (click)="setActiveTab('payments')">Payments</button>
+      <button type="button" [class.active]="activeTab === 'ledger'" (click)="setActiveTab('ledger')">Ledger</button>
+      <button type="button" [class.active]="activeTab === 'statement'" (click)="setActiveTab('statement')">Statement</button>
+    </nav>
+
+    <section class="content-grid" *ngIf="activeTab === 'overview'">
+      <div class="panel">
+        <div class="panel-heading"><h5>Supplier Information</h5></div>
+        <div class="info-grid">
+          <div><span>Name</span><strong>{{ detail.supplier.name }}</strong></div>
+          <div><span>Supplier Code</span><strong>{{ detail.supplier.supplierCode || 'N/A' }}</strong></div>
+          <div><span>Company</span><strong>{{ detail.supplier.companyName || 'N/A' }}</strong></div>
+          <div><span>Phone</span><strong>{{ detail.supplier.phone || 'N/A' }}</strong></div>
+          <div><span>Email</span><strong>{{ detail.supplier.email || 'N/A' }}</strong></div>
+          <div><span>Tax Number</span><strong>{{ detail.supplier.taxNumber || 'N/A' }}</strong></div>
+          <div><span>Bank Account</span><strong>{{ detail.supplier.bankAccount || 'N/A' }}</strong></div>
+          <div><span>Payment Terms</span><strong>{{ detail.supplier.paymentTerms || 'N/A' }}</strong></div>
+          <div class="span-2"><span>Address</span><strong>{{ detail.supplier.address || 'N/A' }}</strong></div>
+          <div><span>City</span><strong>{{ detail.supplier.city || 'N/A' }}</strong></div>
+          <div><span>Country</span><strong>{{ detail.supplier.country || 'N/A' }}</strong></div>
+          <div><span>Postal Code</span><strong>{{ detail.supplier.postalCode || 'N/A' }}</strong></div>
+          <div><span>Created Date</span><strong>{{ detail.supplier.createdAt | date:'medium' }}</strong></div>
+          <div><span>Updated Date</span><strong>{{ detail.supplier.updatedAt ? (detail.supplier.updatedAt | date:'medium') : 'N/A' }}</strong></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-heading"><h5>Actions</h5></div>
+        <div class="placeholder-list">
+          <button type="button" class="btn btn-outline-success" *ngIf="hasPermission('SUPPLIER_PAYMENT_CREATE')" (click)="newPayment()">New Payment</button>
+          <button type="button" class="btn btn-outline-secondary" (click)="setActiveTab('ledger')">View Ledger</button>
+          <button type="button" class="btn btn-outline-secondary" (click)="setActiveTab('statement')">Statement Preview</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel mt-3" *ngIf="activeTab === 'purchases'">
+      <div class="panel-heading"><h5>Recent Purchases</h5></div>
+      <div class="table-responsive" *ngIf="detail.recentPurchases.length; else noPurchases">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Purchase Number</th>
+              <th>Date</th>
+              <th class="text-end">Net Total</th>
+              <th class="text-end">Paid Amount</th>
+              <th class="text-end">Due Amount</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let purchase of detail.recentPurchases">
+              <td class="fw-semibold">{{ purchase.purchaseNumber }}</td>
+              <td>{{ purchase.date | date:'mediumDate' }}</td>
+              <td class="text-end">{{ purchase.netTotal | number:'1.2-2' }}</td>
+              <td class="text-end">{{ purchase.paidAmount | number:'1.2-2' }}</td>
+              <td class="text-end fw-semibold">{{ purchase.dueAmount | number:'1.2-2' }}</td>
+              <td>{{ purchase.status }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noPurchases>
+        <div class="empty-state">No recent purchase orders found.</div>
+      </ng-template>
+    </section>
+
+    <section class="panel mt-3" *ngIf="activeTab === 'purchases'">
+      <div class="panel-heading"><h5>Recent Purchase Returns</h5></div>
+      <div class="table-responsive" *ngIf="detail.recentPurchaseReturns.length; else noReturns">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Return Number</th>
+              <th>Date</th>
+              <th class="text-end">Amount</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of detail.recentPurchaseReturns">
+              <td class="fw-semibold">{{ item.returnNumber }}</td>
+              <td>{{ item.date | date:'mediumDate' }}</td>
+              <td class="text-end">{{ item.amount | number:'1.2-2' }}</td>
+              <td>{{ item.status }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noReturns>
+        <div class="empty-state">No recent purchase returns found.</div>
+      </ng-template>
+    </section>
+
+    <section class="panel mt-3" *ngIf="activeTab === 'payments'">
+      <div class="panel-heading"><h5>Recent Payments</h5></div>
+      <div class="table-responsive" *ngIf="detail.recentPayments.length; else noPayments">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Payment No</th>
+              <th>Date</th>
+              <th>Method</th>
+              <th class="text-end">Amount</th>
+              <th class="text-end">Allocated</th>
+              <th>Status</th>
+              <th>Journal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let payment of detail.recentPayments">
+              <td class="fw-semibold">{{ payment.paymentNo }}</td>
+              <td>{{ payment.paymentDate | date:'mediumDate' }}</td>
+              <td>{{ payment.paymentMethod }}</td>
+              <td class="text-end">{{ payment.amount | number:'1.2-2' }}</td>
+              <td class="text-end">{{ (payment.totalAllocatedAmount ?? 0) | number:'1.2-2' }}</td>
+              <td>{{ payment.status }}</td>
+              <td>{{ payment.journalNo || 'Not posted' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noPayments>
+        <div class="empty-state">No recent supplier payments found.</div>
+      </ng-template>
+    </section>
+
+    <section class="panel mt-3" *ngIf="activeTab === 'ledger'">
+      <div class="panel-heading ledger-heading">
+        <h5>Supplier Ledger</h5>
+        <div class="ledger-actions">
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="ledgerFilters.fromDate">
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="ledgerFilters.toDate">
+          <button type="button" class="btn btn-sm btn-success" (click)="loadLedger()">Search</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="resetLedgerFilters()">Reset</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="!ledgerEntries.length" (click)="exportLedgerCsv()">CSV</button>
+        </div>
+      </div>
+      <div class="alert alert-danger m-3 mb-0" *ngIf="ledgerError">{{ ledgerError }}</div>
+      <div class="loading-panel" *ngIf="ledgerLoading"><span class="spinner-border spinner-border-sm me-2"></span> Loading ledger...</div>
+      <div class="table-responsive" *ngIf="!ledgerLoading && ledgerEntries.length">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Date</th>
+              <th>Reference Type</th>
+              <th>Reference No</th>
+              <th>Description</th>
+              <th class="text-end">Debit</th>
+              <th class="text-end">Credit</th>
+              <th class="text-end">Running Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let entry of pagedLedgerEntries; trackBy: trackLedger">
+              <td>{{ entry.date | date:'mediumDate' }}</td>
+              <td>{{ entry.referenceType }}</td>
+              <td class="fw-semibold">{{ entry.referenceNo }}</td>
+              <td>{{ entry.description }}</td>
+              <td class="text-end">{{ entry.debit | number:'1.2-2' }}</td>
+              <td class="text-end">{{ entry.credit | number:'1.2-2' }}</td>
+              <td class="text-end fw-bold">{{ entry.runningBalance | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination-row" *ngIf="ledgerEntries.length">
+        <select class="form-select form-select-sm page-size" [(ngModel)]="ledgerSize" (change)="changeLedgerPageSize()">
+          <option *ngFor="let option of ledgerPageSizes" [ngValue]="option">{{ option }} / page</option>
+        </select>
+        <span>Page {{ ledgerPage + 1 }} of {{ ledgerTotalPages }}</span>
+        <div class="btn-group">
+          <button class="btn btn-sm btn-outline-secondary" [disabled]="ledgerPage === 0" (click)="goToLedgerPage(0)">First</button>
+          <button class="btn btn-sm btn-outline-secondary" [disabled]="ledgerPage === 0" (click)="goToLedgerPage(ledgerPage - 1)">Prev</button>
+          <button class="btn btn-sm btn-outline-secondary" [disabled]="ledgerPage + 1 >= ledgerTotalPages" (click)="goToLedgerPage(ledgerPage + 1)">Next</button>
+          <button class="btn btn-sm btn-outline-secondary" [disabled]="ledgerPage + 1 >= ledgerTotalPages" (click)="goToLedgerPage(ledgerTotalPages - 1)">Last</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel mt-3 statement-panel" *ngIf="activeTab === 'statement'">
+      <div class="panel-heading ledger-heading">
+        <h5>Supplier Statement Preview</h5>
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="printStatement()"><i class="bi bi-printer me-1"></i> Print Preview</button>
+      </div>
+      <div class="statement-head">
+        <div>
+          <h5>{{ detail.supplier.name }}</h5>
+          <p>{{ detail.supplier.supplierCode }}<span *ngIf="detail.supplier.companyName"> · {{ detail.supplier.companyName }}</span></p>
+          <p>{{ detail.supplier.phone || 'N/A' }} · {{ detail.supplier.email || 'N/A' }}</p>
+        </div>
+        <div class="text-end">
+          <span>Opening Balance</span>
+          <strong>{{ (ledger?.openingBalance ?? detail.supplier.openingBalance ?? 0) | number:'1.2-2' }}</strong>
+          <span>Closing Balance</span>
+          <strong>{{ (ledger?.closingBalance ?? detail.supplierDue ?? 0) | number:'1.2-2' }}</strong>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Date</th>
+              <th>Reference</th>
+              <th>Description</th>
+              <th class="text-end">Debit</th>
+              <th class="text-end">Credit</th>
+              <th class="text-end">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let entry of ledgerEntries">
+              <td>{{ entry.date | date:'mediumDate' }}</td>
+              <td>{{ entry.referenceNo }}</td>
+              <td>{{ entry.description }}</td>
+              <td class="text-end">{{ entry.debit | number:'1.2-2' }}</td>
+              <td class="text-end">{{ entry.credit | number:'1.2-2' }}</td>
+              <td class="text-end fw-bold">{{ entry.runningBalance | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </ng-container>
+</div>

@@ -41,7 +41,7 @@ export class SupplierFormComponent implements OnInit {
       country: ['', [Validators.maxLength(100)]],
       postalCode: ['', [Validators.maxLength(50)]],
       openingBalance: [0, [Validators.min(0)]],
-      currentBalance: [0],
+      currentBalance: [{ value: 0, disabled: true }],
       taxNumber: ['', [Validators.maxLength(100)]],
       bankAccount: ['', [Validators.maxLength(255)]],
       paymentTerms: ['', [Validators.maxLength(255)]],
@@ -147,9 +147,6 @@ export class SupplierFormComponent implements OnInit {
       country: this.optionalTextValue(value.country),
       postalCode: this.optionalTextValue(value.postalCode),
       openingBalance: value.openingBalance === null || value.openingBalance === '' ? 0 : Number(value.openingBalance),
-      currentBalance: this.isEditMode
-        ? (value.currentBalance === null || value.currentBalance === '' ? 0 : Number(value.currentBalance))
-        : undefined,
       taxNumber: this.optionalTextValue(value.taxNumber),
       bankAccount: this.optionalTextValue(value.bankAccount),
       paymentTerms: this.optionalTextValue(value.paymentTerms),

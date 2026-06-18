@@ -1,0 +1,128 @@
+<div class="container-fluid p-4 supplier-payment-page">
+  <div class="page-title-row">
+    <div>
+      <h4 class="fw-bold mb-0">Supplier Payments</h4>
+      <p class="text-muted mb-0">Manage draft and posted Accounts Payable payments.</p>
+    </div>
+    <button *ngIf="hasPermission('SUPPLIER_PAYMENT_CREATE')" class="btn btn-success btn-sm px-3" (click)="createPayment()">
+      <i class="bi bi-plus-lg me-1"></i> New Payment
+    </button>
+  </div>
+
+  <div class="filter-card">
+    <div class="row g-3 align-items-end">
+      <div class="col-lg-3">
+        <label class="form-label">Search</label>
+        <input class="form-control" [(ngModel)]="filters.keyword" placeholder="Payment no, supplier, reference">
+      </div>
+      <div class="col-lg-3 position-relative">
+        <label class="form-label">Supplier</label>
+        <input class="form-control" [ngModel]="supplierSearchTerm" (ngModelChange)="onSupplierSearch($event)" placeholder="Search supplier">
+        <div class="supplier-suggestions" *ngIf="supplierSuggestions.length">
+          <button type="button" class="supplier-suggestion" *ngFor="let supplier of supplierSuggestions" (click)="selectSupplier(supplier)">
+            <strong>{{ supplier.supplierCode || 'SUP' }} - {{ supplier.name }}</strong>
+            <small>{{ supplier.phone || 'No phone' }}</small>
+          </button>
+        </div>
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <label class="form-label">Status</label>
+        <select class="form-select" [(ngModel)]="filters.status">
+          <option value="">All</option>
+          <option *ngFor="let status of statusList" [value]="status">{{ status }}</option>
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-6">
+        <label class="form-label">Method</label>
+        <select class="form-select" [(ngModel)]="filters.paymentMethod">
+          <option value="">All</option>
+          <option *ngFor="let method of paymentMethods" [value]="method">{{ method }}</option>
+        </select>
+      </div>
+      <div class="col-lg-1 col-md-6">
+        <label class="form-label">From</label>
+        <input type="date" class="form-control" [(ngModel)]="filters.fromDate">
+      </div>
+      <div class="col-lg-1 col-md-6">
+        <label class="form-label">To</label>
+        <input type="date" class="form-control" [(ngModel)]="filters.toDate">
+      </div>
+      <div class="col-12 filter-buttons d-flex gap-2 justify-content-end">
+        <button type="button" class="btn btn-success" (click)="search()" [disabled]="loading"><i class="bi bi-search"></i></button>
+        <button type="button" class="btn btn-outline-secondary" (click)="resetFilters()" [disabled]="loading"><i class="bi bi-x-lg"></i></button>
+        <button type="button" class="btn btn-outline-success" *ngIf="filters.supplierId && hasPermission('SUPPLIER_PAYMENT_CREATE')" (click)="openCreateForSupplier()">
+          <i class="bi bi-cash-coin me-1"></i> New for Supplier
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="list-card">
+    <div class="list-toolbar">
+      <div class="record-summary"><strong>{{ totalElements }}</strong> records</div>
+      <select class="form-select form-select-sm page-size" [(ngModel)]="size" (change)="changePageSize()">
+        <option *ngFor="let option of pageSizes" [ngValue]="option">{{ option }} / page</option>
+      </select>
+    </div>
+
+    <div class="alert alert-danger m-3 mb-0" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div class="loading-panel" *ngIf="loading"><span class="spinner-border spinner-border-sm me-2"></span> Loading payments...</div>
+    <div class="empty-state" *ngIf="!loading && payments.length === 0">
+      <i class="bi bi-cash-coin"></i>
+      <strong>No supplier payments found</strong>
+      <span>Try adjusting the search or filters.</span>
+    </div>
+
+    <div class="table-responsive" *ngIf="!loading && payments.length">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light text-uppercase small fw-bold">
+          <tr>
+            <th class="ps-4 sortable" (click)="setSort('paymentNo')">Payment No <i class="bi" [ngClass]="sortIcon('paymentNo')"></i></th>
+            <th class="sortable" (click)="setSort('paymentDate')">Date <i class="bi" [ngClass]="sortIcon('paymentDate')"></i></th>
+            <th class="sortable" (click)="setSort('supplierName')">Supplier <i class="bi" [ngClass]="sortIcon('supplierName')"></i></th>
+            <th class="text-end sortable" (click)="setSort('amount')">Amount <i class="bi" [ngClass]="sortIcon('amount')"></i></th>
+            <th>Method</th>
+            <th>Status</th>
+            <th>Reference</th>
+            <th>Journal</th>
+            <th class="text-center pe-4">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let payment of payments">
+            <td class="ps-4 fw-semibold">{{ payment.paymentNo }}</td>
+            <td>{{ payment.paymentDate | date:'mediumDate' }}</td>
+            <td>
+              <div class="fw-semibold">{{ payment.supplierName }}</div>
+              <div class="text-muted small">{{ payment.supplierCode || 'N/A' }}</div>
+            </td>
+            <td class="text-end fw-bold">{{ payment.amount | number:'1.2-2' }}</td>
+            <td><span class="badge px-2 py-1 border-0" [ngClass]="paymentMethodClass(payment.paymentMethod)">{{ payment.paymentMethod }}</span></td>
+            <td><span class="badge px-2 py-1 border-0" [ngClass]="statusClass(payment.status)">{{ payment.status || 'DRAFT' }}</span></td>
+            <td>{{ payment.referenceNo || 'N/A' }}</td>
+            <td>{{ payment.journalNo || 'Not posted' }}</td>
+            <td class="text-center pe-4">
+              <div class="d-flex justify-content-center gap-2">
+                <button type="button" class="btn-action btn-view" title="View" (click)="viewPayment(payment)"><i class="bi bi-eye"></i></button>
+                <button *ngIf="payment.status === 'DRAFT' && hasPermission('SUPPLIER_PAYMENT_EDIT')" type="button" class="btn-action btn-edit" title="Edit" (click)="editPayment(payment)"><i class="bi bi-pencil-square"></i></button>
+                <button *ngIf="payment.status === 'DRAFT' && hasPermission('SUPPLIER_PAYMENT_POST')" type="button" class="btn-action btn-post" title="Post" (click)="postPayment(payment)"><i class="bi bi-check2-circle"></i></button>
+                <button *ngIf="payment.status === 'DRAFT' && hasPermission('SUPPLIER_PAYMENT_CANCEL')" type="button" class="btn-action btn-delete" title="Cancel" (click)="cancelPayment(payment)"><i class="bi bi-x-circle"></i></button>
+                <button *ngIf="payment.status === 'POSTED' && payment.canReverse && hasPermission('SUPPLIER_PAYMENT_CANCEL')" type="button" class="btn-action btn-delete" title="Reverse" (click)="reversePayment(payment)"><i class="bi bi-arrow-counterclockwise"></i></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-row" *ngIf="totalElements > 0">
+      <span>Page {{ page + 1 }} of {{ totalPages || 1 }}</span>
+      <div class="btn-group">
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="page === 0" (click)="goToPage(0)">First</button>
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="page === 0" (click)="goToPage(page - 1)">Prev</button>
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="page + 1 >= totalPages" (click)="goToPage(page + 1)">Next</button>
+        <button class="btn btn-sm btn-outline-secondary" [disabled]="page + 1 >= totalPages" (click)="goToPage(totalPages - 1)">Last</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,7 +1,10 @@
 package com.sme.erp.supplier.repository;
 
 import com.sme.erp.enums.Status;
+import com.sme.erp.supplier.dto.SupplierOptionDTO;
 import com.sme.erp.supplier.entity.Supplier;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -52,4 +55,38 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
               )
             """)
     List<Supplier> search(@Param("keyword") String keyword, @Param("status") Status status);
+
+    @Query("""
+            SELECT s
+            FROM Supplier s
+            WHERE (:status IS NULL OR s.status = :status)
+              AND (
+                    :keyword IS NULL
+                    OR LOWER(COALESCE(s.supplierCode, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(COALESCE(s.name, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(COALESCE(s.companyName, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(COALESCE(s.contactPerson, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(COALESCE(s.phone, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(COALESCE(s.email, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(COALESCE(s.city, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+              )
+            """)
+    Page<Supplier> searchPage(@Param("keyword") String keyword, @Param("status") Status status, Pageable pageable);
+
+    @Query("""
+            SELECT new com.sme.erp.supplier.dto.SupplierOptionDTO(
+                s.id,
+                s.supplierCode,
+                s.name,
+                s.phone,
+                s.status
+            )
+            FROM Supplier s
+            WHERE (:keyword IS NULL
+                    OR LOWER(COALESCE(s.supplierCode, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(COALESCE(s.name, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(COALESCE(s.phone, '')) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            ORDER BY s.name ASC, s.id ASC
+            """)
+    List<SupplierOptionDTO> autocomplete(@Param("keyword") String keyword, Pageable pageable);
 }
