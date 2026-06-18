@@ -31,7 +31,7 @@ export class ExpenseListComponent implements OnInit {
   totalPages = 1;
   readonly pageSizes = [10, 25, 50, 100];
   readonly methods: ExpensePaymentMethod[] = ['CASH', 'BANK', 'MOBILE_BANKING', 'OTHER'];
-  readonly statuses: ExpenseStatus[] = ['DRAFT', 'POSTED', 'CANCELLED'];
+  readonly statuses: ExpenseStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'POSTED', 'REVERSED', 'CANCELLED'];
 
   constructor(
     private expenseService: ExpenseService,
@@ -94,6 +94,32 @@ export class ExpenseListComponent implements OnInit {
     });
   }
 
+  submit(expense: Expense): void {
+    if (!expense.id || !confirm(`Submit expense "${expense.expenseNo}" for approval?`)) return;
+    this.expenseService.submit(expense.id).subscribe({
+      next: () => this.loadExpenses(),
+      error: error => this.errorMessage = extractApiErrorMessage(error, 'Expense could not be submitted.')
+    });
+  }
+
+  approve(expense: Expense): void {
+    if (!expense.id || !confirm(`Approve expense "${expense.expenseNo}"?`)) return;
+    this.expenseService.approve(expense.id).subscribe({
+      next: () => this.loadExpenses(),
+      error: error => this.errorMessage = extractApiErrorMessage(error, 'Expense could not be approved.')
+    });
+  }
+
+  reject(expense: Expense): void {
+    if (!expense.id) return;
+    const reason = prompt(`Reject expense "${expense.expenseNo}". Enter reason:`);
+    if (!reason?.trim()) return;
+    this.expenseService.reject(expense.id, reason).subscribe({
+      next: () => this.loadExpenses(),
+      error: error => this.errorMessage = extractApiErrorMessage(error, 'Expense could not be rejected.')
+    });
+  }
+
   cancel(expense: Expense): void {
     if (!expense.id || !confirm(`Cancel expense "${expense.expenseNo}"?`)) return;
     this.expenseService.cancel(expense.id).subscribe({
@@ -142,11 +168,23 @@ export class ExpenseListComponent implements OnInit {
   }
 
   canPost(expense: Expense): boolean {
-    return expense.status === 'DRAFT' && this.hasPermission('EXPENSE_POST');
+    return expense.status === 'APPROVED' && this.hasPermission('EXPENSE_POST');
   }
 
   canCancel(expense: Expense): boolean {
     return expense.status === 'DRAFT' && this.hasPermission('EXPENSE_CANCEL');
+  }
+
+  canSubmit(expense: Expense): boolean {
+    return expense.status === 'DRAFT' && this.hasPermission('EXPENSE_SUBMIT');
+  }
+
+  canApprove(expense: Expense): boolean {
+    return expense.status === 'SUBMITTED' && this.hasPermission('EXPENSE_APPROVE');
+  }
+
+  canReject(expense: Expense): boolean {
+    return expense.status === 'SUBMITTED' && this.hasPermission('EXPENSE_REJECT');
   }
 
   hasPermission(permission: string): boolean {
@@ -155,6 +193,10 @@ export class ExpenseListComponent implements OnInit {
 
   statusClass(status?: ExpenseStatus): string {
     if (status === 'POSTED') return 'posted';
+    if (status === 'APPROVED') return 'approved';
+    if (status === 'SUBMITTED') return 'submitted';
+    if (status === 'REJECTED') return 'rejected';
+    if (status === 'REVERSED') return 'reversed';
     if (status === 'CANCELLED') return 'cancelled';
     return 'draft';
   }

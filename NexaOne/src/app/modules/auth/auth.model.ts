@@ -115,6 +115,9 @@ export interface TaxSettings {
   taxRate: number;
   status: Status;
   defaultTaxEnabled: boolean;
+  taxReceivableAccountId?: number | null;
+  taxReceivableAccountCode?: string | null;
+  taxReceivableAccountName?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

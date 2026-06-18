@@ -13,6 +13,8 @@ import com.sme.erp.accounting.service.AccountingPostingService;
 import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
+import com.sme.erp.settings.entity.TaxSettings;
+import com.sme.erp.settings.repository.TaxSettingsRepository;
 import com.sme.erp.purchase.entity.PurchaseOrder;
 import com.sme.erp.purchase.entity.PurchaseReturn;
 import com.sme.erp.sales.entity.SalesInvoice;
@@ -28,11 +30,13 @@ public class AccountingPostingServiceImpl implements AccountingPostingService {
     private final JournalEntryRepository journalEntryRepository;
     private final AccountRepository accountRepository;
     private final ActivityLogService activityLogService;
+    private final TaxSettingsRepository taxSettingsRepository;
 
-    public AccountingPostingServiceImpl(JournalEntryRepository journalEntryRepository, AccountRepository accountRepository, ActivityLogService activityLogService) {
+    public AccountingPostingServiceImpl(JournalEntryRepository journalEntryRepository, AccountRepository accountRepository, ActivityLogService activityLogService, TaxSettingsRepository taxSettingsRepository) {
         this.journalEntryRepository = journalEntryRepository;
         this.accountRepository = accountRepository;
         this.activityLogService = activityLogService;
+        this.taxSettingsRepository = taxSettingsRepository;
     }
 
     @Override
@@ -43,11 +47,42 @@ public class AccountingPostingServiceImpl implements AccountingPostingService {
         }
         Account paymentAccount = paymentAccount(expense.getPaymentMethod());
         Account expenseAccount = expenseAccount(expense.getCategory());
+        BigDecimal netAmount = expenseNetAmount(expense);
+        BigDecimal taxAmount = expenseTaxAmount(expense);
+        BigDecimal grossAmount = expenseGrossAmount(expense);
         JournalEntry entry = baseEntry("EXPENSE", expense.getId(), expense.getExpenseNo(), expense.getExpenseDate(), "Expense posting " + expense.getExpenseNo());
-        addLine(entry, expenseAccount, safe(expense.getAmount()), BigDecimal.ZERO, "Expense");
-        addLine(entry, paymentAccount, BigDecimal.ZERO, safe(expense.getAmount()), "Expense payment");
+        addLine(entry, expenseAccount, netAmount, BigDecimal.ZERO, "Expense");
+        if (taxAmount.signum() > 0) {
+            addLine(entry, taxReceivableAccount(), taxAmount, BigDecimal.ZERO, "Expense tax receivable");
+        }
+        addLine(entry, paymentAccount, BigDecimal.ZERO, grossAmount, "Expense payment");
         saveIfBalanced(entry);
         activityLogService.log("ACCOUNTING_POST_EXPENSE", "ACCOUNTING", "accounting_journal_entries", entry.getId(), "Posted expense " + expense.getExpenseNo());
+    }
+
+    @Override
+    @Transactional
+    public void reverseExpense(Expense expense, String reversalReason) {
+        if (expense == null || expense.getId() == null || isPosted("EXPENSE_REVERSAL", expense.getId())) {
+            return;
+        }
+        JournalEntry original = journalEntryRepository.findBySource("EXPENSE", expense.getId())
+                .orElseThrow(() -> new BadRequestException("Original expense journal not found"));
+        Account paymentAccount = paymentAccount(expense.getPaymentMethod());
+        Account expenseAccount = expenseAccount(expense.getCategory());
+        BigDecimal netAmount = expenseNetAmount(expense);
+        BigDecimal taxAmount = expenseTaxAmount(expense);
+        BigDecimal grossAmount = expenseGrossAmount(expense);
+        JournalEntry entry = baseEntry("EXPENSE_REVERSAL", expense.getId(), expense.getExpenseNo() + "-REV", LocalDate.now(),
+                "Expense reversal " + expense.getExpenseNo() + " against journal " + original.getJournalNo());
+        addLine(entry, paymentAccount, grossAmount, BigDecimal.ZERO, "Reverse expense payment");
+        addLine(entry, expenseAccount, BigDecimal.ZERO, netAmount, "Reverse expense");
+        if (taxAmount.signum() > 0) {
+            addLine(entry, taxReceivableAccount(), BigDecimal.ZERO, taxAmount, "Reverse expense tax");
+        }
+        saveIfBalanced(entry);
+        activityLogService.log("ACCOUNTING_REVERSE_EXPENSE", "ACCOUNTING", "accounting_journal_entries", entry.getId(),
+                "Reversed expense " + expense.getExpenseNo() + ": " + reversalReason);
     }
 
     @Override
@@ -182,6 +217,29 @@ public class AccountingPostingServiceImpl implements AccountingPostingService {
             throw new BadRequestException("Expense category must have a mapped GL account before posting");
         }
         return category.getAccount();
+    }
+
+    private Account taxReceivableAccount() {
+        TaxSettings settings = taxSettingsRepository.findById(1L)
+                .orElseThrow(() -> new BadRequestException("Tax settings are required for expense tax posting"));
+        if (settings.getTaxReceivableAccount() == null) {
+            throw new BadRequestException("Tax receivable account must be configured before posting taxable expenses");
+        }
+        return settings.getTaxReceivableAccount();
+    }
+
+    private BigDecimal expenseNetAmount(Expense expense) {
+        BigDecimal value = safe(expense.getNetAmount());
+        return value.signum() > 0 ? value : safe(expense.getAmount());
+    }
+
+    private BigDecimal expenseTaxAmount(Expense expense) {
+        return safe(expense.getTaxAmount());
+    }
+
+    private BigDecimal expenseGrossAmount(Expense expense) {
+        BigDecimal value = safe(expense.getGrossAmount());
+        return value.signum() > 0 ? value : safe(expense.getAmount());
     }
 
     private Account account(String name) {

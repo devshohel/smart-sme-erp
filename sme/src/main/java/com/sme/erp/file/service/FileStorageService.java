@@ -7,4 +7,6 @@ import org.springframework.web.multipart.MultipartFile;
 public interface FileStorageService {
     StoredFileDTO storeProductImage(MultipartFile file);
     Resource loadProductImage(String storedFilename);
+    StoredFileDTO storeExpenseReceipt(MultipartFile file);
+    Resource loadExpenseReceipt(String storedFilename);
 }

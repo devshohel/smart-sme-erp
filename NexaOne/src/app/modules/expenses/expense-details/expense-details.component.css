@@ -5,10 +5,20 @@
 .detail-head h4 { margin: .25rem 0 0; }
 .status-pill { align-self: flex-start; border-radius: 999px; padding: .3rem .7rem; font-weight: 700; font-size: .78rem; }
 .status-pill.draft { background: #fff7ed; color: #9a3412; }
+.status-pill.submitted { background: #e0f2fe; color: #075985; }
+.status-pill.approved { background: #dcfce7; color: #166534; }
+.status-pill.rejected { background: #fee2e2; color: #991b1b; }
 .status-pill.posted { background: #dcfce7; color: #166534; }
+.status-pill.reversed { background: #fef3c7; color: #92400e; }
 .status-pill.cancelled { background: #f1f5f9; color: #475569; }
 .info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .info-grid strong { display: block; word-break: break-word; }
 .span-2 { grid-column: span 2; }
+.timeline { border-top: 1px solid #e6eee8; margin-top: 1rem; padding-top: 1rem; }
+.timeline h5 { font-size: 1rem; margin-bottom: .75rem; }
+.timeline-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+.timeline-grid div { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: .7rem; }
+.timeline-grid span, .timeline-grid small { display: block; color: #64748b; font-size: .78rem; }
+.timeline-grid strong { display: block; word-break: break-word; }
 .loading-panel { text-align: center; color: #64748b; padding: 2rem; }
-@media (max-width: 768px) { .info-grid { grid-template-columns: 1fr; } .span-2 { grid-column: auto; } }
+@media (max-width: 768px) { .info-grid, .timeline-grid { grid-template-columns: 1fr; } .span-2 { grid-column: auto; } }

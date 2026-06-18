@@ -58,6 +58,26 @@
         <strong>{{ data.lowStockItemsCount | number }}</strong>
         <small>At or below reorder level</small>
       </button>
+      <button type="button" class="metric-card accent-expense" (click)="navigateTo('/expenses/reports')">
+        <span>Tax Amount</span>
+        <strong>BDT {{ data.expenseTaxAmount | number:'1.2-2' }}</strong>
+        <small>Expense tax total</small>
+      </button>
+      <button type="button" class="metric-card accent-expense" (click)="navigateTo('/expenses')">
+        <span>Posted Expenses</span>
+        <strong>{{ data.postedExpenses | number }}</strong>
+        <small>Posted records</small>
+      </button>
+      <button type="button" class="metric-card accent-expense" (click)="navigateTo('/expenses/approval-queue')">
+        <span>Pending Approval</span>
+        <strong>{{ data.pendingApprovalExpenses | number }}</strong>
+        <small>Submitted expenses</small>
+      </button>
+      <button type="button" class="metric-card accent-expense" (click)="navigateTo('/expenses/reports')">
+        <span>Reversed Expenses</span>
+        <strong>{{ data.reversedExpenses | number }}</strong>
+        <small>Reversal count</small>
+      </button>
     </div>
 
     <div class="chart-grid">
@@ -105,6 +125,28 @@
         <div class="chart-legend">
           <span><i class="legend-dot sales-dot"></i>Sales</span>
           <span><i class="legend-dot purchase-dot"></i>Purchase</span>
+        </div>
+      </section>
+      <section class="dashboard-card chart-card">
+        <div class="section-heading">
+          <div>
+            <h2>Monthly Expense Trend</h2>
+            <p>Posted expense and tax totals</p>
+          </div>
+        </div>
+        <div class="empty-state" *ngIf="latestExpenseRows().length === 0">No data available yet.</div>
+        <div class="monthly-chart" *ngIf="latestExpenseRows().length > 0">
+          <div class="chart-column" *ngFor="let row of latestExpenseRows()">
+            <div class="chart-bars">
+              <div class="bar purchase" [style.height.px]="barHeight(row.amount)" title="Expense"></div>
+              <div class="bar sales" [style.height.px]="barHeight(row.taxAmount)" title="Tax"></div>
+            </div>
+            <span>{{ monthLabel(row.month) }}</span>
+          </div>
+        </div>
+        <div class="chart-legend">
+          <span><i class="legend-dot purchase-dot"></i>Expense</span>
+          <span><i class="legend-dot sales-dot"></i>Tax</span>
         </div>
       </section>
     </div>

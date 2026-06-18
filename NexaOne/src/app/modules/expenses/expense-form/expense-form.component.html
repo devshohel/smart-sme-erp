@@ -1,5 +1,5 @@
 <div class="container-fluid p-4 expense-form-page">
-  <app-page-header [title]="expenseId ? 'Edit Expense' : 'New Expense'" subtitle="Draft expenses can be edited before posting.">
+  <app-page-header [title]="expenseId ? 'Edit Expense' : 'New Expense'" subtitle="Draft expenses can be edited before submission.">
     <button type="button" class="btn btn-outline-secondary" (click)="cancel()"><i class="bi bi-arrow-left me-1"></i> Back</button>
   </app-page-header>
 
@@ -22,8 +22,8 @@
         </select>
       </div>
       <div class="col-md-2">
-        <label class="form-label">Amount</label>
-        <input type="number" min="0.01" step="0.01" class="form-control text-end" [(ngModel)]="expense.amount" name="amount" required>
+        <label class="form-label">Net Amount</label>
+        <input type="number" min="0.01" step="0.01" class="form-control text-end" [(ngModel)]="expense.netAmount" name="netAmount" (ngModelChange)="recalculateTax()" required>
       </div>
       <div class="col-md-3">
         <label class="form-label">Payment Method</label>
@@ -38,6 +38,35 @@
       <div class="col-md-8">
         <label class="form-label">Notes</label>
         <input class="form-control" [(ngModel)]="expense.notes" name="notes">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Tax</label>
+        <div class="form-check form-switch mt-2">
+          <input class="form-check-input" type="checkbox" name="taxApplicable" [(ngModel)]="expense.taxApplicable" (ngModelChange)="recalculateTax()">
+        </div>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Tax Rate %</label>
+        <input type="number" min="0" step="0.01" class="form-control text-end" [(ngModel)]="expense.taxRate" name="taxRate" (ngModelChange)="recalculateTax()" [disabled]="!expense.taxApplicable">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Tax Amount</label>
+        <input class="form-control text-end" [value]="expense.taxAmount || 0 | number:'1.2-2'" disabled>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Gross Amount</label>
+        <input class="form-control text-end fw-semibold" [value]="expense.grossAmount || expense.amount || 0 | number:'1.2-2'" disabled>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Receipt Attachment</label>
+        <input #receiptInput type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf" (change)="onReceiptSelected($event)">
+        <div class="form-text">Allowed: jpg, jpeg, png, webp, pdf. Max 5 MB. Receipts can only be changed while DRAFT.</div>
+      </div>
+      <div class="col-md-6 receipt-panel">
+        <span class="label">Current Receipt</span>
+        <a *ngIf="receiptUrl()" [href]="receiptUrl()" target="_blank" rel="noopener">{{ expense.receiptOriginalFilename || 'View receipt' }}</a>
+        <strong *ngIf="!receiptUrl()">No receipt attached</strong>
+        <button *ngIf="selectedReceiptFile" type="button" class="btn btn-sm btn-outline-secondary ms-2" (click)="clearReceipt(receiptInput)">Clear selected</button>
       </div>
       <div class="col-12 text-end">
         <button type="button" class="btn btn-outline-secondary me-2" (click)="cancel()">Cancel</button>

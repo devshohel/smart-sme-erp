@@ -5,25 +5,31 @@ import java.time.LocalDate;
 
 public class BookEntryDTO {
     private LocalDate date;
-    private String reference;
+    private String journalNo;
+    private String referenceType;
+    private String referenceNo;
     private String description;
-    private BigDecimal moneyIn;
-    private BigDecimal moneyOut;
-    private BigDecimal balance;
+    private BigDecimal debit;
+    private BigDecimal credit;
+    private BigDecimal runningBalance;
 
-    public BookEntryDTO(LocalDate date, String reference, String description, BigDecimal moneyIn, BigDecimal moneyOut, BigDecimal balance) {
+    public BookEntryDTO(LocalDate date, String journalNo, String referenceType, String referenceNo, String description, BigDecimal debit, BigDecimal credit, BigDecimal runningBalance) {
         this.date = date;
-        this.reference = reference;
+        this.journalNo = journalNo;
+        this.referenceType = referenceType;
+        this.referenceNo = referenceNo;
         this.description = description;
-        this.moneyIn = moneyIn;
-        this.moneyOut = moneyOut;
-        this.balance = balance;
+        this.debit = debit;
+        this.credit = credit;
+        this.runningBalance = runningBalance;
     }
 
     public LocalDate getDate() { return date; }
-    public String getReference() { return reference; }
+    public String getJournalNo() { return journalNo; }
+    public String getReferenceType() { return referenceType; }
+    public String getReferenceNo() { return referenceNo; }
     public String getDescription() { return description; }
-    public BigDecimal getMoneyIn() { return moneyIn; }
-    public BigDecimal getMoneyOut() { return moneyOut; }
-    public BigDecimal getBalance() { return balance; }
+    public BigDecimal getDebit() { return debit; }
+    public BigDecimal getCredit() { return credit; }
+    public BigDecimal getRunningBalance() { return runningBalance; }
 }

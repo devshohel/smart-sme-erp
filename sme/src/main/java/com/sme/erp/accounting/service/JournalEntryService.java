@@ -9,6 +9,7 @@ public interface JournalEntryService {
     List<JournalEntryDTO> getAll(JournalStatus status);
     JournalEntryDTO getById(Long id);
     JournalEntryDTO create(JournalEntryDTO dto);
+    JournalEntryDTO update(Long id, JournalEntryDTO dto);
     JournalEntryDTO post(Long id);
     JournalEntryDTO cancel(Long id);
 }

@@ -1,11 +1,14 @@
 package com.sme.erp.settings.entity;
 
 import com.sme.erp.enums.Status;
+import com.sme.erp.accounting.entity.Account;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -31,6 +34,10 @@ public class TaxSettings {
 
     @Column(name = "default_tax_enabled", nullable = false)
     private Boolean defaultTaxEnabled = false;
+
+    @ManyToOne
+    @JoinColumn(name = "tax_receivable_account_id")
+    private Account taxReceivableAccount;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -66,6 +73,8 @@ public class TaxSettings {
     public void setStatus(Status status) { this.status = status; }
     public Boolean getDefaultTaxEnabled() { return defaultTaxEnabled; }
     public void setDefaultTaxEnabled(Boolean defaultTaxEnabled) { this.defaultTaxEnabled = defaultTaxEnabled; }
+    public Account getTaxReceivableAccount() { return taxReceivableAccount; }
+    public void setTaxReceivableAccount(Account taxReceivableAccount) { this.taxReceivableAccount = taxReceivableAccount; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 }

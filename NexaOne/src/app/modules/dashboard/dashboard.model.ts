@@ -11,6 +11,11 @@ export interface DashboardSummary {
   totalSuppliers: number;
   lowStockItemsCount: number;
   thisMonthProfit: number;
+  expenseTaxAmount: number;
+  postedExpenses: number;
+  pendingApprovalExpenses: number;
+  reversedExpenses: number;
+  monthlyExpenseTrend: MonthlyExpense[];
   monthlySalesPurchase: MonthlySalesPurchase[];
   topSellingProducts: TopSellingProduct[];
   lowStockAlerts: LowStockAlert[];
@@ -23,6 +28,12 @@ export interface MonthlySalesPurchase {
   sales: number;
   purchase: number;
   profit: number;
+}
+
+export interface MonthlyExpense {
+  month: string;
+  amount: number;
+  taxAmount: number;
 }
 
 export interface TopSellingProduct {

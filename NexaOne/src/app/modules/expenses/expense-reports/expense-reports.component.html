@@ -1,0 +1,52 @@
+<div class="container-fluid p-4 expense-report-page">
+  <app-page-header title="Expense Reports" subtitle="Expense totals, tax, and trends.">
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary btn-sm" type="button" (click)="print()"><i class="bi bi-printer me-1"></i> Print</button>
+      <button class="btn btn-outline-secondary btn-sm" type="button" [disabled]="!rows.length || !canExport()" (click)="exportCsv()"><i class="bi bi-filetype-csv me-1"></i> CSV</button>
+      <button class="btn btn-outline-secondary btn-sm" type="button" [disabled]="!rows.length || !canExport()" (click)="exportExcel()"><i class="bi bi-file-earmark-spreadsheet me-1"></i> Excel</button>
+    </div>
+  </app-page-header>
+
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="tabs">
+    <button type="button" *ngFor="let tab of tabs" [class.active]="activeTab === tab.id" (click)="selectTab(tab.id)">{{ tab.label }}</button>
+  </div>
+
+  <form class="filter-form" (ngSubmit)="load()">
+    <input type="date" class="form-control" [(ngModel)]="filters.fromDate" name="fromDate">
+    <input type="date" class="form-control" [(ngModel)]="filters.toDate" name="toDate">
+    <select class="form-select" [(ngModel)]="filters.categoryId" name="categoryId">
+      <option value="">All categories</option>
+      <option *ngFor="let category of categories" [ngValue]="category.id">{{ category.name }}</option>
+    </select>
+    <select class="form-select" [(ngModel)]="filters.status" name="status">
+      <option value="">All statuses</option>
+      <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+    </select>
+    <button class="btn btn-success" type="submit"><i class="bi bi-search me-1"></i> Search</button>
+  </form>
+
+  <section class="summary-grid">
+    <div><span>Net Amount</span><strong>{{ total('netAmount') | number:'1.2-2' }}</strong></div>
+    <div><span>Tax Amount</span><strong>{{ total('taxAmount') | number:'1.2-2' }}</strong></div>
+    <div><span>Gross Amount</span><strong>{{ total('grossAmount') | number:'1.2-2' }}</strong></div>
+  </section>
+
+  <div class="table-wrap">
+    <div class="loading-panel" *ngIf="loading">Loading report...</div>
+    <table class="table table-hover align-middle mb-0" *ngIf="!loading">
+      <thead><tr><th>Label</th><th class="text-end">Count</th><th class="text-end">Net</th><th class="text-end">Tax</th><th class="text-end">Gross</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let row of rows">
+          <td class="fw-semibold">{{ row.label }}</td>
+          <td class="text-end">{{ row.count }}</td>
+          <td class="text-end">{{ row.netAmount | number:'1.2-2' }}</td>
+          <td class="text-end">{{ row.taxAmount | number:'1.2-2' }}</td>
+          <td class="text-end">{{ row.grossAmount | number:'1.2-2' }}</td>
+        </tr>
+        <tr *ngIf="!rows.length"><td colspan="5" class="empty-state">No report data found.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>

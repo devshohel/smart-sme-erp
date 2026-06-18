@@ -2,11 +2,13 @@ package com.sme.erp.dashboard.service.impl;
 
 import com.sme.erp.accounting.repository.ExpenseRepository;
 import com.sme.erp.accounting.entity.Expense;
+import com.sme.erp.accounting.enums.ExpenseStatus;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.dashboard.dto.DashboardSummaryDTO;
 import com.sme.erp.dashboard.dto.DashboardSummaryDTO.DueAlertDTO;
 import com.sme.erp.dashboard.dto.DashboardSummaryDTO.LowStockAlertDTO;
 import com.sme.erp.dashboard.dto.DashboardSummaryDTO.MonthlySalesPurchaseDTO;
+import com.sme.erp.dashboard.dto.DashboardSummaryDTO.MonthlyExpenseDTO;
 import com.sme.erp.dashboard.dto.DashboardSummaryDTO.RecentTransactionDTO;
 import com.sme.erp.dashboard.dto.DashboardSummaryDTO.TopSellingProductDTO;
 import com.sme.erp.dashboard.service.DashboardService;
@@ -131,6 +133,11 @@ public class DashboardServiceImpl implements DashboardService {
         BigDecimal thisMonthExpense = safe(expenseRepository.sumActiveAmountBetween(currentMonth.atDay(1), currentMonth.atEndOfMonth()));
         summary.setThisMonthProfit(thisMonthSales.subtract(thisMonthPurchase).subtract(thisMonthExpense));
         summary.setMonthlySalesPurchase(buildMonthlySalesPurchase(salesInvoices, purchaseOrders));
+        summary.setExpenseTaxAmount(expenses.stream().map(Expense::getTaxAmount).map(this::safe).reduce(BigDecimal.ZERO, this::add));
+        summary.setPostedExpenses(expenses.stream().filter(expense -> expense.getStatus() == ExpenseStatus.POSTED).count());
+        summary.setPendingApprovalExpenses(expenses.stream().filter(expense -> expense.getStatus() == ExpenseStatus.SUBMITTED).count());
+        summary.setReversedExpenses(expenses.stream().filter(expense -> expense.getStatus() == ExpenseStatus.REVERSED).count());
+        summary.setMonthlyExpenseTrend(buildMonthlyExpenseTrend(expenses));
         summary.setTopSellingProducts(buildTopSellingProducts());
         summary.setDueAlerts(buildDueAlerts(salesInvoices, purchaseOrders));
         summary.setRecentTransactions(buildRecentTransactions(salesInvoices, purchaseOrders, expenses));
@@ -229,6 +236,26 @@ public class DashboardServiceImpl implements DashboardService {
                         total.quantity(),
                         total.amount()))
                 .collect(Collectors.toList());
+    }
+
+    private List<MonthlyExpenseDTO> buildMonthlyExpenseTrend(List<Expense> expenses) {
+        List<MonthlyExpenseDTO> rows = new ArrayList<>();
+        YearMonth start = YearMonth.now().minusMonths(DASHBOARD_MONTHS - 1L);
+        for (int i = 0; i < DASHBOARD_MONTHS; i++) {
+            YearMonth month = start.plusMonths(i);
+            BigDecimal amount = expenses.stream()
+                    .filter(expense -> expense.getExpenseDate() != null && YearMonth.from(expense.getExpenseDate()).equals(month))
+                    .filter(expense -> expense.getStatus() == ExpenseStatus.POSTED)
+                    .map(expense -> safe(expense.getGrossAmount()).signum() > 0 ? expense.getGrossAmount() : expense.getAmount())
+                    .reduce(BigDecimal.ZERO, this::add);
+            BigDecimal tax = expenses.stream()
+                    .filter(expense -> expense.getExpenseDate() != null && YearMonth.from(expense.getExpenseDate()).equals(month))
+                    .filter(expense -> expense.getStatus() == ExpenseStatus.POSTED)
+                    .map(Expense::getTaxAmount)
+                    .reduce(BigDecimal.ZERO, this::add);
+            rows.add(new MonthlyExpenseDTO(month.format(MONTH_LABEL_FORMAT), amount, tax));
+        }
+        return rows;
     }
 
     private List<DueAlertDTO> buildDueAlerts(List<SalesInvoice> salesInvoices, List<PurchaseOrder> purchaseOrders) {

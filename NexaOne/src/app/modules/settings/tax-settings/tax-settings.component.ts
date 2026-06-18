@@ -4,6 +4,8 @@ import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api
 import { AuthService } from '../../auth/auth.service';
 import { TaxSettings } from '../../auth/auth.model';
 import { SettingsService } from '../settings.service';
+import { AccountingService } from '../../accounting/accounting.service';
+import { Account } from '../../accounting/accounting.model';
 
 @Component({
   selector: 'app-tax-settings',
@@ -12,15 +14,17 @@ import { SettingsService } from '../settings.service';
 export class TaxSettingsComponent implements OnInit {
   settings: TaxSettings = this.emptySettings();
   readonly statusList: Status[] = ['ACTIVE', 'INACTIVE'];
+  accounts: Account[] = [];
   loading = false;
   saving = false;
   errorMessage = '';
   successMessage = '';
 
-  constructor(private settingsService: SettingsService, private authService: AuthService) {}
+  constructor(private settingsService: SettingsService, private authService: AuthService, private accountingService: AccountingService) {}
 
   ngOnInit(): void {
     this.load();
+    this.accountingService.getAccounts().subscribe({ next: accounts => this.accounts = accounts });
   }
 
   load(): void {
@@ -65,6 +69,6 @@ export class TaxSettingsComponent implements OnInit {
   }
 
   private emptySettings(): TaxSettings {
-    return { taxName: 'VAT', taxRate: 0, status: 'ACTIVE', defaultTaxEnabled: false };
+    return { taxName: 'VAT', taxRate: 0, status: 'ACTIVE', defaultTaxEnabled: false, taxReceivableAccountId: null };
   }
 }

@@ -21,6 +21,28 @@ public interface JournalEntryLineRepository extends JpaRepository<JournalEntryLi
     @EntityGraph(attributePaths = {"journalEntry", "account"})
     @Query("""
             select l from JournalEntryLine l
+            where l.account.id = :accountId
+              and l.journalEntry.status = com.sme.erp.accounting.enums.JournalStatus.POSTED
+              and (:fromDate is null or l.journalEntry.journalDate >= :fromDate)
+              and (:toDate is null or l.journalEntry.journalDate <= :toDate)
+            order by l.journalEntry.journalDate, l.journalEntry.id, l.id
+            """)
+    List<JournalEntryLine> findBookLines(@Param("accountId") Long accountId,
+                                         @Param("fromDate") java.time.LocalDate fromDate,
+                                         @Param("toDate") java.time.LocalDate toDate);
+
+    @Query("""
+            select coalesce(sum(l.debit - l.credit), 0) from JournalEntryLine l
+            where l.account.id = :accountId
+              and l.journalEntry.status = com.sme.erp.accounting.enums.JournalStatus.POSTED
+              and :fromDate is not null and l.journalEntry.journalDate < :fromDate
+            """)
+    java.math.BigDecimal openingBalance(@Param("accountId") Long accountId,
+                                        @Param("fromDate") java.time.LocalDate fromDate);
+
+    @EntityGraph(attributePaths = {"journalEntry", "account"})
+    @Query("""
+            select l from JournalEntryLine l
             where l.journalEntry.status = com.sme.erp.accounting.enums.JournalStatus.POSTED
               and (:accountId is null or l.account.id = :accountId)
               and (:fromDate is null or l.journalEntry.journalDate >= :fromDate)

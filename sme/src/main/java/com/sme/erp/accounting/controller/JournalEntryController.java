@@ -44,8 +44,14 @@ public class JournalEntryController {
         return ResponseEntity.ok(service.post(id));
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ACCOUNTING_EDIT')")
+    public ResponseEntity<JournalEntryDTO> update(@PathVariable Long id, @Valid @RequestBody JournalEntryDTO dto) {
+        return ResponseEntity.ok(service.update(id, dto));
+    }
+
     @PostMapping("/{id}/cancel")
-    @PreAuthorize("hasAuthority('JOURNAL_CANCEL') or hasAuthority('ACCOUNTING_DELETE')")
+    @PreAuthorize("hasAuthority('JOURNAL_CANCEL')")
     public ResponseEntity<JournalEntryDTO> cancel(@PathVariable Long id) {
         return ResponseEntity.ok(service.cancel(id));
     }

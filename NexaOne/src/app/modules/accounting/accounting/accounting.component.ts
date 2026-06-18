@@ -1,12 +1,12 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { AuthService } from '../../auth/auth.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
-import { Account, AccountType, BalanceSheet, BookEntry, Expense, ExpenseCategory, JournalEntry, JournalLine, JournalStatus, LedgerEntry, PaymentMethod, TrialBalance } from '../accounting.model';
+import { Account, AccountLedger, AccountType, BalanceSheet, BookEntry, Expense, ExpenseCategory, GeneralLedger, GeneralLedgerRow, JournalEntry, JournalLine, JournalStatus, LedgerEntry, PaymentMethod, ProfitLoss, TrialBalance } from '../accounting.model';
 import { AccountingService } from '../accounting.service';
 
-type Section = 'categories' | 'expenses' | 'accounts' | 'journals' | 'cash-book' | 'bank-book' | 'customer-ledger' | 'supplier-ledger' | 'general-ledger' | 'trial-balance' | 'balance-sheet';
+type Section = 'categories' | 'expenses' | 'accounts' | 'journals' | 'cash-book' | 'bank-book' | 'customer-ledger' | 'supplier-ledger' | 'general-ledger' | 'account-ledger' | 'profit-loss' | 'trial-balance' | 'balance-sheet';
 
 @Component({
   selector: 'app-accounting',
@@ -15,6 +15,7 @@ type Section = 'categories' | 'expenses' | 'accounts' | 'journals' | 'cash-book'
 })
 export class AccountingComponent implements OnInit {
   section: Section = 'expenses';
+  journalMode: 'list' | 'create' | 'edit' | 'details' = 'list';
   loading = false;
   saving = false;
   errorMessage = '';
@@ -27,6 +28,9 @@ export class AccountingComponent implements OnInit {
   bookEntries: BookEntry[] = [];
   ledgerEntries: LedgerEntry[] = [];
   trialBalance: TrialBalance | null = null;
+  generalLedger: GeneralLedger | null = null;
+  accountLedger: AccountLedger | null = null;
+  profitLoss: ProfitLoss | null = null;
   balanceSheet: BalanceSheet | null = null;
 
   categoryForm: ExpenseCategory = this.emptyCategory();
@@ -38,6 +42,19 @@ export class AccountingComponent implements OnInit {
   ledgerFilters = { customerId: '' as number | '', supplierId: '' as number | '', accountId: '' as number | '', fromDate: '', toDate: '' };
   accountTypeFilter: AccountType | '' = '';
   journalStatusFilter: JournalStatus | '' = '';
+  journalSearch = '';
+  journalFromDate = '';
+  journalToDate = '';
+  journalPage = 1;
+  readonly journalPageSize = 10;
+  bookFilters = { fromDate: '', toDate: '' };
+  openingBalance = 0;
+  closingBalance = 0;
+  trialBalanceAsOfDate = '';
+  financialFilters = { fromDate: '', toDate: '' };
+  balanceSheetAsOfDate = '';
+  expandedAccountTypes: Record<AccountType, boolean> = { ASSET: true, LIABILITY: true, EQUITY: true, INCOME: true, EXPENSE: true };
+  expandedStatements = { assets: true, liabilities: true, equity: true, income: true, expenses: true };
 
   readonly paymentMethods: PaymentMethod[] = ['CASH', 'BANK', 'MOBILE_BANKING', 'OTHER'];
   readonly accountTypes: AccountType[] = ['ASSET', 'LIABILITY', 'EQUITY', 'INCOME', 'EXPENSE'];
@@ -46,14 +63,18 @@ export class AccountingComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private accountingService: AccountingService,
-    private authService: AuthService
+    private authService: AuthService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
     this.route.data.subscribe(data => {
       this.section = data['section'] || 'expenses';
+      this.journalMode = data['mode'] || 'list';
       this.clearMessages();
       this.loadReferenceData();
+      const journalId = Number(this.route.snapshot.paramMap.get('id'));
+      if (this.section === 'journals' && journalId) this.loadJournal(journalId);
       this.loadCurrentSection();
     });
   }
@@ -62,12 +83,14 @@ export class AccountingComponent implements OnInit {
     if (this.section === 'categories') this.loadCategories();
     if (this.section === 'expenses') this.loadExpenses();
     if (this.section === 'accounts') this.loadAccounts();
-    if (this.section === 'journals') this.loadJournals();
+    if (this.section === 'journals' && this.journalMode === 'list') this.loadJournals();
     if (this.section === 'cash-book') this.loadBook(true);
     if (this.section === 'bank-book') this.loadBook(false);
     if (this.section === 'customer-ledger') this.loadCustomerLedger();
     if (this.section === 'supplier-ledger') this.loadSupplierLedger();
     if (this.section === 'general-ledger') this.loadGeneralLedger();
+    if (this.section === 'account-ledger') this.loadAccountLedger();
+    if (this.section === 'profit-loss') this.loadProfitLoss();
     if (this.section === 'trial-balance') this.loadTrialBalance();
     if (this.section === 'balance-sheet') this.loadBalanceSheet();
   }
@@ -117,8 +140,22 @@ export class AccountingComponent implements OnInit {
 
   saveJournal(): void {
     this.save(this.accountingService.saveJournal(this.journalForm), 'Journal entry saved as draft.', () => {
-      this.journalForm = this.emptyJournal();
-      this.loadJournals();
+      this.router.navigate(['/accounting/journals']);
+    });
+  }
+
+  saveAndPostJournal(): void {
+    this.saving = true;
+    this.clearMessages();
+    this.accountingService.saveJournal(this.journalForm).subscribe({
+      next: saved => {
+        if (!saved.id) return;
+        this.accountingService.postJournal(saved.id).subscribe({
+          next: () => { this.saving = false; this.router.navigate(['/accounting/journals']); },
+          error: error => { this.saving = false; this.errorMessage = extractApiErrorMessage(error, 'Journal could not be posted.'); }
+        });
+      },
+      error: error => { this.saving = false; this.errorMessage = extractApiErrorMessage(error, 'Journal could not be saved.'); }
     });
   }
 
@@ -158,16 +195,58 @@ export class AccountingComponent implements OnInit {
   }
 
   bookInTotal(): number {
-    return this.bookEntries.reduce((sum, row) => sum + this.toNumber(row.moneyIn), 0);
+    return this.bookEntries.reduce((sum, row) => sum + this.toNumber(row.debit), 0);
   }
 
   bookOutTotal(): number {
-    return this.bookEntries.reduce((sum, row) => sum + this.toNumber(row.moneyOut), 0);
+    return this.bookEntries.reduce((sum, row) => sum + this.toNumber(row.credit), 0);
   }
 
   finalBalance(): number {
-    return this.bookEntries.length ? this.bookEntries[this.bookEntries.length - 1].balance : 0;
+    return this.closingBalance;
   }
+
+  filteredJournals(): JournalEntry[] {
+    const query = this.journalSearch.trim().toLowerCase();
+    return this.journals.filter(journal =>
+      (!query || [journal.journalNo, journal.referenceNo, journal.description].some(value => value?.toLowerCase().includes(query))) &&
+      (!this.journalFromDate || journal.journalDate >= this.journalFromDate) &&
+      (!this.journalToDate || journal.journalDate <= this.journalToDate));
+  }
+
+  pagedJournals(): JournalEntry[] {
+    const start = (this.journalPage - 1) * this.journalPageSize;
+    return this.filteredJournals().slice(start, start + this.journalPageSize);
+  }
+
+  journalPageCount(): number { return Math.max(1, Math.ceil(this.filteredJournals().length / this.journalPageSize)); }
+  journalBalanced(): boolean { return Math.abs(this.totalDebit() - this.totalCredit()) < 0.005 && this.totalDebit() > 0; }
+
+  exportCurrentReport(format: 'csv' | 'xls' = 'csv'): void {
+    let rows: Array<Array<string | number>>;
+    if (this.section === 'trial-balance') rows = [['Account Code', 'Account Name', 'Account Type', 'Debit Balance', 'Credit Balance'], ...(this.trialBalance?.rows || []).map(r => [r.accountCode, r.accountName, r.accountType, r.debitBalance, r.creditBalance])];
+    else if (this.section === 'general-ledger') rows = [['Account Code', 'Account Name', 'Type', 'Opening', 'Debit', 'Credit', 'Closing'], ...(this.generalLedger?.accounts || []).map(r => [r.accountCode, r.accountName, r.accountType, r.openingBalance, r.totalDebit, r.totalCredit, r.closingBalance])];
+    else if (this.section === 'account-ledger') rows = [['Date', 'Journal No', 'Reference Type', 'Reference No', 'Description', 'Debit', 'Credit', 'Running Balance'], ...(this.accountLedger?.transactions || []).map(r => [r.date, r.journalNo, r.referenceType || '', r.referenceNo || '', r.description || '', r.debit, r.credit, r.runningBalance])];
+    else if (this.section === 'profit-loss') rows = [['Section', 'Group', 'Account Code', 'Account Name', 'Amount'], ...(this.profitLoss?.income || []).map(r => ['Income', r.groupName, r.accountCode, r.accountName, r.amount]), ...(this.profitLoss?.expenses || []).map(r => ['Expense', r.groupName, r.accountCode, r.accountName, r.amount])];
+    else if (this.section === 'balance-sheet') rows = [['Section', 'Group', 'Account Code', 'Account Name', 'Amount'], ...(this.balanceSheet?.assets || []).map(r => ['Assets', r.groupName, r.accountCode, r.accountName, r.amount]), ...(this.balanceSheet?.liabilities || []).map(r => ['Liabilities', r.groupName, r.accountCode, r.accountName, r.amount]), ...(this.balanceSheet?.equity || []).map(r => ['Equity', r.groupName, r.accountCode, r.accountName, r.amount]), ['Equity', 'Current Profit/Loss', '', '', this.balanceSheet?.currentProfitLoss || 0]];
+    else rows = [['Date', 'Journal No', 'Reference Type', 'Reference No', 'Description', 'Debit', 'Credit', 'Running Balance'], ...this.bookEntries.map(r => [r.date, r.journalNo, r.referenceType || '', r.referenceNo || '', r.description || '', r.debit, r.credit, r.runningBalance])];
+    const csv = rows.map(row => row.map(value => `"${String(value ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([csv], { type: format === 'xls' ? 'application/vnd.ms-excel;charset=utf-8;' : 'text/csv;charset=utf-8;' }));
+    link.download = `${this.section}.${format}`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  exportExcel(): void { this.exportCurrentReport('xls'); }
+
+  print(): void { window.print(); }
+
+  generalLedgerByType(type: AccountType): GeneralLedgerRow[] {
+    return (this.generalLedger?.accounts || []).filter(account => account.accountType === type);
+  }
+
+  toggleAccountType(type: AccountType): void { this.expandedAccountTypes[type] = !this.expandedAccountTypes[type]; }
 
   ledgerDebitTotal(): number {
     return this.ledgerEntries.reduce((sum, row) => sum + this.toNumber(row.debit), 0);
@@ -213,8 +292,16 @@ export class AccountingComponent implements OnInit {
     this.fetch(true, this.accountingService.getJournals(this.journalStatusFilter), journals => this.journals = journals, 'Journal entries could not be loaded.');
   }
 
+  private loadJournal(id: number): void {
+    this.fetch(true, this.accountingService.getJournal(id), journal => this.journalForm = journal, 'Journal entry could not be loaded.');
+  }
+
   private loadBook(cash: boolean): void {
-    this.fetch(true, cash ? this.accountingService.getCashBook() : this.accountingService.getBankBook(), rows => this.bookEntries = rows, 'Book entries could not be loaded.');
+    this.fetch(true, cash ? this.accountingService.getCashBook(this.bookFilters) : this.accountingService.getBankBook(this.bookFilters), report => {
+      this.bookEntries = report.rows;
+      this.openingBalance = report.openingBalance;
+      this.closingBalance = report.closingBalance;
+    }, 'Book entries could not be loaded.');
   }
 
   private loadCustomerLedger(): void {
@@ -226,15 +313,25 @@ export class AccountingComponent implements OnInit {
   }
 
   private loadGeneralLedger(): void {
-    this.fetch(true, this.accountingService.getGeneralLedger(this.ledgerFilters), rows => this.ledgerEntries = rows, 'General ledger could not be loaded.');
+    this.fetch(true, this.accountingService.getGeneralLedger(this.financialFilters), report => this.generalLedger = report, 'General ledger could not be loaded.');
+  }
+
+  private loadAccountLedger(): void {
+    const accountId = Number(this.route.snapshot.paramMap.get('id'));
+    if (!accountId) return;
+    this.fetch(true, this.accountingService.getAccountLedger(accountId, this.financialFilters), report => this.accountLedger = report, 'Account ledger could not be loaded.');
+  }
+
+  private loadProfitLoss(): void {
+    this.fetch(true, this.accountingService.getProfitLoss(this.financialFilters), report => this.profitLoss = report, 'Profit and loss statement could not be loaded.');
   }
 
   private loadTrialBalance(): void {
-    this.fetch(true, this.accountingService.getTrialBalance(this.ledgerFilters), report => this.trialBalance = report, 'Trial balance could not be loaded.');
+    this.fetch(true, this.accountingService.getTrialBalance({ asOfDate: this.trialBalanceAsOfDate }), report => this.trialBalance = report, 'Trial balance could not be loaded.');
   }
 
   private loadBalanceSheet(): void {
-    this.fetch(true, this.accountingService.getBalanceSheet(), report => this.balanceSheet = report, 'Balance sheet could not be loaded.');
+    this.fetch(true, this.accountingService.getBalanceSheet(this.balanceSheetAsOfDate), report => this.balanceSheet = report, 'Balance sheet could not be loaded.');
   }
 
   private fetch<T>(showLoading: boolean, request: Observable<T>, next: (value: T) => void, fallback: string): void {

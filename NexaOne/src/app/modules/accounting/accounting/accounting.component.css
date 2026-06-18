@@ -21,6 +21,10 @@
   line-height: 1.4;
 }
 
+.profit-positive { border-left: 4px solid #198754 !important; }
+.profit-negative { border-left: 4px solid #dc3545 !important; }
+.section-title { cursor: pointer; }
+
 .badge {
   min-width: 92px;
   text-align: center;
@@ -63,4 +67,10 @@
   .journal-summary {
     flex-direction: column;
   }
+}
+
+@media print {
+  .no-print, button, a.btn { display: none !important; }
+  .accounting-page { padding: 0 !important; }
+  .table { font-size: 11px; }
 }

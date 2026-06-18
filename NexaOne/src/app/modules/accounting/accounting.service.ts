@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { ApiResponse, unwrapApiResponse } from '../../shared/utils/api-response.util';
-import { Account, AccountType, BalanceSheet, BookEntry, Expense, ExpenseCategory, JournalEntry, JournalStatus, LedgerEntry, PaymentMethod, TrialBalance } from './accounting.model';
+import { Account, AccountLedger, AccountType, AccountingBook, BalanceSheet, Expense, ExpenseCategory, GeneralLedger, JournalEntry, JournalStatus, LedgerEntry, PaymentMethod, ProfitLoss, TrialBalance } from './accounting.model';
 
 @Injectable({ providedIn: 'root' })
 export class AccountingService {
@@ -70,7 +70,15 @@ export class AccountingService {
   }
 
   saveJournal(entry: JournalEntry): Observable<JournalEntry> {
-    return this.http.post<JournalEntry | ApiResponse<JournalEntry>>(`${this.baseUrl}/journal-entries`, entry)
+    const request$ = entry.id
+      ? this.http.put<JournalEntry | ApiResponse<JournalEntry>>(`${this.baseUrl}/journal-entries/${entry.id}`, entry)
+      : this.http.post<JournalEntry | ApiResponse<JournalEntry>>(`${this.baseUrl}/journal-entries`, entry);
+    return request$
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  getJournal(id: number): Observable<JournalEntry> {
+    return this.http.get<JournalEntry | ApiResponse<JournalEntry>>(`${this.baseUrl}/journal-entries/${id}`)
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
@@ -84,13 +92,19 @@ export class AccountingService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
-  getCashBook(): Observable<BookEntry[]> {
-    return this.http.get<BookEntry[] | ApiResponse<BookEntry[]>>(`${this.baseUrl}/cash-book`)
-      .pipe(map(response => unwrapApiResponse(response)));
+  getCashBook(filters: { fromDate?: string; toDate?: string }): Observable<AccountingBook> {
+    return this.getBook(`${this.baseUrl}/cash-book`, filters);
   }
 
-  getBankBook(): Observable<BookEntry[]> {
-    return this.http.get<BookEntry[] | ApiResponse<BookEntry[]>>(`${this.baseUrl}/bank-book`)
+  getBankBook(filters: { fromDate?: string; toDate?: string }): Observable<AccountingBook> {
+    return this.getBook(`${this.baseUrl}/bank-book`, filters);
+  }
+
+  private getBook(url: string, filters: { fromDate?: string; toDate?: string }): Observable<AccountingBook> {
+    let params = new HttpParams();
+    if (filters.fromDate) params = params.set('fromDate', filters.fromDate);
+    if (filters.toDate) params = params.set('toDate', filters.toDate);
+    return this.http.get<AccountingBook | ApiResponse<AccountingBook>>(url, { params })
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
@@ -102,21 +116,36 @@ export class AccountingService {
     return this.getLedger(`${this.baseUrl}/supplier-ledger`, filters, 'supplierId');
   }
 
-  getGeneralLedger(filters: { accountId?: number | ''; fromDate?: string; toDate?: string }): Observable<LedgerEntry[]> {
-    return this.getLedger(`${this.baseUrl}/general-ledger`, filters, 'accountId');
+  getGeneralLedger(filters: { fromDate?: string; toDate?: string }): Observable<GeneralLedger> {
+    return this.getReport<GeneralLedger>(`${this.baseUrl}/general-ledger`, filters);
   }
 
-  getTrialBalance(filters: { fromDate?: string; toDate?: string }): Observable<TrialBalance> {
+  getAccountLedger(accountId: number, filters: { fromDate?: string; toDate?: string }): Observable<AccountLedger> {
+    return this.getReport<AccountLedger>(`${this.baseUrl}/account-ledger/${accountId}`, filters);
+  }
+
+  getProfitLoss(filters: { fromDate?: string; toDate?: string }): Observable<ProfitLoss> {
+    return this.getReport<ProfitLoss>(`${this.baseUrl}/profit-loss`, filters);
+  }
+
+  getTrialBalance(filters: { asOfDate?: string }): Observable<TrialBalance> {
     let params = new HttpParams();
-    if (filters.fromDate) params = params.set('fromDate', filters.fromDate);
-    if (filters.toDate) params = params.set('toDate', filters.toDate);
+    if (filters.asOfDate) params = params.set('asOfDate', filters.asOfDate);
     return this.http.get<TrialBalance | ApiResponse<TrialBalance>>(`${this.baseUrl}/trial-balance`, { params })
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
-  getBalanceSheet(): Observable<BalanceSheet> {
-    return this.http.get<BalanceSheet | ApiResponse<BalanceSheet>>(`${this.baseUrl}/balance-sheet`)
+  getBalanceSheet(asOfDate?: string): Observable<BalanceSheet> {
+    const params = asOfDate ? new HttpParams().set('asOfDate', asOfDate) : undefined;
+    return this.http.get<BalanceSheet | ApiResponse<BalanceSheet>>(`${this.baseUrl}/balance-sheet`, { params })
       .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  private getReport<T>(url: string, filters: { fromDate?: string; toDate?: string }): Observable<T> {
+    let params = new HttpParams();
+    if (filters.fromDate) params = params.set('fromDate', filters.fromDate);
+    if (filters.toDate) params = params.set('toDate', filters.toDate);
+    return this.http.get<T | ApiResponse<T>>(url, { params }).pipe(map(response => unwrapApiResponse(response)));
   }
 
   private getLedger(url: string, filters: Record<string, number | string | undefined>, idKey: string): Observable<LedgerEntry[]> {

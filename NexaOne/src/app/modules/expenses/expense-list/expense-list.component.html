@@ -59,6 +59,9 @@
           <td class="text-center">
             <button type="button" class="btn-action btn-view" title="View" (click)="view(expense)"><i class="bi bi-eye"></i></button>
             <button type="button" class="btn-action btn-edit" *ngIf="canEdit(expense)" title="Edit" (click)="edit(expense)"><i class="bi bi-pencil-square"></i></button>
+            <button type="button" class="btn-action btn-submit" *ngIf="canSubmit(expense)" title="Submit" (click)="submit(expense)"><i class="bi bi-send"></i></button>
+            <button type="button" class="btn-action btn-approve" *ngIf="canApprove(expense)" title="Approve" (click)="approve(expense)"><i class="bi bi-hand-thumbs-up"></i></button>
+            <button type="button" class="btn-action btn-reject" *ngIf="canReject(expense)" title="Reject" (click)="reject(expense)"><i class="bi bi-hand-thumbs-down"></i></button>
             <button type="button" class="btn-action btn-post" *ngIf="canPost(expense)" title="Post" (click)="post(expense)"><i class="bi bi-check2-circle"></i></button>
             <button type="button" class="btn-action btn-cancel" *ngIf="canCancel(expense)" title="Cancel" (click)="cancel(expense)"><i class="bi bi-x-circle"></i></button>
           </td>

@@ -11,6 +11,9 @@ public class TaxSettingsDTO {
     private BigDecimal taxRate;
     private Status status;
     private Boolean defaultTaxEnabled;
+    private Long taxReceivableAccountId;
+    private String taxReceivableAccountCode;
+    private String taxReceivableAccountName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -24,6 +27,12 @@ public class TaxSettingsDTO {
     public void setStatus(Status status) { this.status = status; }
     public Boolean getDefaultTaxEnabled() { return defaultTaxEnabled; }
     public void setDefaultTaxEnabled(Boolean defaultTaxEnabled) { this.defaultTaxEnabled = defaultTaxEnabled; }
+    public Long getTaxReceivableAccountId() { return taxReceivableAccountId; }
+    public void setTaxReceivableAccountId(Long taxReceivableAccountId) { this.taxReceivableAccountId = taxReceivableAccountId; }
+    public String getTaxReceivableAccountCode() { return taxReceivableAccountCode; }
+    public void setTaxReceivableAccountCode(String taxReceivableAccountCode) { this.taxReceivableAccountCode = taxReceivableAccountCode; }
+    public String getTaxReceivableAccountName() { return taxReceivableAccountName; }
+    public void setTaxReceivableAccountName(String taxReceivableAccountName) { this.taxReceivableAccountName = taxReceivableAccountName; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }

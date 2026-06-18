@@ -69,6 +69,25 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
                              Pageable pageable);
 
     @Query("""
+            select e from Expense e
+            join e.category c
+            where e.status = com.sme.erp.accounting.enums.ExpenseStatus.SUBMITTED
+              and (:fromDate is null or e.expenseDate >= :fromDate)
+              and (:toDate is null or e.expenseDate <= :toDate)
+              and (:categoryId is null or c.id = :categoryId)
+              and (:submittedBy is null or lower(coalesce(e.submittedBy, '')) like lower(concat('%', :submittedBy, '%')))
+              and (:amountMin is null or e.amount >= :amountMin)
+              and (:amountMax is null or e.amount <= :amountMax)
+            order by e.submittedAt asc, e.id asc
+            """)
+    List<Expense> approvalQueue(@Param("fromDate") LocalDate fromDate,
+                                @Param("toDate") LocalDate toDate,
+                                @Param("categoryId") Long categoryId,
+                                @Param("submittedBy") String submittedBy,
+                                @Param("amountMin") BigDecimal amountMin,
+                                @Param("amountMax") BigDecimal amountMax);
+
+    @Query("""
             select coalesce(sum(e.amount), 0) from Expense e
             where e.status = com.sme.erp.accounting.enums.ExpenseStatus.POSTED
               and (:fromDate is null or e.expenseDate >= :fromDate)

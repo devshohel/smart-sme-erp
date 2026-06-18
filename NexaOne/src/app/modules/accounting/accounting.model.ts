@@ -1,7 +1,7 @@
 export type AccountType = 'ASSET' | 'LIABILITY' | 'EQUITY' | 'INCOME' | 'EXPENSE';
 export type AccountingStatus = 'ACTIVE' | 'INACTIVE';
 export type PaymentMethod = 'CASH' | 'BANK' | 'MOBILE_BANKING' | 'OTHER';
-export type ExpenseStatus = 'DRAFT' | 'POSTED' | 'CANCELLED';
+export type ExpenseStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'POSTED' | 'REVERSED' | 'CANCELLED';
 export type JournalStatus = 'DRAFT' | 'POSTED' | 'CANCELLED';
 
 export interface ExpenseCategory {
@@ -57,20 +57,37 @@ export interface JournalEntry {
   journalNo?: string;
   journalDate: string;
   referenceNo?: string | null;
+  referenceType?: string | null;
   description?: string | null;
   status?: JournalStatus;
   lines: JournalLine[];
   createdAt?: string;
   updatedAt?: string;
+  postedAt?: string;
+  cancelledAt?: string;
+  createdBy?: string;
+  postedBy?: string;
+  cancelledBy?: string;
+  totalDebit?: number;
+  totalCredit?: number;
+  sourceType?: string | null;
 }
 
 export interface BookEntry {
   date: string;
-  reference: string;
+  journalNo: string;
+  referenceType?: string;
+  referenceNo?: string;
   description: string;
-  moneyIn: number;
-  moneyOut: number;
-  balance: number;
+  debit: number;
+  credit: number;
+  runningBalance: number;
+}
+
+export interface AccountingBook {
+  openingBalance: number;
+  closingBalance: number;
+  rows: BookEntry[];
 }
 
 export interface LedgerEntry {
@@ -87,27 +104,87 @@ export interface TrialBalanceRow {
   accountCode: string;
   accountName: string;
   accountType: AccountType;
-  totalDebit: number;
-  totalCredit: number;
-  balance: number;
+  debitBalance: number;
+  creditBalance: number;
 }
 
 export interface TrialBalance {
   rows: TrialBalanceRow[];
   totalDebit: number;
   totalCredit: number;
+  difference: number;
+  balanced: boolean;
+}
+
+export interface GeneralLedgerRow {
+  accountId: number;
+  accountCode: string;
+  accountName: string;
+  accountType: AccountType;
+  openingBalance: number;
+  totalDebit: number;
+  totalCredit: number;
+  closingBalance: number;
+}
+
+export interface GeneralLedger {
+  accounts: GeneralLedgerRow[];
+  totalDebit: number;
+  totalCredit: number;
+  outOfBalance: boolean;
+  differenceAmount: number;
+}
+
+export interface AccountLedgerEntry {
+  date: string;
+  journalNo: string;
+  referenceType?: string;
+  referenceNo?: string;
+  description?: string;
+  debit: number;
+  credit: number;
+  runningBalance: number;
+}
+
+export interface AccountLedger {
+  accountId: number;
+  accountCode: string;
+  accountName: string;
+  accountType: AccountType;
+  openingBalance: number;
+  closingBalance: number;
+  transactions: AccountLedgerEntry[];
+}
+
+export interface FinancialStatementLine {
+  accountId: number;
+  accountCode: string;
+  accountName: string;
+  groupName: string;
+  amount: number;
+}
+
+export interface ProfitLoss {
+  income: FinancialStatementLine[];
+  expenses: FinancialStatementLine[];
+  totalIncome: number;
+  totalExpense: number;
+  netProfitLoss: number;
+  outOfBalance: boolean;
+  differenceAmount: number;
 }
 
 export interface BalanceSheet {
-  cash: number;
-  bank: number;
-  accountsReceivable: number;
-  inventoryValue: number;
+  assets: FinancialStatementLine[];
+  liabilities: FinancialStatementLine[];
+  equity: FinancialStatementLine[];
   totalAssets: number;
-  accountsPayable: number;
   totalLiabilities: number;
-  ownerEquity: number;
+  ownerCapital: number;
   retainedEarnings: number;
+  currentProfitLoss: number;
   totalEquity: number;
   liabilitiesAndEquity: number;
+  outOfBalance: boolean;
+  differenceAmount: number;
 }

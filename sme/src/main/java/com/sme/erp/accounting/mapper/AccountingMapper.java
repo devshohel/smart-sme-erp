@@ -52,6 +52,27 @@ public class AccountingMapper {
         dto.setNotes(entity.getNotes());
         dto.setStatus(entity.getStatus());
         dto.setCreatedBy(entity.getCreatedBy());
+        dto.setSubmittedAt(entity.getSubmittedAt());
+        dto.setSubmittedBy(entity.getSubmittedBy());
+        dto.setApprovedAt(entity.getApprovedAt());
+        dto.setApprovedBy(entity.getApprovedBy());
+        dto.setRejectedAt(entity.getRejectedAt());
+        dto.setRejectedBy(entity.getRejectedBy());
+        dto.setRejectionReason(entity.getRejectionReason());
+        dto.setApprovalComment(entity.getApprovalComment());
+        dto.setReceiptOriginalFilename(entity.getReceiptOriginalFilename());
+        dto.setReceiptStoredFilename(entity.getReceiptStoredFilename());
+        dto.setReceiptContentType(entity.getReceiptContentType());
+        dto.setReceiptSize(entity.getReceiptSize());
+        dto.setReceiptUrl(entity.getReceiptUrl());
+        dto.setTaxApplicable(entity.getTaxApplicable());
+        dto.setTaxRate(entity.getTaxRate());
+        dto.setTaxAmount(entity.getTaxAmount());
+        dto.setNetAmount(entity.getNetAmount());
+        dto.setGrossAmount(entity.getGrossAmount());
+        dto.setReversedAt(entity.getReversedAt());
+        dto.setReversedBy(entity.getReversedBy());
+        dto.setReversalReason(entity.getReversalReason());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
         if (entity.getCategory() != null) {
@@ -68,6 +89,7 @@ public class AccountingMapper {
         dto.setJournalNo(entity.getJournalNo());
         dto.setJournalDate(entity.getJournalDate());
         dto.setReferenceNo(entity.getReferenceNo());
+        dto.setReferenceType(entity.getReferenceType());
         dto.setDescription(entity.getDescription());
         dto.setSourceType(entity.getSourceType());
         dto.setSourceId(entity.getSourceId());
@@ -75,6 +97,13 @@ public class AccountingMapper {
         dto.setStatus(entity.getStatus());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
+        dto.setPostedAt(entity.getPostedAt());
+        dto.setCancelledAt(entity.getCancelledAt());
+        dto.setCreatedBy(entity.getCreatedBy());
+        dto.setPostedBy(entity.getPostedBy());
+        dto.setCancelledBy(entity.getCancelledBy());
+        dto.setTotalDebit(entity.getTotalDebit());
+        dto.setTotalCredit(entity.getTotalCredit());
         dto.setLines(entity.getLines().stream().map(this::toDTO).collect(Collectors.toList()));
         return dto;
     }

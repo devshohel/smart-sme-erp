@@ -3,7 +3,11 @@
     <div class="d-flex gap-2">
       <button type="button" class="btn btn-outline-secondary" (click)="back()"><i class="bi bi-arrow-left me-1"></i> Back</button>
       <button type="button" class="btn btn-outline-primary" *ngIf="expense?.status === 'DRAFT' && hasPermission('EXPENSE_EDIT')" (click)="edit()"><i class="bi bi-pencil-square me-1"></i> Edit</button>
-      <button type="button" class="btn btn-success" *ngIf="expense?.status === 'DRAFT' && hasPermission('EXPENSE_POST')" (click)="post()"><i class="bi bi-check2-circle me-1"></i> Post</button>
+      <button type="button" class="btn btn-outline-primary" *ngIf="canSubmit()" (click)="submit()"><i class="bi bi-send me-1"></i> Submit</button>
+      <button type="button" class="btn btn-success" *ngIf="canApprove()" (click)="approve()"><i class="bi bi-hand-thumbs-up me-1"></i> Approve</button>
+      <button type="button" class="btn btn-outline-danger" *ngIf="canReject()" (click)="reject()"><i class="bi bi-hand-thumbs-down me-1"></i> Reject</button>
+      <button type="button" class="btn btn-success" *ngIf="canPost()" (click)="post()"><i class="bi bi-check2-circle me-1"></i> Post</button>
+      <button type="button" class="btn btn-outline-danger" *ngIf="canReverse()" (click)="reverse()"><i class="bi bi-arrow-counterclockwise me-1"></i> Reverse</button>
       <button type="button" class="btn btn-outline-danger" *ngIf="expense?.status === 'DRAFT' && hasPermission('EXPENSE_CANCEL')" (click)="cancelExpense()"><i class="bi bi-x-circle me-1"></i> Cancel</button>
     </div>
   </app-page-header>
@@ -22,11 +26,27 @@
     <div class="info-grid">
       <div><span>Date</span><strong>{{ expense.expenseDate | date:'mediumDate' }}</strong></div>
       <div><span>Amount</span><strong>{{ expense.amount | number:'1.2-2' }}</strong></div>
+      <div><span>Net Amount</span><strong>{{ expense.netAmount || expense.amount | number:'1.2-2' }}</strong></div>
+      <div><span>Tax Amount</span><strong>{{ expense.taxAmount || 0 | number:'1.2-2' }}</strong></div>
+      <div><span>Gross Amount</span><strong>{{ expense.grossAmount || expense.amount | number:'1.2-2' }}</strong></div>
       <div><span>Payment Method</span><strong>{{ expense.paymentMethod }}</strong></div>
       <div><span>Reference</span><strong>{{ expense.referenceNo || 'N/A' }}</strong></div>
       <div><span>Created By</span><strong>{{ expense.createdBy || 'N/A' }}</strong></div>
       <div><span>Created At</span><strong>{{ expense.createdAt | date:'medium' }}</strong></div>
+      <div><span>Receipt</span><strong><a *ngIf="expense.receiptUrl" [href]="expense.receiptUrl" target="_blank" rel="noopener">{{ expense.receiptOriginalFilename || 'View receipt' }}</a><ng-container *ngIf="!expense.receiptUrl">N/A</ng-container></strong></div>
+      <div><span>Journal</span><strong><a *ngIf="expense.journalEntryId" routerLink="/accounting/journal-entries">Journal #{{ expense.journalEntryId }}</a><ng-container *ngIf="!expense.journalEntryId">Not posted</ng-container></strong></div>
       <div class="span-2"><span>Notes</span><strong>{{ expense.notes || 'N/A' }}</strong></div>
+      <div class="span-2" *ngIf="expense.status === 'REVERSED'"><span>Reversal</span><strong>{{ expense.reversalReason || 'N/A' }} - {{ expense.reversedBy || 'N/A' }} - {{ expense.reversedAt | date:'medium' }}</strong></div>
+    </div>
+
+    <div class="timeline">
+      <h5>Approval Timeline</h5>
+      <div class="timeline-grid">
+        <div><span>Submitted</span><strong>{{ expense.submittedAt ? (expense.submittedAt | date:'medium') : 'Not submitted' }}</strong><small>{{ expense.submittedBy || '' }}</small></div>
+        <div><span>Approved</span><strong>{{ expense.approvedAt ? (expense.approvedAt | date:'medium') : 'Not approved' }}</strong><small>{{ expense.approvedBy || '' }}</small></div>
+        <div><span>Rejected</span><strong>{{ expense.rejectedAt ? (expense.rejectedAt | date:'medium') : 'Not rejected' }}</strong><small>{{ expense.rejectedBy || '' }}</small></div>
+        <div><span>Rejection Reason</span><strong>{{ expense.rejectionReason || 'N/A' }}</strong></div>
+      </div>
     </div>
   </section>
 </div>

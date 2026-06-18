@@ -1,17 +1,16 @@
 package com.sme.erp.accounting.service.impl;
 
-import com.sme.erp.accounting.dto.BalanceSheetDTO;
-import com.sme.erp.accounting.dto.LedgerEntryDTO;
-import com.sme.erp.accounting.dto.TrialBalanceDTO;
-import com.sme.erp.accounting.dto.TrialBalanceRowDTO;
+import com.sme.erp.accounting.dto.*;
 import com.sme.erp.accounting.entity.Account;
 import com.sme.erp.accounting.entity.JournalEntryLine;
 import com.sme.erp.accounting.enums.AccountType;
 import com.sme.erp.accounting.repository.AccountRepository;
 import com.sme.erp.accounting.repository.JournalEntryLineRepository;
 import com.sme.erp.accounting.service.AccountingReportService;
+import com.sme.erp.accounting.service.FinancialConsistencyService;
+import com.sme.erp.common.exception.BadRequestException;
+import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.enums.Status;
-import com.sme.erp.inventory.repository.StockRepository;
 import com.sme.erp.purchase.entity.PurchaseOrder;
 import com.sme.erp.purchase.entity.PurchaseReturn;
 import com.sme.erp.purchase.enums.PurchaseStatus;
@@ -39,7 +38,7 @@ public class AccountingReportServiceImpl implements AccountingReportService {
     private final SalesReturnRepository salesReturnRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final PurchaseReturnRepository purchaseReturnRepository;
-    private final StockRepository stockRepository;
+    private final FinancialConsistencyService consistencyService;
 
     public AccountingReportServiceImpl(AccountRepository accountRepository,
                                        JournalEntryLineRepository lineRepository,
@@ -47,14 +46,14 @@ public class AccountingReportServiceImpl implements AccountingReportService {
                                        SalesReturnRepository salesReturnRepository,
                                        PurchaseOrderRepository purchaseOrderRepository,
                                        PurchaseReturnRepository purchaseReturnRepository,
-                                       StockRepository stockRepository) {
+                                       FinancialConsistencyService consistencyService) {
         this.accountRepository = accountRepository;
         this.lineRepository = lineRepository;
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.salesReturnRepository = salesReturnRepository;
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.purchaseReturnRepository = purchaseReturnRepository;
-        this.stockRepository = stockRepository;
+        this.consistencyService = consistencyService;
     }
 
     @Override
@@ -113,17 +112,74 @@ public class AccountingReportServiceImpl implements AccountingReportService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<LedgerEntryDTO> getGeneralLedger(Long accountId, LocalDate fromDate, LocalDate toDate) {
-        List<RawLedgerEntry> rows = lineRepository.findPostedLedgerLines(accountId, fromDate, toDate).stream()
-                .map(line -> new RawLedgerEntry(
-                        line.getJournalEntry().getJournalDate(),
-                        line.getAccount().getAccountCode() + " - " + line.getAccount().getAccountName(),
-                        reference(line),
-                        line.getDescription() != null ? line.getDescription() : line.getJournalEntry().getDescription(),
-                        safe(line.getDebit()),
-                        safe(line.getCredit())))
-                .toList();
-        return withBalance(rows);
+    public GeneralLedgerDTO getGeneralLedger(LocalDate fromDate, LocalDate toDate) {
+        validatePeriod(fromDate, toDate);
+        List<GeneralLedgerRowDTO> rows = new ArrayList<>();
+        BigDecimal totalDebit = BigDecimal.ZERO;
+        BigDecimal totalCredit = BigDecimal.ZERO;
+        for (Account account : sortedAccounts()) {
+            BigDecimal opening = openingBalance(account.getId(), fromDate);
+            BigDecimal debit = safe(lineRepository.sumDebit(account.getId(), fromDate, toDate));
+            BigDecimal credit = safe(lineRepository.sumCredit(account.getId(), fromDate, toDate));
+            BigDecimal closing = opening.add(debit).subtract(credit);
+            rows.add(new GeneralLedgerRowDTO(account.getId(), account.getAccountCode(), account.getAccountName(),
+                    account.getAccountType(), opening, debit, credit, closing));
+            totalDebit = totalDebit.add(debit);
+            totalCredit = totalCredit.add(credit);
+        }
+        FinancialValidationDTO validation = validate(totalDebit, totalCredit);
+        return new GeneralLedgerDTO(rows, totalDebit, totalCredit, validation.outOfBalance(), validation.differenceAmount());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AccountLedgerDTO getAccountLedger(Long accountId, LocalDate fromDate, LocalDate toDate) {
+        validatePeriod(fromDate, toDate);
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new ResourceNotFoundException("Account not found with id: " + accountId));
+        BigDecimal opening = openingBalance(accountId, fromDate);
+        BigDecimal running = opening;
+        List<AccountLedgerEntryDTO> transactions = new ArrayList<>();
+        for (JournalEntryLine line : lineRepository.findPostedLedgerLines(accountId, fromDate, toDate)) {
+            BigDecimal debit = safe(line.getDebit());
+            BigDecimal credit = safe(line.getCredit());
+            running = running.add(debit).subtract(credit);
+            String referenceType = line.getJournalEntry().getReferenceType() != null
+                    ? line.getJournalEntry().getReferenceType() : line.getJournalEntry().getSourceType();
+            String referenceNo = line.getJournalEntry().getReferenceNo() != null
+                    ? line.getJournalEntry().getReferenceNo() : line.getJournalEntry().getSourceNo();
+            transactions.add(new AccountLedgerEntryDTO(line.getJournalEntry().getJournalDate(),
+                    line.getJournalEntry().getJournalNo(), referenceType, referenceNo,
+                    line.getDescription() != null ? line.getDescription() : line.getJournalEntry().getDescription(),
+                    debit, credit, running));
+        }
+        return new AccountLedgerDTO(account.getId(), account.getAccountCode(), account.getAccountName(),
+                account.getAccountType(), opening, running, transactions);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProfitLossDTO getProfitLoss(LocalDate fromDate, LocalDate toDate) {
+        validatePeriod(fromDate, toDate);
+        List<FinancialStatementLineDTO> income = new ArrayList<>();
+        List<FinancialStatementLineDTO> expenses = new ArrayList<>();
+        BigDecimal totalIncome = BigDecimal.ZERO;
+        BigDecimal totalExpense = BigDecimal.ZERO;
+        for (Account account : sortedAccounts()) {
+            BigDecimal debit = safe(lineRepository.sumDebit(account.getId(), fromDate, toDate));
+            BigDecimal credit = safe(lineRepository.sumCredit(account.getId(), fromDate, toDate));
+            if (account.getAccountType() == AccountType.INCOME) {
+                BigDecimal amount = credit.subtract(debit);
+                income.add(statementLine(account, incomeGroup(account), amount));
+                totalIncome = totalIncome.add(amount);
+            } else if (account.getAccountType() == AccountType.EXPENSE) {
+                BigDecimal amount = debit.subtract(credit);
+                expenses.add(statementLine(account, expenseGroup(account), amount));
+                totalExpense = totalExpense.add(amount);
+            }
+        }
+        BigDecimal netProfitLoss = totalIncome.subtract(totalExpense);
+        return new ProfitLossDTO(income, expenses, totalIncome, totalExpense, netProfitLoss, false, BigDecimal.ZERO);
     }
 
     @Override
@@ -133,29 +189,62 @@ public class AccountingReportServiceImpl implements AccountingReportService {
         BigDecimal totalDebit = BigDecimal.ZERO;
         BigDecimal totalCredit = BigDecimal.ZERO;
         for (Account account : accountRepository.search(null, Status.ACTIVE)) {
-            BigDecimal debit = safe(lineRepository.sumDebit(account.getId(), fromDate, toDate));
-            BigDecimal credit = safe(lineRepository.sumCredit(account.getId(), fromDate, toDate));
-            rows.add(new TrialBalanceRowDTO(account.getAccountCode(), account.getAccountName(), account.getAccountType(), debit, credit, debit.subtract(credit)));
-            totalDebit = totalDebit.add(debit);
-            totalCredit = totalCredit.add(credit);
+            BigDecimal net = safe(lineRepository.sumDebit(account.getId(), fromDate, toDate))
+                    .subtract(safe(lineRepository.sumCredit(account.getId(), fromDate, toDate)));
+            BigDecimal debitBalance = net.signum() > 0 ? net : BigDecimal.ZERO;
+            BigDecimal creditBalance = net.signum() < 0 ? net.abs() : BigDecimal.ZERO;
+            if (debitBalance.signum() != 0 || creditBalance.signum() != 0) {
+                rows.add(new TrialBalanceRowDTO(account.getAccountCode(), account.getAccountName(), account.getAccountType(), debitBalance, creditBalance));
+            }
+            totalDebit = totalDebit.add(debitBalance);
+            totalCredit = totalCredit.add(creditBalance);
         }
         return new TrialBalanceDTO(rows, totalDebit, totalCredit);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public BalanceSheetDTO getBalanceSheet() {
-        BigDecimal cash = debitBalance("Cash");
-        BigDecimal bank = debitBalance("Bank");
-        BigDecimal receivable = debitBalance("Accounts Receivable");
-        BigDecimal inventory = safe(stockRepository.sumInventoryValue());
-        BigDecimal payable = creditBalance("Accounts Payable");
-        BigDecimal ownerEquity = creditBalance("Owner Equity");
-        BigDecimal income = creditBalance("Sales Income");
-        BigDecimal purchaseCost = debitBalance("Purchase Cost");
-        BigDecimal operatingExpense = debitBalance("Operating Expense");
-        BigDecimal retainedEarnings = income.subtract(purchaseCost).subtract(operatingExpense);
-        return new BalanceSheetDTO(cash, bank, receivable, inventory, payable, ownerEquity, retainedEarnings);
+    public BalanceSheetDTO getBalanceSheet(LocalDate asOfDate) {
+        List<FinancialStatementLineDTO> assets = new ArrayList<>();
+        List<FinancialStatementLineDTO> liabilities = new ArrayList<>();
+        List<FinancialStatementLineDTO> equity = new ArrayList<>();
+        BigDecimal totalAssets = BigDecimal.ZERO;
+        BigDecimal totalLiabilities = BigDecimal.ZERO;
+        BigDecimal postedEquity = BigDecimal.ZERO;
+        BigDecimal ownerCapital = BigDecimal.ZERO;
+        BigDecimal retainedEarnings = BigDecimal.ZERO;
+        BigDecimal totalIncome = BigDecimal.ZERO;
+        BigDecimal totalExpense = BigDecimal.ZERO;
+        for (Account account : sortedAccounts()) {
+            BigDecimal debit = safe(lineRepository.sumDebit(account.getId(), null, asOfDate));
+            BigDecimal credit = safe(lineRepository.sumCredit(account.getId(), null, asOfDate));
+            if (account.getAccountType() == AccountType.ASSET) {
+                BigDecimal amount = debit.subtract(credit);
+                assets.add(statementLine(account, assetGroup(account), amount));
+                totalAssets = totalAssets.add(amount);
+            } else if (account.getAccountType() == AccountType.LIABILITY) {
+                BigDecimal amount = credit.subtract(debit);
+                liabilities.add(statementLine(account, liabilityGroup(account), amount));
+                totalLiabilities = totalLiabilities.add(amount);
+            } else if (account.getAccountType() == AccountType.EQUITY) {
+                BigDecimal amount = credit.subtract(debit);
+                equity.add(statementLine(account, equityGroup(account), amount));
+                postedEquity = postedEquity.add(amount);
+                if (contains(account, "retained")) retainedEarnings = retainedEarnings.add(amount);
+                else ownerCapital = ownerCapital.add(amount);
+            } else if (account.getAccountType() == AccountType.INCOME) {
+                totalIncome = totalIncome.add(credit.subtract(debit));
+            } else if (account.getAccountType() == AccountType.EXPENSE) {
+                totalExpense = totalExpense.add(debit.subtract(credit));
+            }
+        }
+        BigDecimal currentProfitLoss = totalIncome.subtract(totalExpense);
+        BigDecimal totalEquity = postedEquity.add(currentProfitLoss);
+        BigDecimal liabilitiesAndEquity = totalLiabilities.add(totalEquity);
+        FinancialValidationDTO validation = validate(totalAssets, liabilitiesAndEquity);
+        return new BalanceSheetDTO(assets, liabilities, equity, totalAssets, totalLiabilities,
+                ownerCapital, retainedEarnings, currentProfitLoss, totalEquity, liabilitiesAndEquity,
+                validation.outOfBalance(), validation.differenceAmount());
     }
 
     private List<RawLedgerEntry> manualAccountRows(String accountName, LocalDate fromDate, LocalDate toDate) {
@@ -167,6 +256,72 @@ public class AccountingReportServiceImpl implements AccountingReportService {
                 .filter(line -> line.getJournalEntry().getSourceType() == null)
                 .map(line -> new RawLedgerEntry(line.getJournalEntry().getJournalDate(), accountName, reference(line), line.getDescription(), safe(line.getDebit()), safe(line.getCredit())))
                 .toList();
+    }
+
+    private List<Account> sortedAccounts() {
+        return accountRepository.findAll().stream()
+                .sorted(Comparator.comparing(Account::getAccountCode))
+                .toList();
+    }
+
+    private BigDecimal openingBalance(Long accountId, LocalDate fromDate) {
+        if (fromDate == null) return BigDecimal.ZERO;
+        return safe(lineRepository.sumDebit(accountId, null, fromDate.minusDays(1)))
+                .subtract(safe(lineRepository.sumCredit(accountId, null, fromDate.minusDays(1))));
+    }
+
+    private FinancialValidationDTO validate(BigDecimal left, BigDecimal right) {
+        return consistencyService.validate(left, right);
+    }
+
+    private void validatePeriod(LocalDate fromDate, LocalDate toDate) {
+        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+            throw new BadRequestException("fromDate cannot be after toDate");
+        }
+    }
+
+    private FinancialStatementLineDTO statementLine(Account account, String group, BigDecimal amount) {
+        return new FinancialStatementLineDTO(account.getId(), account.getAccountCode(), account.getAccountName(), group, amount);
+    }
+
+    private String incomeGroup(Account account) {
+        if (contains(account, "service")) return "Service Income";
+        if (contains(account, "sales")) return "Sales Income";
+        return "Other Income";
+    }
+
+    private String expenseGroup(Account account) {
+        if (contains(account, "tax")) return "Tax Expenses";
+        if (contains(account, "admin")) return "Administrative Expenses";
+        if (contains(account, "purchase", "cost of goods", "cogs")) return "Purchase Expenses";
+        if (contains(account, "operating")) return "Operating Expenses";
+        return "Other Expenses";
+    }
+
+    private String assetGroup(Account account) {
+        if (contains(account, "cash")) return "Cash";
+        if (contains(account, "bank")) return "Bank";
+        if (contains(account, "receivable")) return "Accounts Receivable";
+        if (contains(account, "inventory", "stock")) return "Inventory";
+        if (contains(account, "supplier advance", "advance to supplier")) return "Supplier Advance";
+        return "Other Assets";
+    }
+
+    private String liabilityGroup(Account account) {
+        if (contains(account, "payable") && contains(account, "tax")) return "Taxes Payable";
+        if (contains(account, "accounts payable", "supplier payable")) return "Accounts Payable";
+        return "Other Liabilities";
+    }
+
+    private String equityGroup(Account account) {
+        return contains(account, "retained") ? "Retained Earnings" : "Owner Capital";
+    }
+
+    private boolean contains(Account account, String... tokens) {
+        String parent = account.getParentAccount() == null ? "" : account.getParentAccount().getAccountName();
+        String value = (account.getAccountName() + " " + account.getAccountCode() + " " + parent).toLowerCase();
+        for (String token : tokens) if (value.contains(token)) return true;
+        return false;
     }
 
     private List<LedgerEntryDTO> withBalance(List<RawLedgerEntry> rawRows) {

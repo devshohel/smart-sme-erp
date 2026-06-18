@@ -18,6 +18,11 @@ public class DashboardSummaryDTO {
     private long totalSuppliers;
     private long lowStockItemsCount;
     private BigDecimal thisMonthProfit = BigDecimal.ZERO;
+    private BigDecimal expenseTaxAmount = BigDecimal.ZERO;
+    private long postedExpenses;
+    private long pendingApprovalExpenses;
+    private long reversedExpenses;
+    private List<MonthlyExpenseDTO> monthlyExpenseTrend = new ArrayList<>();
     private List<MonthlySalesPurchaseDTO> monthlySalesPurchase = new ArrayList<>();
     private List<TopSellingProductDTO> topSellingProducts = new ArrayList<>();
     private List<LowStockAlertDTO> lowStockAlerts = new ArrayList<>();
@@ -59,6 +64,16 @@ public class DashboardSummaryDTO {
 
     public BigDecimal getThisMonthProfit() { return thisMonthProfit; }
     public void setThisMonthProfit(BigDecimal thisMonthProfit) { this.thisMonthProfit = thisMonthProfit; }
+    public BigDecimal getExpenseTaxAmount() { return expenseTaxAmount; }
+    public void setExpenseTaxAmount(BigDecimal expenseTaxAmount) { this.expenseTaxAmount = expenseTaxAmount; }
+    public long getPostedExpenses() { return postedExpenses; }
+    public void setPostedExpenses(long postedExpenses) { this.postedExpenses = postedExpenses; }
+    public long getPendingApprovalExpenses() { return pendingApprovalExpenses; }
+    public void setPendingApprovalExpenses(long pendingApprovalExpenses) { this.pendingApprovalExpenses = pendingApprovalExpenses; }
+    public long getReversedExpenses() { return reversedExpenses; }
+    public void setReversedExpenses(long reversedExpenses) { this.reversedExpenses = reversedExpenses; }
+    public List<MonthlyExpenseDTO> getMonthlyExpenseTrend() { return monthlyExpenseTrend; }
+    public void setMonthlyExpenseTrend(List<MonthlyExpenseDTO> monthlyExpenseTrend) { this.monthlyExpenseTrend = monthlyExpenseTrend; }
 
     public List<MonthlySalesPurchaseDTO> getMonthlySalesPurchase() { return monthlySalesPurchase; }
     public void setMonthlySalesPurchase(List<MonthlySalesPurchaseDTO> monthlySalesPurchase) {
@@ -107,6 +122,27 @@ public class DashboardSummaryDTO {
 
         public BigDecimal getProfit() { return profit; }
         public void setProfit(BigDecimal profit) { this.profit = profit; }
+    }
+
+    public static class MonthlyExpenseDTO {
+        private String month;
+        private BigDecimal amount = BigDecimal.ZERO;
+        private BigDecimal taxAmount = BigDecimal.ZERO;
+
+        public MonthlyExpenseDTO() {}
+
+        public MonthlyExpenseDTO(String month, BigDecimal amount, BigDecimal taxAmount) {
+            this.month = month;
+            this.amount = amount;
+            this.taxAmount = taxAmount;
+        }
+
+        public String getMonth() { return month; }
+        public void setMonth(String month) { this.month = month; }
+        public BigDecimal getAmount() { return amount; }
+        public void setAmount(BigDecimal amount) { this.amount = amount; }
+        public BigDecimal getTaxAmount() { return taxAmount; }
+        public void setTaxAmount(BigDecimal taxAmount) { this.taxAmount = taxAmount; }
     }
 
     public static class TopSellingProductDTO {

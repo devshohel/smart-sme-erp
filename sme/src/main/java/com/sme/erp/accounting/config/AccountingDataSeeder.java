@@ -31,6 +31,7 @@ public class AccountingDataSeeder implements CommandLineRunner {
                 new SeedAccount("4000", "Sales Income", AccountType.INCOME),
                 new SeedAccount("5000", "Purchase Cost", AccountType.EXPENSE),
                 new SeedAccount("5100", "Operating Expense", AccountType.EXPENSE),
+                new SeedAccount("1300", "Tax Receivable", AccountType.ASSET),
                 new SeedAccount("2100", "Expense Clearing", AccountType.LIABILITY));
         accounts.forEach(this::seed);
     }

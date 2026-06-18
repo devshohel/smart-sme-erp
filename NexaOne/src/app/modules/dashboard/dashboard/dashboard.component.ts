@@ -65,6 +65,10 @@ export class DashboardComponent implements OnInit {
     return (this.summary?.monthlySalesPurchase || []).slice(-4);
   }
 
+  latestExpenseRows() {
+    return (this.summary?.monthlyExpenseTrend || []).slice(-4);
+  }
+
   monthLabel(value: string): string {
     if (!value) {
       return '';

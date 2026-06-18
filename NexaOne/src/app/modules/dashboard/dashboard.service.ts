@@ -61,6 +61,15 @@ export class DashboardService {
       totalSuppliers: this.toNumber(summary.totalSuppliers),
       lowStockItemsCount: this.toNumber(summary.lowStockItemsCount),
       thisMonthProfit: this.toNumber(summary.thisMonthProfit),
+      expenseTaxAmount: this.toNumber(summary.expenseTaxAmount),
+      postedExpenses: this.toNumber(summary.postedExpenses),
+      pendingApprovalExpenses: this.toNumber(summary.pendingApprovalExpenses),
+      reversedExpenses: this.toNumber(summary.reversedExpenses),
+      monthlyExpenseTrend: this.toArray<any>(summary.monthlyExpenseTrend).map(item => ({
+        month: String(item?.month || ''),
+        amount: this.toNumber(item?.amount),
+        taxAmount: this.toNumber(item?.taxAmount)
+      })),
       monthlySalesPurchase: this.toArray<MonthlySalesPurchase>(summary.monthlySalesPurchase).map(item => ({
         ...item,
         month: item.month || '',

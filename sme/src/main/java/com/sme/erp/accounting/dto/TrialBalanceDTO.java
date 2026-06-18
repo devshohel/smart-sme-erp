@@ -17,4 +17,8 @@ public class TrialBalanceDTO {
     public List<TrialBalanceRowDTO> getRows() { return rows; }
     public BigDecimal getTotalDebit() { return totalDebit; }
     public BigDecimal getTotalCredit() { return totalCredit; }
+    public BigDecimal getDifference() { return totalDebit.subtract(totalCredit); }
+    public boolean isBalanced() { return getDifference().compareTo(BigDecimal.ZERO) == 0; }
+    public boolean isOutOfBalance() { return !isBalanced(); }
+    public BigDecimal getDifferenceAmount() { return getDifference(); }
 }

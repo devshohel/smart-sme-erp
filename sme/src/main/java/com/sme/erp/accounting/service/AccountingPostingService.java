@@ -8,6 +8,7 @@ import com.sme.erp.sales.entity.SalesReturn;
 
 public interface AccountingPostingService {
     void postExpense(Expense expense);
+    void reverseExpense(Expense expense, String reversalReason);
     void postSalesInvoice(SalesInvoice invoice);
     void postPurchase(PurchaseOrder purchaseOrder);
     void postSalesReturn(SalesReturn salesReturn);

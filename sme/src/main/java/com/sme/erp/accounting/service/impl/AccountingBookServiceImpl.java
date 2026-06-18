@@ -1,6 +1,7 @@
 package com.sme.erp.accounting.service.impl;
 
 import com.sme.erp.accounting.dto.BookEntryDTO;
+import com.sme.erp.accounting.dto.AccountingBookDTO;
 import com.sme.erp.accounting.entity.Account;
 import com.sme.erp.accounting.entity.JournalEntryLine;
 import com.sme.erp.accounting.enums.AccountingPaymentMethod;
@@ -30,35 +31,38 @@ public class AccountingBookServiceImpl implements AccountingBookService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<BookEntryDTO> getCashBook() {
-        return buildBook("Cash", AccountingPaymentMethod.CASH, "Cash");
+    public AccountingBookDTO getCashBook(LocalDate fromDate, LocalDate toDate) {
+        return buildBook("Cash", fromDate, toDate);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<BookEntryDTO> getBankBook() {
-        return buildBook("Bank", AccountingPaymentMethod.BANK, "Bank");
+    public AccountingBookDTO getBankBook(LocalDate fromDate, LocalDate toDate) {
+        return buildBook("Bank", fromDate, toDate);
     }
 
-    private List<BookEntryDTO> buildBook(String accountName, AccountingPaymentMethod method, String label) {
+    private AccountingBookDTO buildBook(String accountName, LocalDate fromDate, LocalDate toDate) {
+        if (fromDate != null && toDate != null && fromDate.isAfter(toDate)) {
+            throw new com.sme.erp.common.exception.BadRequestException("fromDate cannot be after toDate");
+        }
         Account account = accountRepository.findByAccountNameIgnoreCase(accountName)
                 .orElseThrow(() -> new ResourceNotFoundException(accountName + " account not found"));
-        List<BookSource> sources = new ArrayList<>();
-
-        for (JournalEntryLine line : lineRepository.findBookLines(account.getId(), JournalStatus.POSTED)) {
-            sources.add(new BookSource(line.getJournalEntry().getJournalDate(), line.getJournalEntry().getJournalNo(),
-                    label + " journal: " + nullToEmpty(line.getDescription()),
-                    safe(line.getDebit()), safe(line.getCredit())));
-        }
-
-        sources.sort(Comparator.comparing(BookSource::date).thenComparing(BookSource::reference));
+        BigDecimal openingBalance = fromDate == null ? BigDecimal.ZERO : safe(lineRepository.openingBalance(account.getId(), fromDate));
         List<BookEntryDTO> rows = new ArrayList<>();
-        BigDecimal balance = BigDecimal.ZERO;
-        for (BookSource source : sources) {
-            balance = balance.add(source.moneyIn()).subtract(source.moneyOut());
-            rows.add(new BookEntryDTO(source.date(), source.reference(), source.description(), source.moneyIn(), source.moneyOut(), balance));
+        BigDecimal balance = openingBalance;
+        for (JournalEntryLine line : lineRepository.findBookLines(account.getId(), fromDate, toDate)) {
+            BigDecimal debit = safe(line.getDebit());
+            BigDecimal credit = safe(line.getCredit());
+            balance = balance.add(debit).subtract(credit);
+            String referenceType = line.getJournalEntry().getReferenceType() != null
+                    ? line.getJournalEntry().getReferenceType() : line.getJournalEntry().getSourceType();
+            String referenceNo = line.getJournalEntry().getReferenceNo() != null
+                    ? line.getJournalEntry().getReferenceNo() : line.getJournalEntry().getSourceNo();
+            rows.add(new BookEntryDTO(line.getJournalEntry().getJournalDate(), line.getJournalEntry().getJournalNo(),
+                    referenceType, referenceNo, line.getDescription() != null ? line.getDescription() : line.getJournalEntry().getDescription(),
+                    debit, credit, balance));
         }
-        return rows;
+        return new AccountingBookDTO(openingBalance, balance, rows);
     }
 
     private BigDecimal safe(BigDecimal value) {
@@ -69,5 +73,4 @@ public class AccountingBookServiceImpl implements AccountingBookService {
         return value == null ? "" : value;
     }
 
-    private record BookSource(LocalDate date, String reference, String description, BigDecimal moneyIn, BigDecimal moneyOut) {}
 }

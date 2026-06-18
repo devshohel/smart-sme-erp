@@ -1,6 +1,6 @@
 <div class="container-fluid p-4 accounting-page">
   <app-page-header
-    [title]="section === 'cash-book' ? 'Cash Book' : section === 'bank-book' ? 'Bank Book' : section === 'categories' ? 'Expense Categories' : section === 'accounts' ? 'Chart of Accounts' : section === 'journals' ? 'Journal Entries' : section === 'customer-ledger' ? 'Customer Ledger' : section === 'supplier-ledger' ? 'Supplier Ledger' : section === 'general-ledger' ? 'General Ledger' : section === 'trial-balance' ? 'Trial Balance' : section === 'balance-sheet' ? 'Balance Sheet' : 'Expenses'"
+    [title]="section === 'cash-book' ? 'Cash Book' : section === 'bank-book' ? 'Bank Book' : section === 'categories' ? 'Expense Categories' : section === 'accounts' ? 'Chart of Accounts' : section === 'journals' ? 'Journal Entries' : section === 'customer-ledger' ? 'Customer Ledger' : section === 'supplier-ledger' ? 'Supplier Ledger' : section === 'general-ledger' ? 'General Ledger' : section === 'account-ledger' ? 'Account Ledger' : section === 'profit-loss' ? 'Profit & Loss' : section === 'trial-balance' ? 'Trial Balance' : section === 'balance-sheet' ? 'Balance Sheet' : 'Expenses'"
     subtitle="Manual accounting foundation and expense tracking.">
   </app-page-header>
 
@@ -138,61 +138,81 @@
   </ng-container>
 
   <ng-container *ngIf="section === 'journals'">
-    <app-card title="Journal Header Information">
+    <app-card *ngIf="journalMode !== 'list'" [title]="journalMode === 'details' ? 'Journal Details' : 'Journal Header Information'">
       <form (ngSubmit)="saveJournal()" class="row g-3">
-        <div class="col-md-3"><label class="form-label">Date</label><input type="date" class="form-control" [(ngModel)]="journalForm.journalDate" name="journalDate" required></div>
-        <div class="col-md-3"><label class="form-label">Reference</label><input class="form-control" [(ngModel)]="journalForm.referenceNo" name="journalReference"></div>
-        <div class="col-md-6"><label class="form-label">Description</label><input class="form-control" [(ngModel)]="journalForm.description" name="journalDescription"></div>
+        <div class="col-md-3"><label class="form-label">Date</label><input type="date" class="form-control" [(ngModel)]="journalForm.journalDate" name="journalDate" required [disabled]="journalMode === 'details'"></div>
+        <div class="col-md-3"><label class="form-label">Reference Type</label><input class="form-control" [(ngModel)]="journalForm.referenceType" name="journalReferenceType" [disabled]="journalMode === 'details'"></div>
+        <div class="col-md-3"><label class="form-label">Reference No</label><input class="form-control" [(ngModel)]="journalForm.referenceNo" name="journalReference" [disabled]="journalMode === 'details'"></div>
+        <div class="col-md-3"><label class="form-label">Status</label><input class="form-control" [value]="journalForm.status || 'DRAFT'" disabled></div>
+        <div class="col-12"><label class="form-label">Description / Narration</label><input class="form-control" [(ngModel)]="journalForm.description" name="journalDescription" [disabled]="journalMode === 'details'"></div>
         <div class="col-12"><div class="section-title">Lines / Details</div></div>
         <div class="col-12 table-responsive">
           <table class="table align-middle">
             <thead class="table-light"><tr><th>Account</th><th>Description</th><th class="text-end">Debit</th><th class="text-end">Credit</th><th></th></tr></thead>
             <tbody><tr *ngFor="let line of journalForm.lines; let i = index">
-              <td><select class="form-select" [(ngModel)]="line.accountId" [name]="'lineAccount' + i" required><option [ngValue]="null">Select account</option><option *ngFor="let account of accounts" [ngValue]="account.id">{{ account.accountCode }} - {{ account.accountName }}</option></select></td>
-              <td><input class="form-control" [(ngModel)]="line.description" [name]="'lineDescription' + i"></td>
-              <td><input type="number" min="0" step="0.01" class="form-control text-end" [(ngModel)]="line.debit" [name]="'lineDebit' + i"></td>
-              <td><input type="number" min="0" step="0.01" class="form-control text-end" [(ngModel)]="line.credit" [name]="'lineCredit' + i"></td>
-              <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" (click)="removeJournalLine(i)" [disabled]="journalForm.lines.length <= 2"><i class="bi bi-trash"></i></button></td>
+              <td><select class="form-select" [(ngModel)]="line.accountId" [name]="'lineAccount' + i" required [disabled]="journalMode === 'details'"><option [ngValue]="null">Select account</option><option *ngFor="let account of accounts" [ngValue]="account.id">{{ account.accountCode }} - {{ account.accountName }}</option></select></td>
+              <td><input class="form-control" [(ngModel)]="line.description" [name]="'lineDescription' + i" [disabled]="journalMode === 'details'"></td>
+              <td><input type="number" min="0" step="0.01" class="form-control text-end" [(ngModel)]="line.debit" [name]="'lineDebit' + i" [disabled]="journalMode === 'details'"></td>
+              <td><input type="number" min="0" step="0.01" class="form-control text-end" [(ngModel)]="line.credit" [name]="'lineCredit' + i" [disabled]="journalMode === 'details'"></td>
+              <td class="text-center"><button *ngIf="journalMode !== 'details'" type="button" class="btn btn-sm btn-outline-danger" (click)="removeJournalLine(i)" [disabled]="journalForm.lines.length <= 2"><i class="bi bi-trash"></i></button></td>
             </tr></tbody>
           </table>
         </div>
-        <div class="col-md-4"><button type="button" class="btn btn-outline-secondary" (click)="addJournalLine()"><i class="bi bi-plus-circle me-1"></i>Add Line</button></div>
+        <div class="col-md-4"><button *ngIf="journalMode !== 'details'" type="button" class="btn btn-outline-secondary" (click)="addJournalLine()"><i class="bi bi-plus-circle me-1"></i>Add Line</button></div>
         <div class="col-md-6 ms-auto"><div class="journal-summary"><span>Total Debit: {{ totalDebit() | number:'1.2-2' }}</span><span>Total Credit: {{ totalCredit() | number:'1.2-2' }}</span></div></div>
-        <div class="col-12 text-end"><button *ngIf="hasPermission('ACCOUNTING_CREATE')" class="btn btn-success" type="submit" [disabled]="saving"><i class="bi bi-save me-1"></i>Save Draft</button></div>
+        <div class="col-12 text-end">
+          <button type="button" class="btn btn-outline-secondary me-2" routerLink="/accounting/journals">Back</button>
+          <button *ngIf="journalMode === 'details' && hasPermission('JOURNAL_PRINT')" type="button" class="btn btn-outline-dark" (click)="print()"><i class="bi bi-printer me-1"></i>Print</button>
+          <button *ngIf="journalMode !== 'details'" class="btn btn-outline-success me-2" type="submit" [disabled]="saving"><i class="bi bi-save me-1"></i>Save Draft</button>
+          <button *ngIf="journalMode !== 'details' && (hasPermission('JOURNAL_POST') || hasPermission('ACCOUNTING_POST'))" type="button" class="btn btn-success" [disabled]="saving || !journalBalanced()" (click)="saveAndPostJournal()">Save &amp; Post</button>
+        </div>
       </form>
+      <div *ngIf="journalMode === 'details'" class="small text-muted mt-3">Created: {{ journalForm.createdAt || 'N/A' }} by {{ journalForm.createdBy || 'N/A' }} · Posted: {{ journalForm.postedAt || 'N/A' }} by {{ journalForm.postedBy || 'N/A' }} · Cancelled: {{ journalForm.cancelledAt || 'N/A' }} by {{ journalForm.cancelledBy || 'N/A' }}</div>
     </app-card>
 
-    <app-card title="Journal Entry List">
+    <app-card *ngIf="journalMode === 'list'" title="Journal Entry List">
+      <div class="row g-2 mb-3 no-print">
+        <div class="col-md-4"><input class="form-control" [(ngModel)]="journalSearch" (ngModelChange)="journalPage = 1" placeholder="Search journal, reference, description"></div>
+        <div class="col-md-2"><select class="form-select" [(ngModel)]="journalStatusFilter" (change)="loadCurrentSection()"><option value="">All statuses</option><option *ngFor="let status of journalStatuses" [value]="status">{{ status }}</option></select></div>
+        <div class="col-md-2"><input type="date" class="form-control" [(ngModel)]="journalFromDate"></div>
+        <div class="col-md-2"><input type="date" class="form-control" [(ngModel)]="journalToDate"></div>
+        <div class="col-md-2 text-end"><a *ngIf="hasPermission('ACCOUNTING_CREATE')" routerLink="/accounting/journals/create" class="btn btn-success">New Journal</a></div>
+      </div>
       <div class="table-responsive"><table class="table table-hover align-middle mb-0">
         <thead class="table-light"><tr><th>No</th><th>Date</th><th>Reference</th><th>Description</th><th>Status</th><th class="text-center">Actions</th></tr></thead>
         <tbody>
-          <tr *ngFor="let journal of journals"><td class="fw-semibold">{{ journal.journalNo }}</td><td>{{ journal.journalDate }}</td><td>{{ journal.referenceNo || 'N/A' }}</td><td>{{ journal.description || 'N/A' }}</td><td><span class="badge px-3 py-2" [ngClass]="badgeClass(journal.status)">{{ journal.status }}</span></td><td class="text-center"><button *ngIf="(hasPermission('JOURNAL_POST') || hasPermission('ACCOUNTING_POST')) && journal.status === 'DRAFT'" class="btn btn-sm btn-outline-success me-1" (click)="postJournal(journal)"><i class="bi bi-check2-circle"></i></button><button *ngIf="(hasPermission('JOURNAL_CANCEL') || hasPermission('ACCOUNTING_DELETE')) && journal.status !== 'CANCELLED'" class="btn btn-sm btn-outline-danger" (click)="cancelJournal(journal)"><i class="bi bi-x-circle"></i></button></td></tr>
+          <tr *ngFor="let journal of pagedJournals()"><td class="fw-semibold">{{ journal.journalNo }}</td><td>{{ journal.journalDate }}</td><td>{{ journal.referenceNo || 'N/A' }}</td><td>{{ journal.description || 'N/A' }}</td><td><span class="badge px-3 py-2" [ngClass]="badgeClass(journal.status)">{{ journal.status }}</span></td><td class="text-center"><a class="btn btn-sm btn-outline-secondary me-1" [routerLink]="['/accounting/journals/details', journal.id]"><i class="bi bi-eye"></i></a><a *ngIf="hasPermission('ACCOUNTING_EDIT') && journal.status === 'DRAFT' && !journal.sourceType" class="btn btn-sm btn-outline-primary me-1" [routerLink]="['/accounting/journals/edit', journal.id]"><i class="bi bi-pencil"></i></a><button *ngIf="(hasPermission('JOURNAL_POST') || hasPermission('ACCOUNTING_POST')) && journal.status === 'DRAFT'" class="btn btn-sm btn-outline-success me-1" (click)="postJournal(journal)"><i class="bi bi-check2-circle"></i></button><button *ngIf="hasPermission('JOURNAL_CANCEL') && journal.status === 'DRAFT'" class="btn btn-sm btn-outline-danger" (click)="cancelJournal(journal)"><i class="bi bi-x-circle"></i></button></td></tr>
           <tr *ngIf="!loading && journals.length === 0"><td colspan="6" class="text-center text-muted py-5">No journal entries found.</td></tr>
           <tr *ngIf="loading"><td colspan="6" class="text-center text-muted py-5">Loading...</td></tr>
         </tbody>
       </table></div>
+      <div class="d-flex justify-content-end align-items-center gap-2 mt-3 no-print"><button class="btn btn-sm btn-outline-secondary" [disabled]="journalPage <= 1" (click)="journalPage = journalPage - 1">Previous</button><span>Page {{ journalPage }} of {{ journalPageCount() }}</span><button class="btn btn-sm btn-outline-secondary" [disabled]="journalPage >= journalPageCount()" (click)="journalPage = journalPage + 1">Next</button></div>
     </app-card>
   </ng-container>
 
   <ng-container *ngIf="section === 'cash-book' || section === 'bank-book'">
+    <app-card title="Book Filters">
+      <form (ngSubmit)="loadCurrentSection()" class="row g-3 no-print"><div class="col-md-4"><label class="form-label">From</label><input type="date" class="form-control" [(ngModel)]="bookFilters.fromDate" name="bookFromDate"></div><div class="col-md-4"><label class="form-label">To</label><input type="date" class="form-control" [(ngModel)]="bookFilters.toDate" name="bookToDate"></div><div class="col-md-4 d-flex align-items-end gap-2"><button class="btn btn-success" type="submit">Apply</button><button class="btn btn-outline-secondary" type="button" (click)="exportCurrentReport()">CSV</button><button class="btn btn-outline-dark" type="button" (click)="print()">Print</button></div></form>
+    </app-card>
     <div class="row g-3 mb-3">
-      <div class="col-md-4"><div class="summary-card"><span>{{ section === 'cash-book' ? 'Cash In' : 'Bank In' }}</span><strong>{{ bookInTotal() | number:'1.2-2' }}</strong></div></div>
-      <div class="col-md-4"><div class="summary-card"><span>{{ section === 'cash-book' ? 'Cash Out' : 'Bank Out' }}</span><strong>{{ bookOutTotal() | number:'1.2-2' }}</strong></div></div>
-      <div class="col-md-4"><div class="summary-card"><span>Balance</span><strong>{{ finalBalance() | number:'1.2-2' }}</strong></div></div>
+      <div class="col-md-3"><div class="summary-card"><span>Opening Balance</span><strong>{{ openingBalance | number:'1.2-2' }}</strong></div></div>
+      <div class="col-md-3"><div class="summary-card"><span>Total Debit</span><strong>{{ bookInTotal() | number:'1.2-2' }}</strong></div></div>
+      <div class="col-md-3"><div class="summary-card"><span>Total Credit</span><strong>{{ bookOutTotal() | number:'1.2-2' }}</strong></div></div>
+      <div class="col-md-3"><div class="summary-card"><span>Closing Balance</span><strong>{{ finalBalance() | number:'1.2-2' }}</strong></div></div>
     </div>
     <app-card [title]="section === 'cash-book' ? 'Cash Book' : 'Bank Book'">
       <div class="table-responsive"><table class="table table-hover align-middle mb-0">
-        <thead class="table-light"><tr><th>Date</th><th>Reference</th><th>Description</th><th class="text-end">{{ section === 'cash-book' ? 'Cash In' : 'Bank In' }}</th><th class="text-end">{{ section === 'cash-book' ? 'Cash Out' : 'Bank Out' }}</th><th class="text-end">Balance</th></tr></thead>
+        <thead class="table-light"><tr><th>Date</th><th>Journal No</th><th>Reference Type</th><th>Reference No</th><th>Description</th><th class="text-end">Debit</th><th class="text-end">Credit</th><th class="text-end">Running Balance</th></tr></thead>
         <tbody>
-          <tr *ngFor="let row of bookEntries"><td>{{ row.date }}</td><td class="fw-semibold">{{ row.reference }}</td><td>{{ row.description }}</td><td class="text-end">{{ row.moneyIn | number:'1.2-2' }}</td><td class="text-end">{{ row.moneyOut | number:'1.2-2' }}</td><td class="text-end fw-semibold">{{ row.balance | number:'1.2-2' }}</td></tr>
-          <tr *ngIf="!loading && bookEntries.length === 0"><td colspan="6" class="text-center text-muted py-5">No book entries found.</td></tr>
-          <tr *ngIf="loading"><td colspan="6" class="text-center text-muted py-5">Loading...</td></tr>
+          <tr *ngFor="let row of bookEntries"><td>{{ row.date }}</td><td class="fw-semibold">{{ row.journalNo }}</td><td>{{ row.referenceType || 'N/A' }}</td><td>{{ row.referenceNo || 'N/A' }}</td><td>{{ row.description }}</td><td class="text-end">{{ row.debit | number:'1.2-2' }}</td><td class="text-end">{{ row.credit | number:'1.2-2' }}</td><td class="text-end fw-semibold">{{ row.runningBalance | number:'1.2-2' }}</td></tr>
+          <tr *ngIf="!loading && bookEntries.length === 0"><td colspan="8" class="text-center text-muted py-5">No book entries found.</td></tr>
+          <tr *ngIf="loading"><td colspan="8" class="text-center text-muted py-5">Loading...</td></tr>
         </tbody>
       </table></div>
     </app-card>
   </ng-container>
 
-  <ng-container *ngIf="section === 'customer-ledger' || section === 'supplier-ledger' || section === 'general-ledger'">
+  <ng-container *ngIf="section === 'customer-ledger' || section === 'supplier-ledger'">
     <div class="row g-3 mb-3">
       <div class="col-md-4"><div class="summary-card"><span>Total Debit</span><strong>{{ ledgerDebitTotal() | number:'1.2-2' }}</strong></div></div>
       <div class="col-md-4"><div class="summary-card"><span>Total Credit</span><strong>{{ ledgerCreditTotal() | number:'1.2-2' }}</strong></div></div>
@@ -209,20 +229,13 @@
           <label class="form-label">Supplier ID</label>
           <input type="number" class="form-control" [(ngModel)]="ledgerFilters.supplierId" name="supplierId" placeholder="All suppliers">
         </div>
-        <div class="col-md-3" *ngIf="section === 'general-ledger'">
-          <label class="form-label">Account</label>
-          <select class="form-select" [(ngModel)]="ledgerFilters.accountId" name="ledgerAccountId">
-            <option value="">All accounts</option>
-            <option *ngFor="let account of accounts" [ngValue]="account.id">{{ account.accountCode }} - {{ account.accountName }}</option>
-          </select>
-        </div>
         <div class="col-md-3"><label class="form-label">From</label><input type="date" class="form-control" [(ngModel)]="ledgerFilters.fromDate" name="ledgerFromDate"></div>
         <div class="col-md-3"><label class="form-label">To</label><input type="date" class="form-control" [(ngModel)]="ledgerFilters.toDate" name="ledgerToDate"></div>
         <div class="col-md-2 d-flex align-items-end"><button class="btn btn-outline-success w-100" type="submit"><i class="bi bi-search me-1"></i>Search</button></div>
       </form>
     </app-card>
 
-    <app-card [title]="section === 'customer-ledger' ? 'Customer Ledger' : section === 'supplier-ledger' ? 'Supplier Ledger' : 'General Ledger'">
+    <app-card [title]="section === 'customer-ledger' ? 'Customer Ledger' : 'Supplier Ledger'">
       <div class="table-responsive"><table class="table table-hover align-middle mb-0">
         <thead class="table-light"><tr><th>Date</th><th>Account</th><th>Reference</th><th>Description</th><th class="text-end">Debit</th><th class="text-end">Credit</th><th class="text-end">Balance</th></tr></thead>
         <tbody>
@@ -234,42 +247,68 @@
     </app-card>
   </ng-container>
 
+  <ng-container *ngIf="section === 'general-ledger'">
+    <app-card title="General Ledger Filters"><form (ngSubmit)="loadCurrentSection()" class="row g-3 no-print"><div class="col-md-4"><label class="form-label">From</label><input type="date" class="form-control" [(ngModel)]="financialFilters.fromDate" name="glFrom"></div><div class="col-md-4"><label class="form-label">To</label><input type="date" class="form-control" [(ngModel)]="financialFilters.toDate" name="glTo"></div><div class="col-md-4 d-flex align-items-end gap-2"><button class="btn btn-success" type="submit">Apply</button><button *ngIf="hasPermission('REPORT_EXPORT')" class="btn btn-outline-secondary" type="button" (click)="exportCurrentReport()">CSV</button><button *ngIf="hasPermission('REPORT_EXPORT')" class="btn btn-outline-secondary" type="button" (click)="exportExcel()">Excel</button><button *ngIf="hasPermission('JOURNAL_PRINT')" class="btn btn-outline-dark" type="button" (click)="print()">Print</button></div></form></app-card>
+    <div class="row g-3 mb-3" *ngIf="generalLedger"><div class="col-md-4"><div class="summary-card"><span>Total Debit</span><strong>{{ generalLedger.totalDebit | number:'1.2-2' }}</strong></div></div><div class="col-md-4"><div class="summary-card"><span>Total Credit</span><strong>{{ generalLedger.totalCredit | number:'1.2-2' }}</strong></div></div><div class="col-md-4"><div class="summary-card"><span>Difference</span><strong>{{ generalLedger.differenceAmount | number:'1.2-2' }}</strong></div></div></div>
+    <div *ngIf="generalLedger?.outOfBalance" class="alert alert-warning">General Ledger period activity is out of balance by {{ generalLedger?.differenceAmount | number:'1.2-2' }}.</div>
+    <app-card *ngFor="let type of accountTypes" [title]="type + ' Accounts'">
+      <button type="button" class="btn btn-sm btn-outline-secondary mb-3 no-print" (click)="toggleAccountType(type)">{{ expandedAccountTypes[type] ? 'Collapse' : 'Expand' }}</button>
+      <div *ngIf="expandedAccountTypes[type]" class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>Code</th><th>Account</th><th class="text-end">Opening</th><th class="text-end">Debit</th><th class="text-end">Credit</th><th class="text-end">Closing</th><th class="no-print"></th></tr></thead><tbody><tr *ngFor="let row of generalLedgerByType(type)"><td class="fw-semibold">{{ row.accountCode }}</td><td>{{ row.accountName }}</td><td class="text-end">{{ row.openingBalance | number:'1.2-2' }}</td><td class="text-end">{{ row.totalDebit | number:'1.2-2' }}</td><td class="text-end">{{ row.totalCredit | number:'1.2-2' }}</td><td class="text-end fw-semibold">{{ row.closingBalance | number:'1.2-2' }}</td><td class="no-print"><a [routerLink]="['/accounting/account-ledger', row.accountId]" class="btn btn-sm btn-outline-primary">Ledger</a></td></tr></tbody></table></div>
+    </app-card>
+  </ng-container>
+
+  <ng-container *ngIf="section === 'account-ledger'">
+    <app-card title="Account Ledger Filters"><form (ngSubmit)="loadCurrentSection()" class="row g-3 no-print"><div class="col-md-4"><label class="form-label">From</label><input type="date" class="form-control" [(ngModel)]="financialFilters.fromDate" name="alFrom"></div><div class="col-md-4"><label class="form-label">To</label><input type="date" class="form-control" [(ngModel)]="financialFilters.toDate" name="alTo"></div><div class="col-md-4 d-flex align-items-end gap-2"><button class="btn btn-success" type="submit">Apply</button><button *ngIf="hasPermission('REPORT_EXPORT')" class="btn btn-outline-secondary" type="button" (click)="exportCurrentReport()">CSV</button><button *ngIf="hasPermission('REPORT_EXPORT')" class="btn btn-outline-secondary" type="button" (click)="exportExcel()">Excel</button><button *ngIf="hasPermission('JOURNAL_PRINT')" class="btn btn-outline-dark" type="button" (click)="print()">Print</button></div></form></app-card>
+    <div class="row g-3 mb-3" *ngIf="accountLedger"><div class="col-md-6"><div class="summary-card"><span>{{ accountLedger.accountCode }} — {{ accountLedger.accountName }} ({{ accountLedger.accountType }})</span><strong>Opening: {{ accountLedger.openingBalance | number:'1.2-2' }}</strong></div></div><div class="col-md-6"><div class="summary-card"><span>Closing Balance</span><strong>{{ accountLedger.closingBalance | number:'1.2-2' }}</strong></div></div></div>
+    <app-card title="Transactions"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead class="table-light"><tr><th>Date</th><th>Journal No</th><th>Reference Type</th><th>Reference No</th><th>Description</th><th class="text-end">Debit</th><th class="text-end">Credit</th><th class="text-end">Running Balance</th></tr></thead><tbody><tr *ngFor="let row of accountLedger?.transactions"><td>{{ row.date }}</td><td class="fw-semibold">{{ row.journalNo }}</td><td>{{ row.referenceType || 'N/A' }}</td><td>{{ row.referenceNo || 'N/A' }}</td><td>{{ row.description || 'N/A' }}</td><td class="text-end">{{ row.debit | number:'1.2-2' }}</td><td class="text-end">{{ row.credit | number:'1.2-2' }}</td><td class="text-end fw-semibold">{{ row.runningBalance | number:'1.2-2' }}</td></tr><tr *ngIf="!loading && !accountLedger?.transactions?.length"><td colspan="8" class="text-center text-muted py-5">No posted transactions found.</td></tr></tbody></table></div></app-card>
+  </ng-container>
+
+  <ng-container *ngIf="section === 'profit-loss'">
+    <app-card title="Profit & Loss Filters"><form (ngSubmit)="loadCurrentSection()" class="row g-3 no-print"><div class="col-md-4"><label class="form-label">From</label><input type="date" class="form-control" [(ngModel)]="financialFilters.fromDate" name="plFrom"></div><div class="col-md-4"><label class="form-label">To</label><input type="date" class="form-control" [(ngModel)]="financialFilters.toDate" name="plTo"></div><div class="col-md-4 d-flex align-items-end gap-2"><button class="btn btn-success" type="submit">Apply</button><button *ngIf="hasPermission('REPORT_EXPORT')" class="btn btn-outline-secondary" type="button" (click)="exportCurrentReport()">CSV</button><button *ngIf="hasPermission('REPORT_EXPORT')" class="btn btn-outline-secondary" type="button" (click)="exportExcel()">Excel</button><button *ngIf="hasPermission('JOURNAL_PRINT')" class="btn btn-outline-dark" type="button" (click)="print()">Print</button></div></form></app-card>
+    <div class="row g-3 mb-3" *ngIf="profitLoss"><div class="col-md-4"><div class="summary-card"><span>Total Income</span><strong>{{ profitLoss.totalIncome | number:'1.2-2' }}</strong></div></div><div class="col-md-4"><div class="summary-card"><span>Total Expense</span><strong>{{ profitLoss.totalExpense | number:'1.2-2' }}</strong></div></div><div class="col-md-4"><div class="summary-card" [class.profit-positive]="profitLoss.netProfitLoss >= 0" [class.profit-negative]="profitLoss.netProfitLoss < 0"><span>Net Profit / Loss</span><strong>{{ profitLoss.netProfitLoss | number:'1.2-2' }}</strong></div></div></div>
+    <app-card title="Income"><button type="button" class="btn btn-sm btn-outline-secondary mb-2 no-print" (click)="expandedStatements.income = !expandedStatements.income">{{ expandedStatements.income ? 'Collapse' : 'Expand' }}</button><div *ngIf="expandedStatements.income"><div class="statement-row" *ngFor="let row of profitLoss?.income"><span>{{ row.groupName }} · {{ row.accountCode }} — {{ row.accountName }}</span><strong>{{ row.amount | number:'1.2-2' }}</strong></div><div class="statement-row total"><span>Total Income</span><strong>{{ profitLoss?.totalIncome | number:'1.2-2' }}</strong></div></div></app-card>
+    <app-card title="Expenses"><button type="button" class="btn btn-sm btn-outline-secondary mb-2 no-print" (click)="expandedStatements.expenses = !expandedStatements.expenses">{{ expandedStatements.expenses ? 'Collapse' : 'Expand' }}</button><div *ngIf="expandedStatements.expenses"><div class="statement-row" *ngFor="let row of profitLoss?.expenses"><span>{{ row.groupName }} · {{ row.accountCode }} — {{ row.accountName }}</span><strong>{{ row.amount | number:'1.2-2' }}</strong></div><div class="statement-row total"><span>Total Expense</span><strong>{{ profitLoss?.totalExpense | number:'1.2-2' }}</strong></div></div></app-card>
+  </ng-container>
+
   <ng-container *ngIf="section === 'trial-balance'">
     <app-card title="Trial Balance Filters">
       <form (ngSubmit)="loadCurrentSection()" class="row g-3">
-        <div class="col-md-4"><label class="form-label">From</label><input type="date" class="form-control" [(ngModel)]="ledgerFilters.fromDate" name="tbFromDate"></div>
-        <div class="col-md-4"><label class="form-label">To</label><input type="date" class="form-control" [(ngModel)]="ledgerFilters.toDate" name="tbToDate"></div>
-        <div class="col-md-2 d-flex align-items-end"><button class="btn btn-outline-success w-100" type="submit"><i class="bi bi-search me-1"></i>Search</button></div>
+        <div class="col-md-4"><label class="form-label">As of Date</label><input type="date" class="form-control" [(ngModel)]="trialBalanceAsOfDate" name="tbAsOfDate"></div>
+        <div class="col-md-6 d-flex align-items-end gap-2 no-print"><button class="btn btn-outline-success" type="submit"><i class="bi bi-search me-1"></i>Apply</button><button class="btn btn-outline-secondary" type="button" (click)="exportCurrentReport()">CSV</button><button class="btn btn-outline-dark" type="button" (click)="print()">Print</button></div>
       </form>
     </app-card>
     <div class="row g-3 mb-3" *ngIf="trialBalance">
-      <div class="col-md-6"><div class="summary-card"><span>Total Debit</span><strong>{{ trialBalance.totalDebit | number:'1.2-2' }}</strong></div></div>
-      <div class="col-md-6"><div class="summary-card"><span>Total Credit</span><strong>{{ trialBalance.totalCredit | number:'1.2-2' }}</strong></div></div>
+      <div class="col-md-4"><div class="summary-card"><span>Total Debit</span><strong>{{ trialBalance.totalDebit | number:'1.2-2' }}</strong></div></div>
+      <div class="col-md-4"><div class="summary-card"><span>Total Credit</span><strong>{{ trialBalance.totalCredit | number:'1.2-2' }}</strong></div></div>
+      <div class="col-md-4"><div class="summary-card"><span>Difference</span><strong>{{ trialBalance.difference | number:'1.2-2' }}</strong></div></div>
     </div>
     <app-card title="Trial Balance">
       <div class="table-responsive"><table class="table table-hover align-middle mb-0">
         <thead class="table-light"><tr><th>Code</th><th>Account</th><th>Type</th><th class="text-end">Debit</th><th class="text-end">Credit</th><th class="text-end">Balance</th></tr></thead>
         <tbody>
-          <tr *ngFor="let row of trialBalance?.rows"><td class="fw-semibold">{{ row.accountCode }}</td><td>{{ row.accountName }}</td><td>{{ row.accountType }}</td><td class="text-end">{{ row.totalDebit | number:'1.2-2' }}</td><td class="text-end">{{ row.totalCredit | number:'1.2-2' }}</td><td class="text-end fw-semibold">{{ row.balance | number:'1.2-2' }}</td></tr>
+          <tr *ngFor="let row of trialBalance?.rows"><td class="fw-semibold">{{ row.accountCode }}</td><td>{{ row.accountName }}</td><td>{{ row.accountType }}</td><td class="text-end">{{ row.debitBalance | number:'1.2-2' }}</td><td class="text-end">{{ row.creditBalance | number:'1.2-2' }}</td><td></td></tr>
           <tr *ngIf="!loading && (!trialBalance || trialBalance.rows.length === 0)"><td colspan="6" class="text-center text-muted py-5">No trial balance rows found.</td></tr>
           <tr *ngIf="loading"><td colspan="6" class="text-center text-muted py-5">Loading...</td></tr>
         </tbody>
       </table></div>
     </app-card>
+    <div *ngIf="trialBalance && !trialBalance.balanced" class="alert alert-warning">Trial balance is out of balance by {{ trialBalance.difference | number:'1.2-2' }}.</div>
   </ng-container>
 
   <ng-container *ngIf="section === 'balance-sheet'">
+    <app-card title="Balance Sheet Filters"><form (ngSubmit)="loadCurrentSection()" class="row g-3 no-print"><div class="col-md-4"><label class="form-label">As of Date</label><input type="date" class="form-control" [(ngModel)]="balanceSheetAsOfDate" name="bsAsOf"></div><div class="col-md-8 d-flex align-items-end gap-2"><button class="btn btn-success" type="submit">Apply</button><button *ngIf="hasPermission('REPORT_EXPORT')" class="btn btn-outline-secondary" type="button" (click)="exportCurrentReport()">CSV</button><button *ngIf="hasPermission('REPORT_EXPORT')" class="btn btn-outline-secondary" type="button" (click)="exportExcel()">Excel</button><button *ngIf="hasPermission('JOURNAL_PRINT')" class="btn btn-outline-dark" type="button" (click)="print()">Print</button></div></form></app-card>
     <div class="row g-3 mb-3" *ngIf="balanceSheet">
       <div class="col-md-4"><div class="summary-card"><span>Total Assets</span><strong>{{ balanceSheet.totalAssets | number:'1.2-2' }}</strong></div></div>
       <div class="col-md-4"><div class="summary-card"><span>Total Liabilities</span><strong>{{ balanceSheet.totalLiabilities | number:'1.2-2' }}</strong></div></div>
       <div class="col-md-4"><div class="summary-card"><span>Total Equity</span><strong>{{ balanceSheet.totalEquity | number:'1.2-2' }}</strong></div></div>
     </div>
+    <div *ngIf="balanceSheet?.outOfBalance" class="alert alert-warning">Balance Sheet is out of balance by {{ balanceSheet?.differenceAmount | number:'1.2-2' }}.</div>
     <app-card title="Balance Sheet">
       <div *ngIf="loading" class="text-center text-muted py-5">Loading...</div>
       <div *ngIf="!loading && balanceSheet" class="row g-4">
-        <div class="col-md-4"><h6 class="section-title">Assets</h6><div class="statement-row"><span>Cash</span><strong>{{ balanceSheet.cash | number:'1.2-2' }}</strong></div><div class="statement-row"><span>Bank</span><strong>{{ balanceSheet.bank | number:'1.2-2' }}</strong></div><div class="statement-row"><span>Accounts Receivable</span><strong>{{ balanceSheet.accountsReceivable | number:'1.2-2' }}</strong></div><div class="statement-row"><span>Inventory Value</span><strong>{{ balanceSheet.inventoryValue | number:'1.2-2' }}</strong></div><div class="statement-row total"><span>Total Assets</span><strong>{{ balanceSheet.totalAssets | number:'1.2-2' }}</strong></div></div>
-        <div class="col-md-4"><h6 class="section-title">Liabilities</h6><div class="statement-row"><span>Accounts Payable</span><strong>{{ balanceSheet.accountsPayable | number:'1.2-2' }}</strong></div><div class="statement-row total"><span>Total Liabilities</span><strong>{{ balanceSheet.totalLiabilities | number:'1.2-2' }}</strong></div></div>
-        <div class="col-md-4"><h6 class="section-title">Equity</h6><div class="statement-row"><span>Owner Equity</span><strong>{{ balanceSheet.ownerEquity | number:'1.2-2' }}</strong></div><div class="statement-row"><span>Retained Earnings / Net Profit</span><strong>{{ balanceSheet.retainedEarnings | number:'1.2-2' }}</strong></div><div class="statement-row total"><span>Total Equity</span><strong>{{ balanceSheet.totalEquity | number:'1.2-2' }}</strong></div><div class="statement-row total"><span>Liabilities + Equity</span><strong>{{ balanceSheet.liabilitiesAndEquity | number:'1.2-2' }}</strong></div></div>
+        <div class="col-md-4"><h6 class="section-title" (click)="expandedStatements.assets = !expandedStatements.assets">Assets</h6><div *ngIf="expandedStatements.assets"><div class="statement-row" *ngFor="let row of balanceSheet.assets"><span>{{ row.groupName }} · {{ row.accountName }}</span><strong>{{ row.amount | number:'1.2-2' }}</strong></div><div class="statement-row total"><span>Total Assets</span><strong>{{ balanceSheet.totalAssets | number:'1.2-2' }}</strong></div></div></div>
+        <div class="col-md-4"><h6 class="section-title" (click)="expandedStatements.liabilities = !expandedStatements.liabilities">Liabilities</h6><div *ngIf="expandedStatements.liabilities"><div class="statement-row" *ngFor="let row of balanceSheet.liabilities"><span>{{ row.groupName }} · {{ row.accountName }}</span><strong>{{ row.amount | number:'1.2-2' }}</strong></div><div class="statement-row total"><span>Total Liabilities</span><strong>{{ balanceSheet.totalLiabilities | number:'1.2-2' }}</strong></div></div></div>
+        <div class="col-md-4"><h6 class="section-title" (click)="expandedStatements.equity = !expandedStatements.equity">Equity</h6><div *ngIf="expandedStatements.equity"><div class="statement-row" *ngFor="let row of balanceSheet.equity"><span>{{ row.groupName }} · {{ row.accountName }}</span><strong>{{ row.amount | number:'1.2-2' }}</strong></div><div class="statement-row"><span>Current Profit / Loss</span><strong>{{ balanceSheet.currentProfitLoss | number:'1.2-2' }}</strong></div><div class="statement-row total"><span>Total Equity</span><strong>{{ balanceSheet.totalEquity | number:'1.2-2' }}</strong></div><div class="statement-row total"><span>Liabilities + Equity</span><strong>{{ balanceSheet.liabilitiesAndEquity | number:'1.2-2' }}</strong></div></div></div>
       </div>
     </app-card>
   </ng-container>

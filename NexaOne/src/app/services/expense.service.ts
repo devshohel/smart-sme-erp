@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
-import { Expense, ExpenseCategoryOption, ExpensePage, ExpensePaymentMethod, ExpenseStatus } from '../models/expense.model';
+import { Expense, ExpenseCategoryOption, ExpensePage, ExpensePaymentMethod, ExpenseReportRow, ExpenseStatus } from '../models/expense.model';
 import { ApiResponse, unwrapApiResponse } from '../shared/utils/api-response.util';
 
 @Injectable({ providedIn: 'root' })
@@ -41,18 +41,58 @@ export class ExpenseService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
+  getApprovalQueue(filters: {
+    fromDate?: string;
+    toDate?: string;
+    categoryId?: number | '';
+    submittedBy?: string;
+    amountMin?: number | '';
+    amountMax?: number | '';
+  }): Observable<Expense[]> {
+    let params = new HttpParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params = params.set(key, String(value));
+      }
+    });
+    return this.http.get<Expense[] | ApiResponse<Expense[]>>(`${this.baseUrl}/approval-queue`, { params })
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
   getById(id: number): Observable<Expense> {
     return this.http.get<Expense | ApiResponse<Expense>>(`${this.baseUrl}/${id}`)
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
-  create(expense: Expense): Observable<Expense> {
-    return this.http.post<Expense | ApiResponse<Expense>>(this.baseUrl, expense)
+  create(expense: Expense, receipt?: File | null): Observable<Expense> {
+    const body = receipt ? this.toFormData(expense, receipt) : expense;
+    return this.http.post<Expense | ApiResponse<Expense>>(this.baseUrl, body)
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
-  update(id: number, expense: Expense): Observable<Expense> {
-    return this.http.put<Expense | ApiResponse<Expense>>(`${this.baseUrl}/${id}`, expense)
+  update(id: number, expense: Expense, receipt?: File | null): Observable<Expense> {
+    const body = receipt ? this.toFormData(expense, receipt) : expense;
+    return this.http.put<Expense | ApiResponse<Expense>>(`${this.baseUrl}/${id}`, body)
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  submit(id: number): Observable<Expense> {
+    return this.http.post<Expense | ApiResponse<Expense>>(`${this.baseUrl}/${id}/submit`, {})
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  approve(id: number): Observable<Expense> {
+    return this.http.post<Expense | ApiResponse<Expense>>(`${this.baseUrl}/${id}/approve`, {})
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  reject(id: number, reason: string): Observable<Expense> {
+    return this.http.post<Expense | ApiResponse<Expense>>(`${this.baseUrl}/${id}/reject`, { reason })
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  reverse(id: number, reversalReason: string): Observable<Expense> {
+    return this.http.post<Expense | ApiResponse<Expense>>(`${this.baseUrl}/${id}/reverse`, { reversalReason })
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
@@ -69,5 +109,28 @@ export class ExpenseService {
   getCategories(): Observable<ExpenseCategoryOption[]> {
     return this.http.get<ExpenseCategoryOption[] | ApiResponse<ExpenseCategoryOption[]>>(this.categoryUrl)
       .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  getReport(type: 'summary' | 'category' | 'payment-method' | 'tax' | 'monthly', filters: {
+    fromDate?: string;
+    toDate?: string;
+    categoryId?: number | '';
+    status?: ExpenseStatus | '';
+  }): Observable<ExpenseReportRow[]> {
+    let params = new HttpParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params = params.set(key, String(value));
+      }
+    });
+    return this.http.get<ExpenseReportRow[] | ApiResponse<ExpenseReportRow[]>>(`${this.baseUrl}/reports/${type}`, { params })
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  private toFormData(expense: Expense, receipt: File): FormData {
+    const formData = new FormData();
+    formData.append('expense', new Blob([JSON.stringify(expense)], { type: 'application/json' }));
+    formData.append('receipt', receipt);
+    return formData;
   }
 }
