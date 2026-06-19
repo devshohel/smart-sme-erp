@@ -8,14 +8,19 @@ public class SalesReportDTO {
     private BigDecimal totalPaid;
     private BigDecimal totalDue;
     private Long totalInvoices;
+    private BigDecimal returnAmount;
+    private BigDecimal netSales;
     private List<SalesReportRowDTO> rows;
 
     public SalesReportDTO(BigDecimal totalSales, BigDecimal totalPaid, BigDecimal totalDue,
-                          Long totalInvoices, List<SalesReportRowDTO> rows) {
+                          Long totalInvoices, BigDecimal returnAmount, BigDecimal netSales,
+                          List<SalesReportRowDTO> rows) {
         this.totalSales = totalSales;
         this.totalPaid = totalPaid;
         this.totalDue = totalDue;
         this.totalInvoices = totalInvoices;
+        this.returnAmount = returnAmount;
+        this.netSales = netSales;
         this.rows = rows;
     }
 
@@ -23,5 +28,7 @@ public class SalesReportDTO {
     public BigDecimal getTotalPaid() { return totalPaid; }
     public BigDecimal getTotalDue() { return totalDue; }
     public Long getTotalInvoices() { return totalInvoices; }
+    public BigDecimal getReturnAmount() { return returnAmount; }
+    public BigDecimal getNetSales() { return netSales; }
     public List<SalesReportRowDTO> getRows() { return rows; }
 }

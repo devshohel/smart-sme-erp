@@ -7,16 +7,19 @@ import com.sme.erp.purchase.enums.PurchaseStatus;
 public class PurchaseReportRowDTO {
     private String poNo;
     private String supplier;
+    private String warehouse;
     private LocalDateTime date;
     private BigDecimal amount;
     private BigDecimal paid;
     private BigDecimal due;
     private String status;
 
-    public PurchaseReportRowDTO(String poNo, String supplier, LocalDateTime date, BigDecimal amount,
-                                BigDecimal paid, BigDecimal due, PurchaseStatus status) {
+    public PurchaseReportRowDTO(String poNo, String supplier, String warehouse, LocalDateTime date,
+                                BigDecimal amount, BigDecimal paid, BigDecimal due,
+                                PurchaseStatus status) {
         this.poNo = poNo;
         this.supplier = supplier;
+        this.warehouse = warehouse;
         this.date = date;
         this.amount = amount;
         this.paid = paid;
@@ -26,6 +29,7 @@ public class PurchaseReportRowDTO {
 
     public String getPoNo() { return poNo; }
     public String getSupplier() { return supplier; }
+    public String getWarehouse() { return warehouse; }
     public LocalDateTime getDate() { return date; }
     public BigDecimal getAmount() { return amount; }
     public BigDecimal getPaid() { return paid; }

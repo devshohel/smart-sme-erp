@@ -21,8 +21,12 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
             select new com.sme.erp.reports.dto.StockMovementReportRowDTO(
                 m.createdAt,
                 p.productName,
-                concat('', m.movementType),
+                w.name,
+                m.movementType,
                 m.quantity,
+                m.quantityBefore,
+                coalesce(m.quantityChange, m.quantity),
+                m.quantityAfter,
                 m.referenceNo
             )
             from StockMovement m
@@ -30,10 +34,18 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
             join m.warehouse w
             where (:warehouseId is null or w.id = :warehouseId)
               and (:productId is null or p.id = :productId)
+              and (:fromDate is null or m.createdAt >= :fromDate)
+              and (:toDate is null or m.createdAt < :toDate)
+              and (:keyword is null or lower(p.productName) like lower(concat('%', :keyword, '%'))
+                   or lower(w.name) like lower(concat('%', :keyword, '%'))
+                   or lower(coalesce(m.referenceNo, '')) like lower(concat('%', :keyword, '%')))
             order by m.createdAt desc, m.id desc
             """)
     List<StockMovementReportRowDTO> findStockMovementReportRows(
             @Param("warehouseId") Long warehouseId,
-            @Param("productId") Long productId);
+            @Param("productId") Long productId,
+            @Param("fromDate") java.time.LocalDateTime fromDate,
+            @Param("toDate") java.time.LocalDateTime toDate,
+            @Param("keyword") String keyword);
 
 }

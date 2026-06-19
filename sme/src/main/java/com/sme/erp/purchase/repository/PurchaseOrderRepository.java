@@ -2,6 +2,7 @@ package com.sme.erp.purchase.repository;
 
 import com.sme.erp.purchase.entity.PurchaseOrder;
 import com.sme.erp.reports.dto.PurchaseReportRowDTO;
+import com.sme.erp.reports.dto.SupplierPurchaseRowDTO;
 import com.sme.erp.reports.dto.SupplierDueReportRowDTO;
 import com.sme.erp.supplier.dto.SupplierPurchaseSummaryDTO;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +24,7 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
             select new com.sme.erp.reports.dto.PurchaseReportRowDTO(
                 p.purchaseCode,
                 s.name,
+                w.name,
                 p.purchaseDate,
                 p.netTotal,
                 p.paidAmount,
@@ -31,6 +33,7 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
             )
             from PurchaseOrder p
             join p.supplier s
+            join p.warehouse w
             where (:startDate is null or p.purchaseDate >= :startDate)
               and (:endDate is null or p.purchaseDate < :endDate)
               and (:supplierId is null or s.id = :supplierId)
@@ -45,6 +48,70 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate,
             @Param("supplierId") Long supplierId);
+
+    @Query("""
+            select new com.sme.erp.reports.dto.PurchaseReportRowDTO(
+                p.purchaseCode,
+                s.name,
+                w.name,
+                p.purchaseDate,
+                p.netTotal,
+                p.paidAmount,
+                p.dueAmount,
+                p.status
+            )
+            from PurchaseOrder p
+            join p.supplier s
+            join p.warehouse w
+            where (:startDate is null or p.purchaseDate >= :startDate)
+              and (:endDate is null or p.purchaseDate < :endDate)
+              and (:supplierId is null or s.id = :supplierId)
+              and (:warehouseId is null or w.id = :warehouseId)
+              and (:keyword is null or lower(p.purchaseCode) like lower(concat('%', :keyword, '%'))
+                   or lower(s.name) like lower(concat('%', :keyword, '%'))
+                   or lower(w.name) like lower(concat('%', :keyword, '%')))
+              and p.status in (
+                com.sme.erp.purchase.enums.PurchaseStatus.RECEIVED,
+                com.sme.erp.purchase.enums.PurchaseStatus.PARTIAL_PAID,
+                com.sme.erp.purchase.enums.PurchaseStatus.PAID
+              )
+            order by p.purchaseDate desc, p.id desc
+            """)
+    List<PurchaseReportRowDTO> findPurchaseDetailRows(@Param("startDate") LocalDateTime startDate,
+                                                      @Param("endDate") LocalDateTime endDate,
+                                                      @Param("supplierId") Long supplierId,
+                                                      @Param("warehouseId") Long warehouseId,
+                                                      @Param("keyword") String keyword);
+
+    @Query("""
+            select new com.sme.erp.reports.dto.SupplierPurchaseRowDTO(
+                s.id,
+                s.name,
+                count(p.id),
+                coalesce(sum(p.netTotal), 0),
+                coalesce(sum(p.paidAmount), 0),
+                coalesce(sum(p.dueAmount), 0),
+                max(p.purchaseDate)
+            )
+            from PurchaseOrder p
+            join p.supplier s
+            where (:startDate is null or p.purchaseDate >= :startDate)
+              and (:endDate is null or p.purchaseDate < :endDate)
+              and (:supplierId is null or s.id = :supplierId)
+              and (:keyword is null or lower(s.name) like lower(concat('%', :keyword, '%'))
+                   or lower(p.purchaseCode) like lower(concat('%', :keyword, '%')))
+              and p.status in (
+                com.sme.erp.purchase.enums.PurchaseStatus.RECEIVED,
+                com.sme.erp.purchase.enums.PurchaseStatus.PARTIAL_PAID,
+                com.sme.erp.purchase.enums.PurchaseStatus.PAID
+              )
+            group by s.id, s.name
+            order by coalesce(sum(p.netTotal), 0) desc, s.name asc
+            """)
+    List<SupplierPurchaseRowDTO> findSupplierPurchaseRows(@Param("startDate") LocalDateTime startDate,
+                                                          @Param("endDate") LocalDateTime endDate,
+                                                          @Param("supplierId") Long supplierId,
+                                                          @Param("keyword") String keyword);
 
     @Query("""
             select new com.sme.erp.reports.dto.SupplierDueReportRowDTO(

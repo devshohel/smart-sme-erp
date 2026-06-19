@@ -1,8 +1,10 @@
 package com.sme.erp.sales.repository;
 
 import com.sme.erp.sales.entity.SalesInvoice;
+import com.sme.erp.reports.dto.CustomerSalesRowDTO;
 import com.sme.erp.reports.dto.CustomerDueReportRowDTO;
 import com.sme.erp.reports.dto.SalesReportRowDTO;
+import com.sme.erp.reports.dto.TopSellingProductRowDTO;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -21,6 +23,8 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
             select new com.sme.erp.reports.dto.SalesReportRowDTO(
                 i.invoiceNo,
                 c.name,
+                w.name,
+                i.status,
                 i.saleDate,
                 coalesce(sum(item.quantity), 0),
                 i.netTotal,
@@ -29,13 +33,14 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
             )
             from SalesInvoice i
             join i.customer c
+            join i.warehouse w
             left join i.items item
             where (:startDate is null or i.saleDate >= :startDate)
               and (:endDate is null or i.saleDate < :endDate)
               and (:customerId is null or c.id = :customerId)
               and (:productId is null or item.product.id = :productId)
-              and i.status in (com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED, com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED)
-            group by i.id, i.invoiceNo, c.name, i.saleDate, i.netTotal, i.paidAmount, i.dueAmount
+            and i.status in (com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED, com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED)
+            group by i.id, i.invoiceNo, c.name, w.name, i.status, i.saleDate, i.netTotal, i.paidAmount, i.dueAmount
             order by i.saleDate desc, i.id desc
             """)
     List<SalesReportRowDTO> findSalesReportRows(
@@ -43,6 +48,103 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
             @Param("endDate") LocalDateTime endDate,
             @Param("customerId") Long customerId,
             @Param("productId") Long productId);
+
+    @Query("""
+            select new com.sme.erp.reports.dto.SalesReportRowDTO(
+                i.invoiceNo,
+                c.name,
+                w.name,
+                i.status,
+                i.saleDate,
+                coalesce(sum(item.quantity), 0),
+                i.netTotal,
+                i.paidAmount,
+                i.dueAmount
+            )
+            from SalesInvoice i
+            join i.customer c
+            join i.warehouse w
+            left join i.items item
+            where (:startDate is null or i.saleDate >= :startDate)
+              and (:endDate is null or i.saleDate < :endDate)
+              and (:customerId is null or c.id = :customerId)
+              and (:productId is null or item.product.id = :productId)
+              and (:warehouseId is null or w.id = :warehouseId)
+              and (:keyword is null or lower(i.invoiceNo) like lower(concat('%', :keyword, '%'))
+                   or lower(c.name) like lower(concat('%', :keyword, '%'))
+                   or lower(w.name) like lower(concat('%', :keyword, '%')))
+              and i.status in (com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED, com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED)
+            group by i.id, i.invoiceNo, c.name, w.name, i.status, i.saleDate, i.netTotal, i.paidAmount, i.dueAmount
+            order by i.saleDate desc, i.id desc
+            """)
+    List<SalesReportRowDTO> findSalesDetailRows(@Param("startDate") LocalDateTime startDate,
+                                                @Param("endDate") LocalDateTime endDate,
+                                                @Param("customerId") Long customerId,
+                                                @Param("productId") Long productId,
+                                                @Param("warehouseId") Long warehouseId,
+                                                @Param("keyword") String keyword);
+
+    @Query("""
+            select new com.sme.erp.reports.dto.TopSellingProductRowDTO(
+                p.id,
+                p.productName,
+                p.sku,
+                coalesce(sum(item.quantity), 0),
+                coalesce(sum(item.subTotal), 0),
+                0,
+                coalesce(sum(item.quantity), 0)
+            )
+            from SalesInvoice i
+            join i.items item
+            join item.product p
+            join i.warehouse w
+            left join p.category c
+            left join p.brand b
+            where (:startDate is null or i.saleDate >= :startDate)
+              and (:endDate is null or i.saleDate < :endDate)
+              and (:productId is null or p.id = :productId)
+              and (:warehouseId is null or w.id = :warehouseId)
+              and (:categoryId is null or c.id = :categoryId)
+              and (:brandId is null or b.id = :brandId)
+              and (:keyword is null or lower(p.productName) like lower(concat('%', :keyword, '%'))
+                   or lower(p.sku) like lower(concat('%', :keyword, '%')))
+              and i.status in (com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED, com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED)
+            group by p.id, p.productName, p.sku
+            order by coalesce(sum(item.quantity), 0) desc, coalesce(sum(item.subTotal), 0) desc
+            """)
+    List<TopSellingProductRowDTO> findTopSellingProductRows(@Param("startDate") LocalDateTime startDate,
+                                                            @Param("endDate") LocalDateTime endDate,
+                                                            @Param("productId") Long productId,
+                                                            @Param("warehouseId") Long warehouseId,
+                                                            @Param("categoryId") Long categoryId,
+                                                            @Param("brandId") Long brandId,
+                                                            @Param("keyword") String keyword);
+
+    @Query("""
+            select new com.sme.erp.reports.dto.CustomerSalesRowDTO(
+                c.id,
+                c.name,
+                count(i.id),
+                coalesce(sum(i.netTotal), 0),
+                coalesce(sum(i.paidAmount), 0),
+                coalesce(sum(i.dueAmount), 0),
+                max(i.saleDate)
+            )
+            from SalesInvoice i
+            join i.customer c
+            where (:startDate is null or i.saleDate >= :startDate)
+              and (:endDate is null or i.saleDate < :endDate)
+              and (:customerId is null or c.id = :customerId)
+              and (:keyword is null or lower(c.name) like lower(concat('%', :keyword, '%'))
+                   or lower(i.invoiceNo) like lower(concat('%', :keyword, '%')))
+              and i.status in (com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED, com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED)
+            group by c.id, c.name
+            order by coalesce(sum(i.netTotal), 0) desc, c.name asc
+            """)
+    List<CustomerSalesRowDTO> findCustomerSalesRows(@Param("startDate") LocalDateTime startDate,
+                                                    @Param("endDate") LocalDateTime endDate,
+                                                    @Param("customerId") Long customerId,
+                                                    @Param("keyword") String keyword);
 
     @Query("""
             select new com.sme.erp.reports.dto.CustomerDueReportRowDTO(

@@ -25,21 +25,35 @@ public interface StockRepository extends JpaRepository<Stock, Long>, JpaSpecific
     @Query("""
             select new com.sme.erp.reports.dto.StockReportRowDTO(
                 p.productName,
+                p.sku,
+                coalesce(c.categoryName, ''),
+                coalesce(b.brandName, ''),
                 w.name,
                 s.quantity,
                 coalesce(p.reorderLevel, s.reorderLevel, 0),
+                p.status,
                 (s.quantity * p.purchasePrice)
             )
             from Stock s
             join s.product p
             join s.warehouse w
+            left join p.category c
+            left join p.brand b
             where (:warehouseId is null or w.id = :warehouseId)
               and (:productId is null or p.id = :productId)
+              and (:categoryId is null or c.id = :categoryId)
+              and (:brandId is null or b.id = :brandId)
+              and (:keyword is null or lower(p.productName) like lower(concat('%', :keyword, '%'))
+                   or lower(p.sku) like lower(concat('%', :keyword, '%'))
+                   or lower(w.name) like lower(concat('%', :keyword, '%')))
             order by p.productName asc, w.name asc
             """)
     List<StockReportRowDTO> findStockReportRows(
             @Param("warehouseId") Long warehouseId,
-            @Param("productId") Long productId);
+            @Param("productId") Long productId,
+            @Param("categoryId") Long categoryId,
+            @Param("brandId") Long brandId,
+            @Param("keyword") String keyword);
 
     @Query("select coalesce(sum(s.quantity * p.purchasePrice), 0) from Stock s join s.product p")
     BigDecimal sumInventoryValue();

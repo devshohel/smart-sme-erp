@@ -4,8 +4,9 @@ import { ReportsComponent } from './reports.component';
 import { PermissionGuard } from '../auth/permission.guard';
 
 const routes: Routes = [
-  { path: '', redirectTo: 'sales', pathMatch: 'full' },
-  { path: ':type', component: ReportsComponent, canActivate: [PermissionGuard], data: { permissions: ['REPORT_VIEW'] } }
+  { path: '', component: ReportsComponent, canActivate: [PermissionGuard], data: { permissions: ['REPORT_VIEW'], mode: 'center' } },
+  { path: 'view/:type', component: ReportsComponent, canActivate: [PermissionGuard], data: { permissions: ['REPORT_VIEW'], mode: 'detail' } },
+  { path: ':type', redirectTo: 'view/:type', pathMatch: 'full' }
 ];
 
 @NgModule({

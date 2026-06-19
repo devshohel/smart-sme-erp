@@ -27,4 +27,15 @@ public interface SalesReturnRepository extends JpaRepository<SalesReturn, Long> 
     List<SalesReturn> findByCustomerForLedger(@Param("customerId") Long customerId,
                                               @Param("fromDate") LocalDateTime fromDate,
                                               @Param("toDate") LocalDateTime toDate);
+
+    @Query("""
+            select coalesce(sum(r.totalAmount), 0)
+            from SalesReturn r
+            where (:startDate is null or r.returnDate >= :startDate)
+              and (:endDate is null or r.returnDate < :endDate)
+              and (:customerId is null or r.customer.id = :customerId)
+            """)
+    java.math.BigDecimal sumReturnAmount(@Param("startDate") LocalDateTime startDate,
+                                         @Param("endDate") LocalDateTime endDate,
+                                         @Param("customerId") Long customerId);
 }
