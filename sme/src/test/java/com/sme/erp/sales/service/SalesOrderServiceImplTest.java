@@ -30,7 +30,9 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -85,6 +87,36 @@ class SalesOrderServiceImplTest {
         assertThat(result.getItems()).hasSize(1);
         assertThat(result.getItems().get(0).getProductId()).isEqualTo(4L);
         assertThat(result.getGrandTotal()).isEqualByComparingTo("15.00");
+    }
+
+    @Test
+    void approve_promotesSubmittedOrderToApproved() {
+        SalesOrder existing = new SalesOrder();
+        existing.setId(8L);
+        existing.setOrderNo("SO-0008");
+        existing.setStatus(SalesOrderStatus.SUBMITTED);
+
+        when(salesOrderRepository.findById(8L)).thenReturn(Optional.of(existing));
+        when(salesOrderRepository.save(any(SalesOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SalesOrderDTO result = service.approve(8L);
+
+        assertThat(result.getStatus()).isEqualTo(SalesOrderStatus.APPROVED);
+        assertThat(result.getApprovedAt()).isNotNull();
+        verify(salesOrderRepository).save(existing);
+    }
+
+    @Test
+    void approve_rejectsDraftOrder() {
+        SalesOrder existing = new SalesOrder();
+        existing.setId(9L);
+        existing.setOrderNo("SO-0009");
+        existing.setStatus(SalesOrderStatus.DRAFT);
+
+        when(salesOrderRepository.findById(9L)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.approve(9L))
+                .hasMessage("Only submitted sales orders can be approved");
     }
 
     private SalesOrderDTO orderDto() {

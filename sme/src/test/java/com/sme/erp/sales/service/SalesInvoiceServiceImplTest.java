@@ -92,6 +92,22 @@ class SalesInvoiceServiceImplTest {
     }
 
     @Test
+    void create_persistsDraftStatusAndDuePaymentStatus() {
+        SalesInvoiceDTO dto = invoiceDto(SalesInvoiceStatus.DRAFT);
+
+        mockReferences();
+        when(salesInvoiceRepository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
+        when(salesInvoiceRepository.existsByInvoiceNo("INV-0001")).thenReturn(false);
+        when(salesInvoiceRepository.save(any(SalesInvoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SalesInvoiceDTO result = service.create(dto);
+
+        assertThat(result.getStatus()).isEqualTo(SalesInvoiceStatus.DRAFT);
+        assertThat(result.getPaymentStatus()).isEqualTo(SalesPaymentStatus.DUE);
+        assertThat(result.getDueAmount()).isEqualByComparingTo("12.00");
+    }
+
+    @Test
     void update_postedInvoiceIsRejected() {
         SalesInvoice existing = new SalesInvoice();
         existing.setId(8L);

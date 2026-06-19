@@ -69,11 +69,11 @@ public class SalesInvoice {
     private BigDecimal dueAmount = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_status", nullable = false)
+    @Column(name = "payment_status", nullable = false, columnDefinition = "ENUM('PAID','PARTIAL','DUE')")
     private SalesPaymentStatus paymentStatus = SalesPaymentStatus.DUE;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "ENUM('DRAFT','SUBMITTED','APPROVED','POSTED','PARTIAL_PAID','PAID','CANCELLED','REVERSED','PENDING','CONFIRMED','COMPLETED')")
     private SalesInvoiceStatus status = SalesInvoiceStatus.DRAFT;
 
     @Column(name = "created_by")

@@ -46,7 +46,7 @@ public class SalesOrder {
     private LocalDateTime orderDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "ENUM('DRAFT','SUBMITTED','APPROVED','REJECTED','CONVERTED','CANCELLED','PENDING')")
     private SalesOrderStatus status = SalesOrderStatus.DRAFT;
 
     @Column(name = "created_by")
