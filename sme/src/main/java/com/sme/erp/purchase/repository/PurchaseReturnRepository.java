@@ -26,6 +26,7 @@ public interface PurchaseReturnRepository extends JpaRepository<PurchaseReturn, 
             )
             from PurchaseReturn r
             where r.supplier.id = :supplierId
+              and r.status = com.sme.erp.purchase.enums.PurchaseStatus.POSTED
             order by r.returnDate desc, r.id desc
             """)
     List<SupplierReturnSummaryDTO> findRecentReturnSummariesBySupplierId(@Param("supplierId") Long supplierId, Pageable pageable);
@@ -34,6 +35,7 @@ public interface PurchaseReturnRepository extends JpaRepository<PurchaseReturn, 
             select r
             from PurchaseReturn r
             where r.supplier.id = :supplierId
+              and r.status = com.sme.erp.purchase.enums.PurchaseStatus.POSTED
               and (:fromDate is null or r.returnDate >= :fromDate)
               and (:toDate is null or r.returnDate < :toDate)
             order by r.returnDate asc, r.id asc
@@ -46,6 +48,7 @@ public interface PurchaseReturnRepository extends JpaRepository<PurchaseReturn, 
             select r.supplier.id, coalesce(sum(r.totalAmount), 0)
             from PurchaseReturn r
             where (:supplierId is null or r.supplier.id = :supplierId)
+              and r.status = com.sme.erp.purchase.enums.PurchaseStatus.POSTED
               and (:fromDate is null or r.returnDate >= :fromDate)
               and (:toDate is null or r.returnDate < :toDate)
             group by r.supplier.id
@@ -67,6 +70,7 @@ public interface PurchaseReturnRepository extends JpaRepository<PurchaseReturn, 
             join r.supplier s
             join r.purchase p
             where (:startDate is null or r.returnDate >= :startDate)
+              and r.status = com.sme.erp.purchase.enums.PurchaseStatus.POSTED
               and (:endDate is null or r.returnDate < :endDate)
               and (:supplierId is null or s.id = :supplierId)
               and (:keyword is null or lower(r.returnCode) like lower(concat('%', :keyword, '%'))
@@ -83,6 +87,7 @@ public interface PurchaseReturnRepository extends JpaRepository<PurchaseReturn, 
             select coalesce(sum(r.totalAmount), 0)
             from PurchaseReturn r
             where (:startDate is null or r.returnDate >= :startDate)
+              and r.status = com.sme.erp.purchase.enums.PurchaseStatus.POSTED
               and (:endDate is null or r.returnDate < :endDate)
               and (:supplierId is null or r.supplier.id = :supplierId)
             """)

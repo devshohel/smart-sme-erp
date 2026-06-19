@@ -65,7 +65,7 @@ public class PurchaseOrder {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private PurchaseStatus status = PurchaseStatus.PENDING;
+    private PurchaseStatus status = PurchaseStatus.DRAFT;
 
     @Column(name = "created_by")
     private Long createdBy;
@@ -76,6 +76,33 @@ public class PurchaseOrder {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "submitted_by")
+    private String submittedBy;
+
+    @Column(name = "submitted_at")
+    private LocalDateTime submittedAt;
+
+    @Column(name = "approved_by")
+    private String approvedBy;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Column(name = "rejected_by")
+    private String rejectedBy;
+
+    @Column(name = "rejected_at")
+    private LocalDateTime rejectedAt;
+
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
+    @Column(name = "cancelled_by")
+    private String cancelledBy;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
     @OneToMany(mappedBy = "purchase", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PurchaseItem> items = new ArrayList<>();
 
@@ -85,7 +112,7 @@ public class PurchaseOrder {
         this.createdAt = now;
         this.updatedAt = now;
         if (this.status == null) {
-            this.status = PurchaseStatus.PENDING;
+            this.status = PurchaseStatus.DRAFT;
         }
     }
 
@@ -93,7 +120,7 @@ public class PurchaseOrder {
     public void onUpdate() {
         this.updatedAt = LocalDateTime.now();
         if (this.status == null) {
-            this.status = PurchaseStatus.PENDING;
+            this.status = PurchaseStatus.DRAFT;
         }
     }
 
@@ -141,6 +168,33 @@ public class PurchaseOrder {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getSubmittedBy() { return submittedBy; }
+    public void setSubmittedBy(String submittedBy) { this.submittedBy = submittedBy; }
+
+    public LocalDateTime getSubmittedAt() { return submittedAt; }
+    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
+
+    public String getApprovedBy() { return approvedBy; }
+    public void setApprovedBy(String approvedBy) { this.approvedBy = approvedBy; }
+
+    public LocalDateTime getApprovedAt() { return approvedAt; }
+    public void setApprovedAt(LocalDateTime approvedAt) { this.approvedAt = approvedAt; }
+
+    public String getRejectedBy() { return rejectedBy; }
+    public void setRejectedBy(String rejectedBy) { this.rejectedBy = rejectedBy; }
+
+    public LocalDateTime getRejectedAt() { return rejectedAt; }
+    public void setRejectedAt(LocalDateTime rejectedAt) { this.rejectedAt = rejectedAt; }
+
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
+
+    public String getCancelledBy() { return cancelledBy; }
+    public void setCancelledBy(String cancelledBy) { this.cancelledBy = cancelledBy; }
+
+    public LocalDateTime getCancelledAt() { return cancelledAt; }
+    public void setCancelledAt(LocalDateTime cancelledAt) { this.cancelledAt = cancelledAt; }
 
     public List<PurchaseItem> getItems() { return items; }
     public void setItems(List<PurchaseItem> items) { this.items = items; }

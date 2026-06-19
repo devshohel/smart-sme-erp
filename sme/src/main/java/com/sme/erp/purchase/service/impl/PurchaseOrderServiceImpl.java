@@ -1,12 +1,12 @@
 package com.sme.erp.purchase.service.impl;
 
+import com.sme.erp.accounting.service.AccountingPostingService;
+import com.sme.erp.audit.service.ActivityLogService;
+import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
-import com.sme.erp.accounting.service.AccountingPostingService;
-import com.sme.erp.audit.service.ActivityLogService;
-import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.inventory.entity.Warehouse;
 import com.sme.erp.inventory.repository.WarehouseRepository;
 import com.sme.erp.inventory.service.StockService;
@@ -16,18 +16,27 @@ import com.sme.erp.product.repository.ProductRepository;
 import com.sme.erp.product.repository.UomRepository;
 import com.sme.erp.purchase.dto.PurchaseItemDTO;
 import com.sme.erp.purchase.dto.PurchaseOrderDTO;
+import com.sme.erp.purchase.dto.PurchaseReceiveDTO;
+import com.sme.erp.purchase.dto.PurchaseReceiveItemDTO;
+import com.sme.erp.purchase.entity.GoodsReceiveItem;
+import com.sme.erp.purchase.entity.GoodsReceiveNote;
 import com.sme.erp.purchase.entity.PurchaseItem;
 import com.sme.erp.purchase.entity.PurchaseOrder;
+import com.sme.erp.purchase.enums.PurchaseReceiveStatus;
 import com.sme.erp.purchase.enums.PurchaseStatus;
 import com.sme.erp.purchase.mapper.PurchaseOrderMapper;
+import com.sme.erp.purchase.repository.GoodsReceiveNoteRepository;
 import com.sme.erp.purchase.repository.PurchaseOrderRepository;
 import com.sme.erp.purchase.service.PurchaseOrderService;
 import com.sme.erp.supplier.entity.Supplier;
 import com.sme.erp.supplier.repository.SupplierRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,6 +50,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final ProductRepository productRepository;
     private final UomRepository uomRepository;
     private final PurchaseOrderMapper purchaseOrderMapper;
+    private final GoodsReceiveNoteRepository goodsReceiveNoteRepository;
     private final StockService stockService;
     private final ActivityLogService activityLogService;
     private final AuditLogService auditLogService;
@@ -53,6 +63,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             ProductRepository productRepository,
             UomRepository uomRepository,
             PurchaseOrderMapper purchaseOrderMapper,
+            GoodsReceiveNoteRepository goodsReceiveNoteRepository,
             StockService stockService,
             ActivityLogService activityLogService,
             AuditLogService auditLogService,
@@ -63,6 +74,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         this.productRepository = productRepository;
         this.uomRepository = uomRepository;
         this.purchaseOrderMapper = purchaseOrderMapper;
+        this.goodsReceiveNoteRepository = goodsReceiveNoteRepository;
         this.stockService = stockService;
         this.activityLogService = activityLogService;
         this.auditLogService = auditLogService;
@@ -108,18 +120,156 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Transactional
     public PurchaseOrderDTO update(Long id, PurchaseOrderDTO dto) {
         PurchaseOrder entity = findPurchaseOrderById(id);
-        if (isReceivedStatus(entity.getStatus())) {
-            throw new BadRequestException("Received purchase cannot be edited");
-        }
+        ensureEditable(entity);
         PurchaseOrderDTO oldData = purchaseOrderMapper.toDTO(entity);
         PurchaseOrderDTO saved = save(dto, entity);
         auditLogService.log("purchase_orders", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "UPDATE");
         return saved;
     }
 
+    @Override
+    @Transactional
+    public PurchaseOrderDTO submit(Long id) {
+        PurchaseOrder entity = findPurchaseOrderById(id);
+        PurchaseStatus status = normalizeStatus(entity.getStatus());
+        if (status != PurchaseStatus.DRAFT && status != PurchaseStatus.REJECTED) {
+            throw new BadRequestException("Only draft or rejected purchase orders can be submitted");
+        }
+        PurchaseOrderDTO oldData = purchaseOrderMapper.toDTO(entity);
+        entity.setStatus(PurchaseStatus.SUBMITTED);
+        entity.setSubmittedAt(LocalDateTime.now());
+        entity.setSubmittedBy(currentUsername());
+        PurchaseOrderDTO saved = purchaseOrderMapper.toDTO(purchaseOrderRepository.save(entity));
+        activityLogService.log("PURCHASE_ORDER_SUBMIT", "PURCHASE", "purchase_orders", saved.getId(), "Submitted purchase order " + saved.getPurchaseCode());
+        auditLogService.log("purchase_orders", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "SUBMIT");
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public PurchaseOrderDTO approve(Long id) {
+        PurchaseOrder entity = findPurchaseOrderById(id);
+        if (normalizeStatus(entity.getStatus()) != PurchaseStatus.SUBMITTED) {
+            throw new BadRequestException("Only submitted purchase orders can be approved");
+        }
+        PurchaseOrderDTO oldData = purchaseOrderMapper.toDTO(entity);
+        entity.setStatus(PurchaseStatus.APPROVED);
+        entity.setApprovedAt(LocalDateTime.now());
+        entity.setApprovedBy(currentUsername());
+        PurchaseOrderDTO saved = purchaseOrderMapper.toDTO(purchaseOrderRepository.save(entity));
+        activityLogService.log("PURCHASE_ORDER_APPROVE", "PURCHASE", "purchase_orders", saved.getId(), "Approved purchase order " + saved.getPurchaseCode());
+        auditLogService.log("purchase_orders", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "APPROVE");
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public PurchaseOrderDTO reject(Long id, String reason) {
+        PurchaseOrder entity = findPurchaseOrderById(id);
+        if (normalizeStatus(entity.getStatus()) != PurchaseStatus.SUBMITTED) {
+            throw new BadRequestException("Only submitted purchase orders can be rejected");
+        }
+        PurchaseOrderDTO oldData = purchaseOrderMapper.toDTO(entity);
+        entity.setStatus(PurchaseStatus.REJECTED);
+        entity.setRejectedAt(LocalDateTime.now());
+        entity.setRejectedBy(currentUsername());
+        entity.setRejectionReason(RequestValueUtils.normalizeRequired(reason, "Rejection reason"));
+        PurchaseOrderDTO saved = purchaseOrderMapper.toDTO(purchaseOrderRepository.save(entity));
+        activityLogService.log("PURCHASE_ORDER_REJECT", "PURCHASE", "purchase_orders", saved.getId(), "Rejected purchase order " + saved.getPurchaseCode());
+        auditLogService.log("purchase_orders", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "REJECT");
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public PurchaseOrderDTO cancel(Long id) {
+        PurchaseOrder entity = findPurchaseOrderById(id);
+        PurchaseStatus status = normalizeStatus(entity.getStatus());
+        if (status != PurchaseStatus.DRAFT && status != PurchaseStatus.SUBMITTED && status != PurchaseStatus.REJECTED) {
+            throw new BadRequestException("Only draft or submitted purchase orders can be cancelled");
+        }
+        PurchaseOrderDTO oldData = purchaseOrderMapper.toDTO(entity);
+        entity.setStatus(PurchaseStatus.CANCELLED);
+        entity.setCancelledAt(LocalDateTime.now());
+        entity.setCancelledBy(currentUsername());
+        PurchaseOrderDTO saved = purchaseOrderMapper.toDTO(purchaseOrderRepository.save(entity));
+        activityLogService.log("PURCHASE_ORDER_CANCEL", "PURCHASE", "purchase_orders", saved.getId(), "Cancelled purchase order " + saved.getPurchaseCode());
+        auditLogService.log("purchase_orders", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "CANCEL");
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public PurchaseOrderDTO receive(Long id, PurchaseReceiveDTO dto) {
+        PurchaseOrder entity = findPurchaseOrderById(id);
+        PurchaseStatus status = normalizeStatus(entity.getStatus());
+        if (status != PurchaseStatus.APPROVED && status != PurchaseStatus.PARTIAL_RECEIVED) {
+            throw new BadRequestException("Only approved or partially received purchase orders can receive goods");
+        }
+        if (dto.getItems() == null || dto.getItems().isEmpty()) {
+            throw new BadRequestException("At least one receive item is required");
+        }
+        PurchaseOrderDTO oldData = purchaseOrderMapper.toDTO(entity);
+        GoodsReceiveNote grn = new GoodsReceiveNote();
+        grn.setGrnNo(resolveGrnNo());
+        grn.setPurchaseOrder(entity);
+        grn.setWarehouse(entity.getWarehouse());
+        grn.setReceiveDate(dto.getReceiveDate());
+        grn.setStatus(PurchaseReceiveStatus.POSTED);
+        grn.setNotes(RequestValueUtils.normalize(dto.getNotes()));
+
+        BigDecimal totalOrdered = BigDecimal.ZERO;
+        BigDecimal totalReceived = BigDecimal.ZERO;
+        List<GoodsReceiveItem> receiveItems = new ArrayList<>();
+        for (PurchaseReceiveItemDTO itemDTO : dto.getItems()) {
+            PurchaseItem purchaseItem = entity.getItems().stream()
+                    .filter(item -> item.getProduct() != null && item.getProduct().getId().equals(itemDTO.getProductId()))
+                    .findFirst()
+                    .orElseThrow(() -> new BadRequestException("Receive item product does not belong to the purchase order"));
+            BigDecimal receivedQty = positive(itemDTO.getReceivedQty(), "Received quantity must be positive");
+            BigDecimal orderedQty = safe(purchaseItem.getQuantity());
+            BigDecimal currentReceived = safe(purchaseItem.getReceivedQuantity());
+            BigDecimal remaining = orderedQty.subtract(currentReceived);
+            if (receivedQty.compareTo(remaining) > 0) {
+                throw new BadRequestException("Received quantity cannot exceed remaining ordered quantity");
+            }
+            purchaseItem.setReceivedQuantity(currentReceived.add(receivedQty));
+            stockService.stockIn(
+                    purchaseItem.getProduct().getId(),
+                    entity.getWarehouse().getId(),
+                    receivedQty,
+                    purchaseItem.getUnitPrice(),
+                    "PURCHASE_RECEIVE",
+                    entity.getPurchaseCode());
+
+            GoodsReceiveItem grnItem = new GoodsReceiveItem();
+            grnItem.setGoodsReceiveNote(grn);
+            grnItem.setProduct(purchaseItem.getProduct());
+            grnItem.setOrderedQty(orderedQty);
+            grnItem.setReceivedQty(receivedQty);
+            grnItem.setRemainingQty(remaining.subtract(receivedQty));
+            receiveItems.add(grnItem);
+
+            totalOrdered = totalOrdered.add(orderedQty);
+            totalReceived = totalReceived.add(safe(purchaseItem.getReceivedQuantity()));
+        }
+        grn.getItems().clear();
+        grn.getItems().addAll(receiveItems);
+        goodsReceiveNoteRepository.save(grn);
+
+        entity.setStatus(totalReceived.compareTo(totalOrdered) >= 0 ? PurchaseStatus.RECEIVED : PurchaseStatus.PARTIAL_RECEIVED);
+        PurchaseOrder savedOrder = purchaseOrderRepository.save(entity);
+        if (savedOrder.getStatus() == PurchaseStatus.RECEIVED) {
+            accountingPostingService.postPurchase(savedOrder);
+        }
+        PurchaseOrderDTO saved = purchaseOrderMapper.toDTO(savedOrder);
+        activityLogService.log("PURCHASE_ORDER_RECEIVE", "PURCHASE", "purchase_orders", saved.getId(), "Received goods for purchase order " + saved.getPurchaseCode());
+        auditLogService.log("purchase_orders", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "RECEIVE");
+        return saved;
+    }
+
     private PurchaseOrderDTO save(PurchaseOrderDTO dto, PurchaseOrder entity) {
         validateItems(dto.getItems());
-        PurchaseStatus previousStatus = entity.getStatus();
 
         String requestedPurchaseCode = RequestValueUtils.normalize(dto.getPurchaseCode());
         entity.setPurchaseCode(resolvePurchaseCode(entity.getId(), requestedPurchaseCode));
@@ -127,10 +277,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         entity.setWarehouse(findWarehouseById(dto.getWarehouseId()));
         entity.setPurchaseDate(dto.getPurchaseDate());
         entity.setCreatedBy(dto.getCreatedBy());
-        entity.setStatus(dto.getStatus() != null ? dto.getStatus() : entity.getStatus());
-        if (entity.getStatus() == null) {
-            entity.setStatus(PurchaseStatus.PENDING);
-        }
+        entity.setStatus(resolveDraftStatus(dto.getStatus(), entity.getStatus(), entity.getId() == null));
 
         CalculationResult calculation = buildItems(entity, dto.getItems());
         replaceItems(entity, calculation.items());
@@ -138,39 +285,9 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         entity.setDiscountAmount(calculation.discountAmount());
         entity.setTaxAmount(calculation.taxAmount());
         entity.setNetTotal(calculation.netTotal());
-
-        BigDecimal paidAmount = safe(dto.getPaidAmount());
-        if (paidAmount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new BadRequestException("Paid amount cannot be negative");
-        }
-        entity.setPaidAmount(paidAmount);
-        entity.setDueAmount(calculation.netTotal().subtract(paidAmount).max(BigDecimal.ZERO));
-
-        PurchaseOrder saved = purchaseOrderRepository.save(entity);
-
-        if (!isReceivedStatus(previousStatus) && isReceivedStatus(saved.getStatus())) {
-            receiveStock(saved);
-            activityLogService.log("PURCHASE_RECEIVE", "PURCHASE", "purchase_orders", saved.getId(), "Received purchase order " + saved.getPurchaseCode());
-        }
-
-        if (isReceivedStatus(saved.getStatus())) {
-            accountingPostingService.postPurchase(saved);
-        }
-
-        return purchaseOrderMapper.toDTO(saved);
-    }
-
-    private void receiveStock(PurchaseOrder purchaseOrder) {
-        Long warehouseId = purchaseOrder.getWarehouse().getId();
-        for (PurchaseItem item : purchaseOrder.getItems()) {
-            stockService.stockIn(
-                    item.getProduct().getId(),
-                    warehouseId,
-                    item.getQuantity(),
-                    item.getUnitPrice(),
-                    "PURCHASE_RECEIVE",
-                    purchaseOrder.getPurchaseCode());
-        }
+        entity.setPaidAmount(BigDecimal.ZERO);
+        entity.setDueAmount(calculation.netTotal());
+        return purchaseOrderMapper.toDTO(purchaseOrderRepository.save(entity));
     }
 
     private void replaceItems(PurchaseOrder purchaseOrder, List<PurchaseItem> items) {
@@ -204,6 +321,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             item.setDiscount(discount);
             item.setTax(tax);
             item.setSubTotal(subTotal);
+            item.setReceivedQuantity(purchaseOrder.getId() != null && itemDTO.getId() != null ? safe(findExistingItemReceivedQuantity(purchaseOrder, itemDTO.getId())) : BigDecimal.ZERO);
+            item.setReturnedQuantity(purchaseOrder.getId() != null && itemDTO.getId() != null ? safe(findExistingItemReturnedQuantity(purchaseOrder, itemDTO.getId())) : BigDecimal.ZERO);
             items.add(item);
 
             totalAmount = totalAmount.add(gross);
@@ -245,14 +364,54 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
     }
 
-    private boolean isReceivedStatus(PurchaseStatus status) {
-        return status == PurchaseStatus.RECEIVED || status == PurchaseStatus.PARTIAL_PAID || status == PurchaseStatus.PAID;
-    }
-
     private void validateItems(List<PurchaseItemDTO> items) {
         if (items == null || items.isEmpty()) {
             throw new BadRequestException("At least one purchase item is required");
         }
+    }
+
+    private void ensureEditable(PurchaseOrder entity) {
+        PurchaseStatus status = normalizeStatus(entity.getStatus());
+        if (status != PurchaseStatus.DRAFT && status != PurchaseStatus.REJECTED) {
+            throw new BadRequestException("Only draft or rejected purchase orders can be edited");
+        }
+    }
+
+    private PurchaseStatus resolveDraftStatus(PurchaseStatus requested, PurchaseStatus existing, boolean creating) {
+        PurchaseStatus normalizedRequested = normalizeStatus(requested);
+        if (normalizedRequested == null) {
+            return creating ? PurchaseStatus.DRAFT : normalizeStatus(existing);
+        }
+        if (normalizedRequested != PurchaseStatus.DRAFT && normalizedRequested != PurchaseStatus.REJECTED) {
+            throw new BadRequestException("Purchase order save supports draft status only");
+        }
+        return PurchaseStatus.DRAFT;
+    }
+
+    private PurchaseStatus normalizeStatus(PurchaseStatus status) {
+        if (status == null) {
+            return PurchaseStatus.DRAFT;
+        }
+        if (status == PurchaseStatus.PENDING) {
+            return PurchaseStatus.SUBMITTED;
+        }
+        return status;
+    }
+
+    private BigDecimal findExistingItemReceivedQuantity(PurchaseOrder order, Long itemId) {
+        return order.getItems().stream()
+                .filter(item -> itemId.equals(item.getId()))
+                .map(PurchaseItem::getReceivedQuantity)
+                .findFirst()
+                .orElse(BigDecimal.ZERO);
+    }
+
+    private BigDecimal findExistingItemReturnedQuantity(PurchaseOrder order, Long itemId) {
+        return order.getItems().stream()
+                .filter(item -> itemId.equals(item.getId()))
+                .map(PurchaseItem::getReturnedQuantity)
+                .findFirst()
+                .orElse(BigDecimal.ZERO);
     }
 
     private PurchaseOrder findPurchaseOrderById(Long id) {
@@ -301,6 +460,23 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             throw new BadRequestException(message);
         }
         return normalized;
+    }
+
+    private String resolveGrnNo() {
+        long nextNumber = goodsReceiveNoteRepository.findTopByOrderByIdDesc()
+                .map(note -> note.getId() + 1)
+                .orElse(1L);
+        String generated = String.format("GRN-%04d", nextNumber);
+        while (goodsReceiveNoteRepository.existsByGrnNo(generated)) {
+            nextNumber++;
+            generated = String.format("GRN-%04d", nextNumber);
+        }
+        return generated;
+    }
+
+    private String currentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication == null ? null : authentication.getName();
     }
 
     private record CalculationResult(

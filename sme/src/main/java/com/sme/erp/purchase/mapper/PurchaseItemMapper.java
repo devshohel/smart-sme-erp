@@ -31,6 +31,8 @@ public class PurchaseItemMapper {
         dto.setDiscount(entity.getDiscount());
         dto.setTax(entity.getTax());
         dto.setSubTotal(entity.getSubTotal());
+        dto.setReceivedQuantity(entity.getReceivedQuantity());
+        dto.setReturnedQuantity(entity.getReturnedQuantity());
         return dto;
     }
 }

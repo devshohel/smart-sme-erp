@@ -36,6 +36,8 @@ public class PurchaseItemDTO {
     private BigDecimal tax;
 
     private BigDecimal subTotal;
+    private BigDecimal receivedQuantity;
+    private BigDecimal returnedQuantity;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -66,4 +68,10 @@ public class PurchaseItemDTO {
 
     public BigDecimal getSubTotal() { return subTotal; }
     public void setSubTotal(BigDecimal subTotal) { this.subTotal = subTotal; }
+
+    public BigDecimal getReceivedQuantity() { return receivedQuantity; }
+    public void setReceivedQuantity(BigDecimal receivedQuantity) { this.receivedQuantity = receivedQuantity; }
+
+    public BigDecimal getReturnedQuantity() { return returnedQuantity; }
+    public void setReturnedQuantity(BigDecimal returnedQuantity) { this.returnedQuantity = returnedQuantity; }
 }

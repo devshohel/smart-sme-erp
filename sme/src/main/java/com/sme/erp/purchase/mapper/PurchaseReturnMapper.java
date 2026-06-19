@@ -33,8 +33,22 @@ public class PurchaseReturnMapper {
         }
         dto.setReturnDate(entity.getReturnDate());
         dto.setTotalAmount(entity.getTotalAmount());
+        dto.setStatus(entity.getStatus());
         dto.setCreatedBy(entity.getCreatedBy());
         dto.setCreatedAt(entity.getCreatedAt());
+        dto.setUpdatedAt(entity.getUpdatedAt());
+        dto.setSubmittedBy(entity.getSubmittedBy());
+        dto.setSubmittedAt(entity.getSubmittedAt());
+        dto.setApprovedBy(entity.getApprovedBy());
+        dto.setApprovedAt(entity.getApprovedAt());
+        dto.setRejectedBy(entity.getRejectedBy());
+        dto.setRejectedAt(entity.getRejectedAt());
+        dto.setRejectionReason(entity.getRejectionReason());
+        dto.setPostedBy(entity.getPostedBy());
+        dto.setPostedAt(entity.getPostedAt());
+        dto.setCancelledBy(entity.getCancelledBy());
+        dto.setCancelledAt(entity.getCancelledAt());
+        dto.setNotes(entity.getNotes());
         dto.setItems(entity.getItems().stream().map(purchaseReturnItemMapper::toDTO).collect(Collectors.toList()));
         return dto;
     }

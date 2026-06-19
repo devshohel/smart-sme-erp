@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { PurchaseOrder, PurchaseStatus } from '../../../models/purchase.model';
+import { FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { PurchaseOrder, PurchaseReceive, PurchaseReceiveItem, PurchaseStatus } from '../../../models/purchase.model';
 import { PurchaseService } from '../../../services/purchase.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 
@@ -12,6 +12,7 @@ import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api
 export class PurchaseInvoiceComponent implements OnInit {
   form: FormGroup;
   orders: PurchaseOrder[] = [];
+  receives: PurchaseReceive[] = [];
   selectedOrder: PurchaseOrder | null = null;
   loading = false;
   submitting = false;
@@ -25,36 +26,33 @@ export class PurchaseInvoiceComponent implements OnInit {
     this.form = this.fb.group({
       purchaseId: [null, Validators.required],
       receiveDate: [this.today(), Validators.required],
-      paidAmount: [0, [Validators.required, Validators.min(0)]]
+      items: this.fb.array([])
     });
   }
 
   ngOnInit(): void {
     this.loadOrders();
+    this.loadReceives();
+  }
+
+  get items(): FormArray {
+    return this.form.get('items') as FormArray;
   }
 
   get eligibleOrders(): PurchaseOrder[] {
-    return this.orders.filter(order => order.status === 'APPROVED' || order.status === 'RECEIVED');
+    return this.orders.filter(order => order.status === 'APPROVED' || order.status === 'PARTIAL_RECEIVED');
   }
 
   get invoiceList(): PurchaseOrder[] {
-    return this.orders.filter(order => order.status === 'RECEIVED' || Number(order.paidAmount || 0) > 0);
+    return this.orders.filter(order => ['RECEIVED', 'PARTIAL_PAID', 'PAID'].includes(order.status));
   }
 
   get netTotal(): number {
     return Number(this.selectedOrder?.netTotal || 0);
   }
 
-  get paidAmount(): number {
-    return Number(this.form.get('paidAmount')?.value || 0);
-  }
-
-  get dueAmount(): number {
-    return Math.max(this.netTotal - this.paidAmount, 0);
-  }
-
-  get advanceAmount(): number {
-    return Math.max(this.paidAmount - this.netTotal, 0);
+  get totalReceivingQty(): number {
+    return this.items.controls.reduce((sum, control) => sum + Number(control.get('receivedQty')?.value || 0), 0);
   }
 
   loadOrders(selectedId?: number): void {
@@ -72,9 +70,16 @@ export class PurchaseInvoiceComponent implements OnInit {
         this.orders = [];
         this.selectedOrder = null;
         this.loading = false;
-        this.errorMessage = extractApiErrorMessage(error, 'Purchase invoices could not be loaded.');
+        this.errorMessage = extractApiErrorMessage(error, 'Purchase receives could not be loaded.');
         debugApiError('PurchaseInvoiceComponent.loadOrders', error);
       }
+    });
+  }
+
+  loadReceives(): void {
+    this.purchaseService.getAllReceives().subscribe({
+      next: (receives) => this.receives = receives,
+      error: (error) => debugApiError('PurchaseInvoiceComponent.loadReceives', error)
     });
   }
 
@@ -83,7 +88,7 @@ export class PurchaseInvoiceComponent implements OnInit {
     const order = this.orders.find(item => item.id === purchaseId);
     this.selectedOrder = order || null;
     if (order) {
-      this.form.patchValue({ paidAmount: order.paidAmount || 0 }, { emitEvent: false });
+      this.patchSelection(order);
     }
   }
 
@@ -101,24 +106,34 @@ export class PurchaseInvoiceComponent implements OnInit {
       return;
     }
 
-    this.submitting = true;
-    const payload: PurchaseOrder = {
-      ...this.selectedOrder,
-      status: 'RECEIVED',
-      paidAmount: this.paidAmount,
-      dueAmount: this.dueAmount
+    const payload: PurchaseReceive = {
+      purchaseOrderId: this.selectedOrder.id || null,
+      receiveDate: this.form.get('receiveDate')?.value,
+      items: this.items.controls
+        .map(control => ({
+          productId: Number(control.get('productId')?.value || 0),
+          receivedQty: Number(control.get('receivedQty')?.value || 0)
+        } as PurchaseReceiveItem))
+        .filter(item => item.receivedQty > 0)
     };
 
-    this.purchaseService.saveOrder(payload).subscribe({
+    if (!payload.items.length) {
+      this.errorMessage = 'Enter at least one receive quantity greater than zero.';
+      return;
+    }
+
+    this.submitting = true;
+    this.purchaseService.receiveOrder(this.selectedOrder.id!, payload).subscribe({
       next: (saved) => {
         this.submitting = false;
-        this.successMessage = 'Purchase invoice saved and goods receive completed.';
+        this.successMessage = 'Goods receive posted successfully.';
         this.selectedOrder = saved;
+        this.loadReceives();
         this.loadOrders(saved.id);
       },
       error: (error) => {
         this.submitting = false;
-        this.errorMessage = extractApiErrorMessage(error, 'Purchase invoice could not be saved.');
+        this.errorMessage = extractApiErrorMessage(error, 'Goods receive could not be posted.');
         debugApiError('PurchaseInvoiceComponent.receiveAndSaveInvoice', error);
       }
     });
@@ -129,13 +144,15 @@ export class PurchaseInvoiceComponent implements OnInit {
       case 'RECEIVED':
       case 'PAID':
         return 'bg-success-subtle text-success';
-      case 'APPROVED':
+      case 'PARTIAL_RECEIVED':
       case 'PARTIAL_PAID':
         return 'bg-info-subtle text-info';
+      case 'APPROVED':
+        return 'bg-warning-subtle text-warning';
       case 'CANCELLED':
         return 'bg-danger-subtle text-danger';
       default:
-        return 'bg-warning-subtle text-warning';
+        return 'bg-secondary-subtle text-secondary';
     }
   }
 
@@ -145,10 +162,26 @@ export class PurchaseInvoiceComponent implements OnInit {
   }
 
   private patchSelection(order: PurchaseOrder): void {
+    while (this.items.length > 0) {
+      this.items.removeAt(0);
+    }
+    order.items.forEach(item => {
+      const ordered = Number(item.quantity || 0);
+      const alreadyReceived = Number(item.receivedQuantity || 0);
+      const remaining = Math.max(ordered - alreadyReceived, 0);
+      this.items.push(this.fb.group({
+        productId: [item.productId, Validators.required],
+        productName: [item.productName || ''],
+        orderedQty: [ordered],
+        alreadyReceivedQty: [alreadyReceived],
+        remainingQty: [remaining],
+        receivedQty: [remaining, [Validators.required, Validators.min(0)]]
+      }));
+    });
+
     this.form.patchValue({
       purchaseId: order.id || null,
-      receiveDate: this.today(),
-      paidAmount: order.paidAmount || 0
+      receiveDate: this.today()
     }, { emitEvent: false });
   }
 

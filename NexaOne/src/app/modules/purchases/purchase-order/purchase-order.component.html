@@ -1,12 +1,12 @@
 <div class="container-fluid p-4">
   <app-page-header
     title="Purchase Orders"
-    subtitle="Create supplier purchase orders and manage approval status before receiving goods.">
+    subtitle="Create draft purchase orders, submit them for approval, and hand approved orders into the GRN workflow.">
   </app-page-header>
 
   <div class="row g-4">
     <div class="col-12">
-      <app-card title="Purchase Order List" subtitle="Supplier orders awaiting approval, cancellation, or receiving.">
+      <app-card title="Purchase Order List" subtitle="Supplier orders with enterprise approval and receive lifecycle.">
         <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
 
         <div class="table-responsive">
@@ -31,11 +31,14 @@
                 <td class="text-end">{{ order.netTotal | number:'1.2-2' }}</td>
                 <td>
                   <span class="badge px-3 py-2" [ngClass]="statusClass(order.status)">
-                    {{ order.status || 'PENDING' }}
+                    {{ order.status || 'DRAFT' }}
                   </span>
                 </td>
                 <td class="text-center">
-                  <button *ngIf="hasPermission('PURCHASE_EDIT')" type="button" class="btn btn-sm btn-outline-primary" (click)="editOrder(order)">
+                  <button type="button" class="btn btn-sm btn-outline-primary" (click)="selectedOrder = order">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <button *ngIf="canEdit(order)" type="button" class="btn btn-sm btn-outline-secondary ms-1" (click)="editOrder(order)">
                     <i class="bi bi-pencil"></i>
                   </button>
                 </td>
@@ -51,138 +54,141 @@
         </div>
       </app-card>
 
-      <app-card *ngIf="selectedOrder" title="Selected Purchase Summary" subtitle="Quick view of the currently selected purchase order.">
+      <app-card *ngIf="selectedOrder" title="Selected Purchase Summary" subtitle="Quick view and workflow actions for the selected purchase order.">
         <div class="row g-3">
           <div class="col-md-6"><strong>Purchase Code:</strong> {{ selectedOrder.purchaseCode || 'Draft' }}</div>
           <div class="col-md-6">
             <strong>Status:</strong>
-            <span class="badge px-3 py-2 ms-2" [ngClass]="statusClass(selectedOrder.status)">{{ selectedOrder.status || 'PENDING' }}</span>
+            <span class="badge px-3 py-2 ms-2" [ngClass]="statusClass(selectedOrder.status)">{{ selectedOrder.status || 'DRAFT' }}</span>
           </div>
           <div class="col-md-6"><strong>Supplier:</strong> {{ selectedOrder.supplierName || 'N/A' }}</div>
           <div class="col-md-6"><strong>Warehouse:</strong> {{ selectedOrder.warehouseName || 'N/A' }}</div>
           <div class="col-md-6"><strong>Purchase Date:</strong> {{ selectedOrder.purchaseDate | date:'mediumDate' }}</div>
           <div class="col-md-6"><strong>Net Total:</strong> {{ selectedOrder.netTotal | number:'1.2-2' }}</div>
+          <div class="col-md-6"><strong>Paid:</strong> {{ selectedOrder.paidAmount | number:'1.2-2' }}</div>
+          <div class="col-md-6"><strong>Due:</strong> {{ selectedOrder.dueAmount | number:'1.2-2' }}</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <button *ngIf="canEdit(selectedOrder)" type="button" class="btn btn-outline-secondary btn-sm" (click)="editOrder(selectedOrder)">Edit Draft</button>
+          <button *ngIf="canSubmit(selectedOrder)" type="button" class="btn btn-outline-primary btn-sm" (click)="submitSelected(selectedOrder)">Submit</button>
+          <button *ngIf="canApprove(selectedOrder)" type="button" class="btn btn-success btn-sm" (click)="approveSelected(selectedOrder)">Approve</button>
+          <button *ngIf="canReject(selectedOrder)" type="button" class="btn btn-outline-danger btn-sm" (click)="rejectSelected(selectedOrder)">Reject</button>
+          <button *ngIf="canCancel(selectedOrder)" type="button" class="btn btn-outline-danger btn-sm" (click)="cancelSelected(selectedOrder)">Cancel</button>
+          <a *ngIf="canReceive(selectedOrder)" class="btn btn-outline-warning btn-sm" [routerLink]="['/purchases/receives/create', selectedOrder.id]">Receive Goods</a>
+          <button *ngIf="hasPermission('PURCHASE_ORDER_PRINT')" type="button" class="btn btn-outline-dark btn-sm" (click)="printSelected()">Print</button>
         </div>
       </app-card>
     </div>
 
     <div class="col-12">
       <app-card
-        *ngIf="hasPermission(editingOrderId ? 'PURCHASE_EDIT' : 'PURCHASE_CREATE')"
+        *ngIf="hasPermission(editingOrderId ? 'PURCHASE_ORDER_EDIT' : 'PURCHASE_ORDER_CREATE')"
         [title]="editingOrderId ? 'Edit Purchase Order' : 'Create Purchase Order'"
-        subtitle="Use Purchase Invoices for goods receive, stock update, and supplier payment.">
+        subtitle="Purchase orders save as draft only. Submit and approval happen through explicit workflow actions.">
         <div class="purchase-form-shell">
-        <form [formGroup]="form" (ngSubmit)="saveOrder()" novalidate>
-          <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
+          <form [formGroup]="form" (ngSubmit)="saveOrder()" novalidate>
+            <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
 
-          <div class="section-title">Header Information</div>
-          <div class="row g-3 form-grid">
-            <div class="col-12 col-md-6 col-xl-3">
-              <label class="form-label">Purchase Code</label>
-              <input type="text" class="form-control" formControlName="purchaseCode" readonly>
-              <div class="form-text">Handled automatically by backend.</div>
+            <div class="section-title">Header Information</div>
+            <div class="row g-3 form-grid">
+              <div class="col-12 col-md-6 col-xl-3">
+                <label class="form-label">Purchase Code</label>
+                <input type="text" class="form-control" formControlName="purchaseCode" readonly>
+                <div class="form-text">Handled automatically by backend.</div>
+              </div>
+
+              <div class="col-12 col-md-6 col-xl-3">
+                <label class="form-label">Supplier *</label>
+                <select class="form-select" formControlName="supplierId">
+                  <option [ngValue]="null">Select Supplier</option>
+                  <option *ngFor="let supplier of suppliers" [ngValue]="supplier.id">{{ supplier.name }}</option>
+                </select>
+                <div class="invalid-feedback d-block" *ngIf="hasError('supplierId', 'required')">Supplier is required.</div>
+              </div>
+
+              <div class="col-12 col-md-6 col-xl-3">
+                <label class="form-label">Warehouse *</label>
+                <select class="form-select" formControlName="warehouseId">
+                  <option [ngValue]="null">Select Warehouse</option>
+                  <option *ngFor="let warehouse of warehouses" [ngValue]="warehouse.id">{{ warehouse.name }}</option>
+                </select>
+                <div class="invalid-feedback d-block" *ngIf="hasError('warehouseId', 'required')">Warehouse is required.</div>
+              </div>
+
+              <div class="col-12 col-md-6 col-xl-3">
+                <label class="form-label">Purchase Date *</label>
+                <input type="date" class="form-control" formControlName="purchaseDate">
+                <div class="invalid-feedback d-block" *ngIf="hasError('purchaseDate', 'required')">Purchase date is required.</div>
+              </div>
             </div>
 
-            <div class="col-12 col-md-6 col-xl-3">
-              <label class="form-label">Status *</label>
-              <select class="form-select" formControlName="status">
-                <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
-              </select>
+            <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+              <div class="section-title mb-0">Item Table Section</div>
+              <button *ngIf="hasPermission(editingOrderId ? 'PURCHASE_ORDER_EDIT' : 'PURCHASE_ORDER_CREATE')" type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
+                <i class="bi bi-plus-lg me-1"></i>Add Row
+              </button>
             </div>
 
-            <div class="col-12 col-md-6 col-xl-3">
-              <label class="form-label">Supplier *</label>
-              <select class="form-select" formControlName="supplierId">
-                <option [ngValue]="null">Select Supplier</option>
-                <option *ngFor="let supplier of suppliers" [ngValue]="supplier.id">{{ supplier.name }}</option>
-              </select>
-              <div class="invalid-feedback d-block" *ngIf="hasError('supplierId', 'required')">Supplier is required.</div>
+            <div class="table-responsive purchase-items-table-wrap">
+              <table class="table table-sm align-middle purchase-items-table">
+                <thead class="table-light">
+                  <tr>
+                    <th class="product-column">Product</th>
+                    <th class="uom-column">UOM</th>
+                    <th class="number-column text-end">Qty</th>
+                    <th class="number-column text-end">Unit Price</th>
+                    <th class="number-column text-end">Discount</th>
+                    <th class="number-column text-end">Tax</th>
+                    <th class="number-column text-end">Subtotal</th>
+                    <th class="action-column text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody formArrayName="items">
+                  <tr *ngFor="let group of items.controls; let i = index" [formGroupName]="i">
+                    <td>
+                      <select class="form-select form-select-sm item-product-select" formControlName="productId" (change)="onProductChange(i)">
+                        <option [ngValue]="null">Select Product</option>
+                        <option *ngFor="let product of products" [ngValue]="product.id">{{ product.productName }}</option>
+                      </select>
+                    </td>
+                    <td>
+                      <select class="form-select form-select-sm" formControlName="uomId">
+                        <option [ngValue]="null">Select UOM</option>
+                        <option *ngFor="let uom of uoms" [ngValue]="uom.id">{{ uom.name }}</option>
+                      </select>
+                    </td>
+                    <td><input type="number" class="form-control form-control-sm text-end item-number-input" formControlName="quantity" min="0.01" step="0.01"></td>
+                    <td><input type="number" class="form-control form-control-sm text-end item-number-input" formControlName="unitPrice" min="0" step="0.01"></td>
+                    <td><input type="number" class="form-control form-control-sm text-end item-number-input" formControlName="discount" min="0" step="0.01"></td>
+                    <td><input type="number" class="form-control form-control-sm text-end item-number-input" formControlName="tax" min="0" step="0.01"></td>
+                    <td><input type="number" class="form-control form-control-sm text-end item-number-input" formControlName="subTotal" readonly></td>
+                    <td class="text-center">
+                      <button type="button" class="btn btn-sm btn-light border" (click)="removeItem(i)" [disabled]="items.length === 1">
+                        <i class="bi bi-trash text-danger"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
 
-            <div class="col-12 col-md-6 col-xl-3">
-              <label class="form-label">Warehouse *</label>
-              <select class="form-select" formControlName="warehouseId">
-                <option [ngValue]="null">Select Warehouse</option>
-                <option *ngFor="let warehouse of warehouses" [ngValue]="warehouse.id">{{ warehouse.name }}</option>
-              </select>
-              <div class="invalid-feedback d-block" *ngIf="hasError('warehouseId', 'required')">Warehouse is required.</div>
+            <div class="section-title mt-4">Summary Section</div>
+            <div class="summary-panel">
+              <div class="d-flex justify-content-between"><span>Total Amount</span><strong>{{ totalAmount | number:'1.2-2' }}</strong></div>
+              <div class="d-flex justify-content-between mt-2"><span>Discount Amount</span><strong>{{ discountAmount | number:'1.2-2' }}</strong></div>
+              <div class="d-flex justify-content-between mt-2"><span>Tax Amount</span><strong>{{ taxAmount | number:'1.2-2' }}</strong></div>
+              <div class="d-flex justify-content-between mt-2"><span>Net Total</span><strong>{{ netTotal | number:'1.2-2' }}</strong></div>
             </div>
 
-            <div class="col-12 col-md-6 col-xl-3">
-              <label class="form-label">Purchase Date *</label>
-              <input type="date" class="form-control" formControlName="purchaseDate">
-              <div class="invalid-feedback d-block" *ngIf="hasError('purchaseDate', 'required')">Purchase date is required.</div>
+            <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">
+              <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">
+                {{ editingOrderId ? 'Cancel Edit' : 'Reset' }}
+              </button>
+              <button type="submit" class="btn btn-success px-4" [disabled]="submitting || !hasPermission(editingOrderId ? 'PURCHASE_ORDER_EDIT' : 'PURCHASE_ORDER_CREATE')">
+                {{ submitting ? 'Saving...' : (editingOrderId ? 'Update Order' : 'Save Order') }}
+              </button>
             </div>
-
-          </div>
-
-          <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
-            <div class="section-title mb-0">Item Table Section</div>
-            <button *ngIf="hasPermission(editingOrderId ? 'PURCHASE_EDIT' : 'PURCHASE_CREATE')" type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
-              <i class="bi bi-plus-lg me-1"></i>Add Row
-            </button>
-          </div>
-
-          <div class="table-responsive purchase-items-table-wrap">
-            <table class="table table-sm align-middle purchase-items-table">
-              <thead class="table-light">
-                <tr>
-                  <th class="product-column">Product</th>
-                  <th class="uom-column">UOM</th>
-                  <th class="number-column text-end">Qty</th>
-                  <th class="number-column text-end">Unit Price</th>
-                  <th class="number-column text-end">Discount</th>
-                  <th class="number-column text-end">Tax</th>
-                  <th class="number-column text-end">Subtotal</th>
-                  <th class="action-column text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody formArrayName="items">
-                <tr *ngFor="let group of items.controls; let i = index" [formGroupName]="i">
-                  <td>
-                    <select class="form-select form-select-sm item-product-select" formControlName="productId" (change)="onProductChange(i)">
-                      <option [ngValue]="null">Select Product</option>
-                      <option *ngFor="let product of products" [ngValue]="product.id">{{ product.productName }}</option>
-                    </select>
-                  </td>
-                  <td>
-                    <select class="form-select form-select-sm" formControlName="uomId">
-                      <option [ngValue]="null">Select UOM</option>
-                      <option *ngFor="let uom of uoms" [ngValue]="uom.id">{{ uom.name }}</option>
-                    </select>
-                  </td>
-                  <td><input type="number" class="form-control form-control-sm text-end item-number-input" formControlName="quantity" min="0.01" step="0.01"></td>
-                  <td><input type="number" class="form-control form-control-sm text-end item-number-input" formControlName="unitPrice" min="0" step="0.01"></td>
-                  <td><input type="number" class="form-control form-control-sm text-end item-number-input" formControlName="discount" min="0" step="0.01"></td>
-                  <td><input type="number" class="form-control form-control-sm text-end item-number-input" formControlName="tax" min="0" step="0.01"></td>
-                  <td><input type="number" class="form-control form-control-sm text-end item-number-input" formControlName="subTotal" readonly></td>
-                  <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-light border" (click)="removeItem(i)" [disabled]="items.length === 1">
-                      <i class="bi bi-trash text-danger"></i>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="section-title mt-4">Summary Section</div>
-          <div class="summary-panel">
-            <div class="d-flex justify-content-between"><span>Total Amount</span><strong>{{ totalAmount | number:'1.2-2' }}</strong></div>
-            <div class="d-flex justify-content-between mt-2"><span>Discount Amount</span><strong>{{ discountAmount | number:'1.2-2' }}</strong></div>
-            <div class="d-flex justify-content-between mt-2"><span>Tax Amount</span><strong>{{ taxAmount | number:'1.2-2' }}</strong></div>
-            <div class="d-flex justify-content-between mt-2"><span>Net Total</span><strong>{{ netTotal | number:'1.2-2' }}</strong></div>
-          </div>
-
-          <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">
-            <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">
-              {{ editingOrderId ? 'Cancel Edit' : 'Reset' }}
-            </button>
-            <button type="submit" class="btn btn-success px-4" [disabled]="submitting || !hasPermission(editingOrderId ? 'PURCHASE_EDIT' : 'PURCHASE_CREATE')">
-              {{ submitting ? 'Saving...' : (editingOrderId ? 'Update Order' : 'Save Order') }}
-            </button>
-          </div>
-        </form>
+          </form>
         </div>
       </app-card>
     </div>

@@ -42,6 +42,15 @@ public class PurchaseOrderMapper {
         dto.setCreatedBy(entity.getCreatedBy());
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
+        dto.setSubmittedBy(entity.getSubmittedBy());
+        dto.setSubmittedAt(entity.getSubmittedAt());
+        dto.setApprovedBy(entity.getApprovedBy());
+        dto.setApprovedAt(entity.getApprovedAt());
+        dto.setRejectedBy(entity.getRejectedBy());
+        dto.setRejectedAt(entity.getRejectedAt());
+        dto.setRejectionReason(entity.getRejectionReason());
+        dto.setCancelledBy(entity.getCancelledBy());
+        dto.setCancelledAt(entity.getCancelledAt());
         dto.setItems(entity.getItems().stream().map(purchaseItemMapper::toDTO).collect(Collectors.toList()));
         return dto;
     }

@@ -1,12 +1,12 @@
 <div class="container-fluid p-4">
   <app-page-header
     title="Purchase Returns"
-    subtitle="Create supplier return entries and review returned purchase items with quick totals.">
+    subtitle="Create supplier returns, submit them for approval, and post stock/accounting-safe returns.">
   </app-page-header>
 
   <div class="row g-4">
     <div class="col-12">
-      <app-card title="Purchase Return List" subtitle="Saved purchase returns loaded from backend.">
+      <app-card title="Purchase Return List" subtitle="Saved purchase returns with enterprise workflow status.">
         <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
 
         <div class="table-responsive">
@@ -18,6 +18,7 @@
                 <th>Supplier</th>
                 <th>Return Date</th>
                 <th class="text-end">Total Amount</th>
+                <th>Status</th>
                 <th class="text-center">Actions</th>
               </tr>
             </thead>
@@ -28,6 +29,7 @@
                 <td>{{ purchaseReturn.supplierName || 'N/A' }}</td>
                 <td>{{ purchaseReturn.returnDate | date:'mediumDate' }}</td>
                 <td class="text-end">{{ purchaseReturn.totalAmount | number:'1.2-2' }}</td>
+                <td><span class="badge px-3 py-2" [ngClass]="statusClass(purchaseReturn.status)">{{ purchaseReturn.status || 'DRAFT' }}</span></td>
                 <td class="text-center">
                   <button type="button" class="btn btn-sm btn-outline-primary" (click)="selectReturn(purchaseReturn)">
                     <i class="bi bi-eye"></i>
@@ -35,10 +37,10 @@
                 </td>
               </tr>
               <tr *ngIf="!loading && returns.length === 0">
-                <td colspan="6" class="text-center text-muted py-5">No purchase returns found.</td>
+                <td colspan="7" class="text-center text-muted py-5">No purchase returns found.</td>
               </tr>
               <tr *ngIf="loading">
-                <td colspan="6" class="text-center text-muted py-5">Loading purchase returns...</td>
+                <td colspan="7" class="text-center text-muted py-5">Loading purchase returns...</td>
               </tr>
             </tbody>
           </table>
@@ -54,11 +56,19 @@
           <div class="col-md-6"><strong>Total Amount:</strong> {{ selectedReturn.totalAmount | number:'1.2-2' }}</div>
           <div class="col-md-6"><strong>Items:</strong> {{ selectedReturn.items.length }}</div>
         </div>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <button *ngIf="selectedReturn.status === 'DRAFT' && hasPermission('PURCHASE_RETURN_SUBMIT')" type="button" class="btn btn-outline-primary btn-sm" (click)="submitSelected()">Submit</button>
+          <button *ngIf="selectedReturn.status === 'SUBMITTED' && hasPermission('PURCHASE_RETURN_APPROVE')" type="button" class="btn btn-success btn-sm" (click)="approveSelected()">Approve</button>
+          <button *ngIf="selectedReturn.status === 'SUBMITTED' && hasPermission('PURCHASE_RETURN_REJECT')" type="button" class="btn btn-outline-danger btn-sm" (click)="rejectSelected()">Reject</button>
+          <button *ngIf="selectedReturn.status === 'APPROVED' && hasPermission('PURCHASE_RETURN_POST')" type="button" class="btn btn-warning btn-sm" (click)="postSelected()">Post</button>
+          <button *ngIf="selectedReturn.status !== 'POSTED' && selectedReturn.status !== 'CANCELLED' && hasPermission('PURCHASE_RETURN_CANCEL')" type="button" class="btn btn-outline-danger btn-sm" (click)="cancelSelected()">Cancel</button>
+          <button *ngIf="hasPermission('PURCHASE_RETURN_PRINT')" type="button" class="btn btn-outline-dark btn-sm" (click)="printSelected()">Print</button>
+        </div>
       </app-card>
     </div>
 
     <div class="col-12">
-      <app-card title="Create Purchase Return" subtitle="Returned purchase items deduct stock after backend save.">
+      <app-card title="Create Purchase Return" subtitle="Draft returns can be edited, then submitted, approved, and posted explicitly.">
         <div class="purchase-return-form-shell">
         <form [formGroup]="form" (ngSubmit)="saveReturn()" novalidate>
           <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
@@ -75,6 +85,11 @@
               <label class="form-label">Return Date *</label>
               <input type="date" class="form-control" formControlName="returnDate">
               <div class="invalid-feedback d-block" *ngIf="hasError('returnDate', 'required')">Return date is required.</div>
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+              <label class="form-label">Status</label>
+              <input type="text" class="form-control" formControlName="status" readonly>
             </div>
 
             <div class="col-12 col-md-6 col-xl-3">
@@ -146,7 +161,7 @@
           <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">
             <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">Reset</button>
             <button type="submit" class="btn btn-success px-4" [disabled]="submitting">
-              {{ submitting ? 'Saving...' : 'Save Return' }}
+              {{ submitting ? 'Saving...' : (editingReturnId ? 'Update Return' : 'Save Return') }}
             </button>
           </div>
         </form>

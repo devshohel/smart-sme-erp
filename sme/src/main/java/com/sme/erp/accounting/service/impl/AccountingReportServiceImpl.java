@@ -99,7 +99,9 @@ public class AccountingReportServiceImpl implements AccountingReportService {
             }
         }
         for (PurchaseReturn purchaseReturn : purchaseReturnRepository.findAll()) {
-            if (!matchesSupplier(purchaseReturn, supplierId) || !within(purchaseReturn.getReturnDate().toLocalDate(), fromDate, toDate)) {
+            if (purchaseReturn.getStatus() != PurchaseStatus.POSTED
+                    || !matchesSupplier(purchaseReturn, supplierId)
+                    || !within(purchaseReturn.getReturnDate().toLocalDate(), fromDate, toDate)) {
                 continue;
             }
             rows.add(new RawLedgerEntry(purchaseReturn.getReturnDate().toLocalDate(), "Accounts Payable", purchaseReturn.getReturnCode(), supplierName(purchaseReturn) + " purchase return", safe(purchaseReturn.getTotalAmount()), BigDecimal.ZERO));

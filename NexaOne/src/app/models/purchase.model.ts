@@ -1,10 +1,15 @@
 export type PurchaseStatus =
   | 'DRAFT'
+  | 'SUBMITTED'
   | 'PENDING'
   | 'APPROVED'
+  | 'REJECTED'
+  | 'PARTIAL_RECEIVED'
   | 'RECEIVED'
+  | 'POSTED'
   | 'PARTIAL_PAID'
   | 'PAID'
+  | 'REVERSED'
   | 'CANCELLED';
 
 export interface PurchaseItem {
@@ -18,6 +23,8 @@ export interface PurchaseItem {
   discount: number;
   tax: number;
   subTotal: number;
+  receivedQuantity?: number;
+  returnedQuantity?: number;
 }
 
 export interface PurchaseOrder {
@@ -38,7 +45,42 @@ export interface PurchaseOrder {
   createdBy?: number | null;
   createdAt?: string;
   updatedAt?: string;
+  submittedBy?: string | null;
+  submittedAt?: string;
+  approvedBy?: string | null;
+  approvedAt?: string;
+  rejectedBy?: string | null;
+  rejectedAt?: string;
+  rejectionReason?: string | null;
+  cancelledBy?: string | null;
+  cancelledAt?: string;
   items: PurchaseItem[];
+}
+
+export type PurchaseReceiveStatus = 'POSTED' | 'CANCELLED';
+
+export interface PurchaseReceiveItem {
+  id?: number;
+  productId: number | null;
+  productName?: string;
+  orderedQty?: number;
+  receivedQty: number;
+  remainingQty?: number;
+}
+
+export interface PurchaseReceive {
+  id?: number;
+  grnNo?: string;
+  purchaseOrderId: number | null;
+  purchaseCode?: string;
+  warehouseId?: number | null;
+  warehouseName?: string;
+  receiveDate: string;
+  status?: PurchaseReceiveStatus;
+  notes?: string;
+  createdAt?: string;
+  postedAt?: string;
+  items: PurchaseReceiveItem[];
 }
 
 export interface PurchaseReturnItem {
@@ -59,7 +101,21 @@ export interface PurchaseReturn {
   supplierName?: string;
   returnDate: string;
   totalAmount: number;
+  status?: PurchaseStatus;
   createdBy?: number | null;
   createdAt?: string;
+  updatedAt?: string;
+  submittedBy?: string | null;
+  submittedAt?: string;
+  approvedBy?: string | null;
+  approvedAt?: string;
+  rejectedBy?: string | null;
+  rejectedAt?: string;
+  rejectionReason?: string | null;
+  postedBy?: string | null;
+  postedAt?: string;
+  cancelledBy?: string | null;
+  cancelledAt?: string;
+  notes?: string;
   items: PurchaseReturnItem[];
 }

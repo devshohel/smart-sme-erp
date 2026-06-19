@@ -1,28 +1,35 @@
 package com.sme.erp.purchase.service.impl;
 
+import com.sme.erp.accounting.service.AccountingPostingService;
+import com.sme.erp.audit.service.ActivityLogService;
+import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
-import com.sme.erp.accounting.service.AccountingPostingService;
 import com.sme.erp.inventory.service.StockService;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.repository.ProductRepository;
 import com.sme.erp.purchase.dto.PurchaseReturnDTO;
 import com.sme.erp.purchase.dto.PurchaseReturnItemDTO;
+import com.sme.erp.purchase.entity.PurchaseItem;
 import com.sme.erp.purchase.entity.PurchaseOrder;
 import com.sme.erp.purchase.entity.PurchaseReturn;
 import com.sme.erp.purchase.entity.PurchaseReturnItem;
+import com.sme.erp.purchase.enums.PurchaseStatus;
 import com.sme.erp.purchase.mapper.PurchaseReturnMapper;
 import com.sme.erp.purchase.repository.PurchaseOrderRepository;
 import com.sme.erp.purchase.repository.PurchaseReturnRepository;
 import com.sme.erp.purchase.service.PurchaseReturnService;
 import com.sme.erp.supplier.entity.Supplier;
 import com.sme.erp.supplier.repository.SupplierRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -36,6 +43,8 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
     private final ProductRepository productRepository;
     private final PurchaseReturnMapper purchaseReturnMapper;
     private final StockService stockService;
+    private final ActivityLogService activityLogService;
+    private final AuditLogService auditLogService;
     private final AccountingPostingService accountingPostingService;
 
     public PurchaseReturnServiceImpl(
@@ -45,6 +54,8 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
             ProductRepository productRepository,
             PurchaseReturnMapper purchaseReturnMapper,
             StockService stockService,
+            ActivityLogService activityLogService,
+            AuditLogService auditLogService,
             AccountingPostingService accountingPostingService) {
         this.purchaseReturnRepository = purchaseReturnRepository;
         this.purchaseOrderRepository = purchaseOrderRepository;
@@ -52,6 +63,8 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
         this.productRepository = productRepository;
         this.purchaseReturnMapper = purchaseReturnMapper;
         this.stockService = stockService;
+        this.activityLogService = activityLogService;
+        this.auditLogService = auditLogService;
         this.accountingPostingService = accountingPostingService;
     }
 
@@ -72,6 +85,127 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
     @Override
     @Transactional
     public PurchaseReturnDTO create(PurchaseReturnDTO dto) {
+        PurchaseReturn entity = new PurchaseReturn();
+        PurchaseReturnDTO saved = save(dto, entity, true);
+        activityLogService.log("PURCHASE_RETURN_CREATE", "PURCHASE", "purchase_returns", saved.getId(), "Created purchase return " + saved.getReturnCode());
+        auditLogService.log("purchase_returns", saved.getId(), null, auditLogService.toJson(saved), "CREATE");
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public PurchaseReturnDTO update(Long id, PurchaseReturnDTO dto) {
+        PurchaseReturn entity = findReturnById(id);
+        ensureEditable(entity);
+        PurchaseReturnDTO oldData = purchaseReturnMapper.toDTO(entity);
+        PurchaseReturnDTO saved = save(dto, entity, false);
+        activityLogService.log("PURCHASE_RETURN_UPDATE", "PURCHASE", "purchase_returns", saved.getId(), "Updated purchase return " + saved.getReturnCode());
+        auditLogService.log("purchase_returns", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "UPDATE");
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public PurchaseReturnDTO submit(Long id) {
+        PurchaseReturn entity = findReturnById(id);
+        PurchaseStatus status = normalizeStatus(entity.getStatus());
+        if (status != PurchaseStatus.DRAFT && status != PurchaseStatus.REJECTED) {
+            throw new BadRequestException("Only draft or rejected purchase returns can be submitted");
+        }
+        PurchaseReturnDTO oldData = purchaseReturnMapper.toDTO(entity);
+        entity.setStatus(PurchaseStatus.SUBMITTED);
+        entity.setSubmittedAt(LocalDateTime.now());
+        entity.setSubmittedBy(currentUsername());
+        PurchaseReturnDTO saved = purchaseReturnMapper.toDTO(purchaseReturnRepository.save(entity));
+        activityLogService.log("PURCHASE_RETURN_SUBMIT", "PURCHASE", "purchase_returns", saved.getId(), "Submitted purchase return " + saved.getReturnCode());
+        auditLogService.log("purchase_returns", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "SUBMIT");
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public PurchaseReturnDTO approve(Long id) {
+        PurchaseReturn entity = findReturnById(id);
+        if (normalizeStatus(entity.getStatus()) != PurchaseStatus.SUBMITTED) {
+            throw new BadRequestException("Only submitted purchase returns can be approved");
+        }
+        PurchaseReturnDTO oldData = purchaseReturnMapper.toDTO(entity);
+        entity.setStatus(PurchaseStatus.APPROVED);
+        entity.setApprovedAt(LocalDateTime.now());
+        entity.setApprovedBy(currentUsername());
+        PurchaseReturnDTO saved = purchaseReturnMapper.toDTO(purchaseReturnRepository.save(entity));
+        activityLogService.log("PURCHASE_RETURN_APPROVE", "PURCHASE", "purchase_returns", saved.getId(), "Approved purchase return " + saved.getReturnCode());
+        auditLogService.log("purchase_returns", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "APPROVE");
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public PurchaseReturnDTO reject(Long id, String reason) {
+        PurchaseReturn entity = findReturnById(id);
+        if (normalizeStatus(entity.getStatus()) != PurchaseStatus.SUBMITTED) {
+            throw new BadRequestException("Only submitted purchase returns can be rejected");
+        }
+        PurchaseReturnDTO oldData = purchaseReturnMapper.toDTO(entity);
+        entity.setStatus(PurchaseStatus.REJECTED);
+        entity.setRejectedAt(LocalDateTime.now());
+        entity.setRejectedBy(currentUsername());
+        entity.setRejectionReason(RequestValueUtils.normalizeRequired(reason, "Rejection reason"));
+        PurchaseReturnDTO saved = purchaseReturnMapper.toDTO(purchaseReturnRepository.save(entity));
+        activityLogService.log("PURCHASE_RETURN_REJECT", "PURCHASE", "purchase_returns", saved.getId(), "Rejected purchase return " + saved.getReturnCode());
+        auditLogService.log("purchase_returns", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "REJECT");
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public PurchaseReturnDTO post(Long id) {
+        PurchaseReturn entity = findReturnById(id);
+        if (normalizeStatus(entity.getStatus()) != PurchaseStatus.APPROVED) {
+            throw new BadRequestException("Only approved purchase returns can be posted");
+        }
+        PurchaseOrder purchaseOrder = entity.getPurchase();
+        if (!isReceivedOrSettled(purchaseOrder.getStatus())) {
+            throw new BadRequestException("Purchase return can only be posted against a received purchase order");
+        }
+        if (safe(entity.getTotalAmount()).compareTo(safe(purchaseOrder.getDueAmount())) > 0) {
+            throw new BadRequestException("Posted return amount cannot exceed current purchase due until supplier credit memo support is added");
+        }
+        PurchaseReturnDTO oldData = purchaseReturnMapper.toDTO(entity);
+        deductReturnedStock(entity);
+        applyReturnToPurchase(entity);
+        accountingPostingService.postPurchaseReturn(entity);
+        entity.setStatus(PurchaseStatus.POSTED);
+        entity.setPostedAt(LocalDateTime.now());
+        entity.setPostedBy(currentUsername());
+        PurchaseReturnDTO saved = purchaseReturnMapper.toDTO(purchaseReturnRepository.save(entity));
+        activityLogService.log("PURCHASE_RETURN_POST", "PURCHASE", "purchase_returns", saved.getId(), "Posted purchase return " + saved.getReturnCode());
+        auditLogService.log("purchase_returns", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "POST");
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public PurchaseReturnDTO cancel(Long id) {
+        PurchaseReturn entity = findReturnById(id);
+        PurchaseStatus status = normalizeStatus(entity.getStatus());
+        if (status == PurchaseStatus.POSTED) {
+            throw new BadRequestException("Posted purchase return cannot be cancelled");
+        }
+        if (status == PurchaseStatus.CANCELLED) {
+            throw new BadRequestException("Purchase return is already cancelled");
+        }
+        PurchaseReturnDTO oldData = purchaseReturnMapper.toDTO(entity);
+        entity.setStatus(PurchaseStatus.CANCELLED);
+        entity.setCancelledAt(LocalDateTime.now());
+        entity.setCancelledBy(currentUsername());
+        PurchaseReturnDTO saved = purchaseReturnMapper.toDTO(purchaseReturnRepository.save(entity));
+        activityLogService.log("PURCHASE_RETURN_CANCEL", "PURCHASE", "purchase_returns", saved.getId(), "Cancelled purchase return " + saved.getReturnCode());
+        auditLogService.log("purchase_returns", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "CANCEL");
+        return saved;
+    }
+
+    private PurchaseReturnDTO save(PurchaseReturnDTO dto, PurchaseReturn entity, boolean creating) {
         validateItems(dto.getItems());
 
         PurchaseOrder purchaseOrder = findPurchaseById(dto.getPurchaseId());
@@ -80,23 +214,20 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
             throw new BadRequestException("Return supplier must match the purchase supplier");
         }
 
-        PurchaseReturn entity = new PurchaseReturn();
-        entity.setReturnCode(resolveReturnCode(RequestValueUtils.normalize(dto.getReturnCode())));
+        entity.setReturnCode(resolveReturnCode(entity.getId(), RequestValueUtils.normalize(dto.getReturnCode())));
         entity.setPurchase(purchaseOrder);
         entity.setSupplier(supplier);
         entity.setReturnDate(dto.getReturnDate());
         entity.setCreatedBy(dto.getCreatedBy());
+        entity.setNotes(RequestValueUtils.normalize(dto.getNotes()));
+        entity.setStatus(resolveDraftStatus(dto.getStatus(), entity.getStatus(), creating));
 
         CalculationResult calculation = buildItems(entity, dto.getItems());
-        entity.setItems(calculation.items());
+        entity.getItems().clear();
+        entity.getItems().addAll(calculation.items());
         entity.setTotalAmount(calculation.totalAmount());
 
-        PurchaseReturn saved = purchaseReturnRepository.save(entity);
-
-        deductReturnedStock(saved);
-        accountingPostingService.postPurchaseReturn(saved);
-
-        return purchaseReturnMapper.toDTO(saved);
+        return purchaseReturnMapper.toDTO(purchaseReturnRepository.save(entity));
     }
 
     private void deductReturnedStock(PurchaseReturn purchaseReturn) {
@@ -111,6 +242,27 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
         }
     }
 
+    private void applyReturnToPurchase(PurchaseReturn purchaseReturn) {
+        PurchaseOrder purchaseOrder = purchaseReturn.getPurchase();
+        for (PurchaseReturnItem returnItem : purchaseReturn.getItems()) {
+            PurchaseItem matchedItem = purchaseOrder.getItems().stream()
+                    .filter(item -> item.getProduct() != null
+                            && returnItem.getProduct() != null
+                            && item.getProduct().getId().equals(returnItem.getProduct().getId()))
+                    .findFirst()
+                    .orElseThrow(() -> new BadRequestException("Returned product does not belong to the purchase order"));
+            BigDecimal available = safe(matchedItem.getReceivedQuantity()).subtract(safe(matchedItem.getReturnedQuantity()));
+            if (safe(returnItem.getQuantity()).compareTo(available) > 0) {
+                throw new BadRequestException("Return quantity cannot exceed received and unreturned quantity");
+            }
+            matchedItem.setReturnedQuantity(safe(matchedItem.getReturnedQuantity()).add(safe(returnItem.getQuantity())));
+        }
+        BigDecimal newDue = safe(purchaseOrder.getDueAmount()).subtract(safe(purchaseReturn.getTotalAmount())).max(BigDecimal.ZERO);
+        purchaseOrder.setDueAmount(newDue);
+        purchaseOrder.setStatus(resolvePurchaseStatusAfterReturn(purchaseOrder));
+        purchaseOrderRepository.save(purchaseOrder);
+    }
+
     private CalculationResult buildItems(PurchaseReturn purchaseReturn, List<PurchaseReturnItemDTO> itemDTOs) {
         List<PurchaseReturnItem> items = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
@@ -120,6 +272,14 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
             BigDecimal quantity = positive(itemDTO.getQuantity(), "Quantity must be positive");
             BigDecimal unitPrice = nonNegative(itemDTO.getUnitPrice(), "Unit price cannot be negative");
             BigDecimal total = quantity.multiply(unitPrice);
+            PurchaseItem purchaseItem = purchaseReturn.getPurchase().getItems().stream()
+                    .filter(item -> item.getProduct() != null && item.getProduct().getId().equals(itemDTO.getProductId()))
+                    .findFirst()
+                    .orElseThrow(() -> new BadRequestException("Return item product does not belong to the purchase order"));
+            BigDecimal available = safe(purchaseItem.getReceivedQuantity()).subtract(safe(purchaseItem.getReturnedQuantity()));
+            if (quantity.compareTo(available) > 0) {
+                throw new BadRequestException("Return quantity cannot exceed received and unreturned quantity");
+            }
 
             PurchaseReturnItem item = new PurchaseReturnItem();
             item.setReturnEntity(purchaseReturn);
@@ -135,9 +295,12 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
         return new CalculationResult(items, totalAmount);
     }
 
-    private String resolveReturnCode(String requestedReturnCode) {
+    private String resolveReturnCode(Long currentId, String requestedReturnCode) {
         if (requestedReturnCode != null) {
-            if (purchaseReturnRepository.existsByReturnCode(requestedReturnCode)) {
+            boolean exists = currentId == null
+                    ? purchaseReturnRepository.existsByReturnCode(requestedReturnCode)
+                    : purchaseReturnRepository.existsByReturnCodeAndIdNot(requestedReturnCode, currentId);
+            if (exists) {
                 throw new DuplicateResourceException("Purchase return code already exists: " + requestedReturnCode);
             }
             return requestedReturnCode;
@@ -158,6 +321,54 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
         if (items == null || items.isEmpty()) {
             throw new BadRequestException("At least one return item is required");
         }
+    }
+
+    private void ensureEditable(PurchaseReturn purchaseReturn) {
+        PurchaseStatus status = normalizeStatus(purchaseReturn.getStatus());
+        if (status != PurchaseStatus.DRAFT && status != PurchaseStatus.REJECTED) {
+            throw new BadRequestException("Only draft or rejected purchase returns can be edited");
+        }
+    }
+
+    private PurchaseStatus resolveDraftStatus(PurchaseStatus requested, PurchaseStatus existing, boolean creating) {
+        PurchaseStatus normalizedRequested = normalizeStatus(requested);
+        if (normalizedRequested == null) {
+            return creating ? PurchaseStatus.DRAFT : normalizeStatus(existing);
+        }
+        if (normalizedRequested != PurchaseStatus.DRAFT && normalizedRequested != PurchaseStatus.REJECTED) {
+            throw new BadRequestException("Purchase return save supports draft status only");
+        }
+        return PurchaseStatus.DRAFT;
+    }
+
+    private PurchaseStatus normalizeStatus(PurchaseStatus status) {
+        if (status == null) {
+            return PurchaseStatus.DRAFT;
+        }
+        if (status == PurchaseStatus.PENDING) {
+            return PurchaseStatus.SUBMITTED;
+        }
+        return status;
+    }
+
+    private boolean isReceivedOrSettled(PurchaseStatus status) {
+        PurchaseStatus normalized = normalizeStatus(status);
+        return normalized == PurchaseStatus.PARTIAL_RECEIVED
+                || normalized == PurchaseStatus.RECEIVED
+                || normalized == PurchaseStatus.PARTIAL_PAID
+                || normalized == PurchaseStatus.PAID;
+    }
+
+    private PurchaseStatus resolvePurchaseStatusAfterReturn(PurchaseOrder purchaseOrder) {
+        BigDecimal due = safe(purchaseOrder.getDueAmount());
+        BigDecimal paid = safe(purchaseOrder.getPaidAmount());
+        if (due.signum() <= 0) {
+            return paid.signum() > 0 ? PurchaseStatus.PAID : PurchaseStatus.RECEIVED;
+        }
+        if (paid.signum() > 0) {
+            return PurchaseStatus.PARTIAL_PAID;
+        }
+        return PurchaseStatus.RECEIVED;
     }
 
     private PurchaseReturn findReturnById(Long id) {
@@ -194,6 +405,15 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
             throw new BadRequestException(message);
         }
         return normalized;
+    }
+
+    private BigDecimal safe(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
+    }
+
+    private String currentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication == null ? null : authentication.getName();
     }
 
     private record CalculationResult(List<PurchaseReturnItem> items, BigDecimal totalAmount) {

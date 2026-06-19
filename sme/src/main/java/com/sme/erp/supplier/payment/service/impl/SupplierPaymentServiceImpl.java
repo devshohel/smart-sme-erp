@@ -394,7 +394,7 @@ public class SupplierPaymentServiceImpl implements SupplierPaymentService {
 
     private PurchaseStatus resolvePurchaseStatus(BigDecimal paidAmount, BigDecimal dueAmount) {
         if (dueAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            return PurchaseStatus.PAID;
+            return paidAmount.compareTo(BigDecimal.ZERO) > 0 ? PurchaseStatus.PAID : PurchaseStatus.RECEIVED;
         }
         if (paidAmount.compareTo(BigDecimal.ZERO) > 0) {
             return PurchaseStatus.PARTIAL_PAID;

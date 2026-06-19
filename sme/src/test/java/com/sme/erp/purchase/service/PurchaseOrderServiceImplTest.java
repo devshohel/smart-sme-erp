@@ -11,11 +11,14 @@ import com.sme.erp.product.repository.ProductRepository;
 import com.sme.erp.product.repository.UomRepository;
 import com.sme.erp.purchase.dto.PurchaseItemDTO;
 import com.sme.erp.purchase.dto.PurchaseOrderDTO;
+import com.sme.erp.purchase.dto.PurchaseReceiveDTO;
+import com.sme.erp.purchase.dto.PurchaseReceiveItemDTO;
 import com.sme.erp.purchase.entity.PurchaseItem;
 import com.sme.erp.purchase.entity.PurchaseOrder;
 import com.sme.erp.purchase.enums.PurchaseStatus;
 import com.sme.erp.purchase.mapper.PurchaseItemMapper;
 import com.sme.erp.purchase.mapper.PurchaseOrderMapper;
+import com.sme.erp.purchase.repository.GoodsReceiveNoteRepository;
 import com.sme.erp.purchase.repository.PurchaseOrderRepository;
 import com.sme.erp.purchase.service.impl.PurchaseOrderServiceImpl;
 import com.sme.erp.supplier.entity.Supplier;
@@ -51,6 +54,8 @@ class PurchaseOrderServiceImplTest {
     @Mock
     private UomRepository uomRepository;
     @Mock
+    private GoodsReceiveNoteRepository goodsReceiveNoteRepository;
+    @Mock
     private StockService stockService;
     @Mock
     private ActivityLogService activityLogService;
@@ -70,6 +75,7 @@ class PurchaseOrderServiceImplTest {
                 productRepository,
                 uomRepository,
                 new PurchaseOrderMapper(new PurchaseItemMapper()),
+                goodsReceiveNoteRepository,
                 stockService,
                 activityLogService,
                 auditLogService,
@@ -78,14 +84,17 @@ class PurchaseOrderServiceImplTest {
 
     @Test
     void update_replacesManagedItemsAndPersistsEditedTotals() {
-        PurchaseOrder existing = purchaseOrder(PurchaseStatus.PENDING);
+        PurchaseOrder existing = purchaseOrder(PurchaseStatus.DRAFT);
         PurchaseItem oldItem = new PurchaseItem();
+        oldItem.setId(20L);
         oldItem.setPurchase(existing);
         oldItem.setProduct(product(99L));
         oldItem.setQuantity(new BigDecimal("1.00"));
+        oldItem.setUnitPrice(new BigDecimal("3.00"));
         existing.getItems().add(oldItem);
 
-        PurchaseOrderDTO dto = purchaseOrderDto(PurchaseStatus.APPROVED);
+        PurchaseOrderDTO dto = purchaseOrderDto(PurchaseStatus.DRAFT);
+        dto.getItems().get(0).setId(20L);
 
         mockReferences(existing, dto);
         when(purchaseOrderRepository.existsByPurchaseCodeAndIdNot("PO-0010", 10L)).thenReturn(false);
@@ -96,7 +105,7 @@ class PurchaseOrderServiceImplTest {
         assertThat(existing.getItems()).hasSize(1);
         assertThat(existing.getItems().get(0).getProduct().getId()).isEqualTo(4L);
         assertThat(existing.getItems().get(0).getPurchase()).isSameAs(existing);
-        assertThat(result.getStatus()).isEqualTo(PurchaseStatus.APPROVED);
+        assertThat(result.getStatus()).isEqualTo(PurchaseStatus.DRAFT);
         assertThat(result.getTotalAmount()).isEqualByComparingTo("14.00");
         assertThat(result.getDiscountAmount()).isEqualByComparingTo("1.00");
         assertThat(result.getTaxAmount()).isEqualByComparingTo("0.50");
@@ -107,15 +116,24 @@ class PurchaseOrderServiceImplTest {
     }
 
     @Test
-    void update_receivesStockOnlyOnFirstTransitionToReceived() {
+    void receive_partialReceiptUpdatesStockAndStatus() {
         PurchaseOrder existing = purchaseOrder(PurchaseStatus.APPROVED);
-        PurchaseOrderDTO dto = purchaseOrderDto(PurchaseStatus.RECEIVED);
+        PurchaseItem existingItem = new PurchaseItem();
+        existingItem.setId(31L);
+        existingItem.setPurchase(existing);
+        existingItem.setProduct(product(4L));
+        existingItem.setQuantity(new BigDecimal("5.00"));
+        existingItem.setUnitPrice(new BigDecimal("7.00"));
+        existing.getItems().add(existingItem);
 
-        mockReferences(existing, dto);
-        when(purchaseOrderRepository.existsByPurchaseCodeAndIdNot("PO-0010", 10L)).thenReturn(false);
+        when(purchaseOrderRepository.findById(10L)).thenReturn(Optional.of(existing));
+        when(goodsReceiveNoteRepository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
+        when(goodsReceiveNoteRepository.existsByGrnNo("GRN-0001")).thenReturn(false);
         when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(goodsReceiveNoteRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.update(10L, dto);
+        PurchaseReceiveDTO dto = receiveDto("2.00");
+        service.receive(10L, dto);
 
         verify(stockService).stockIn(
                 4L,
@@ -124,20 +142,41 @@ class PurchaseOrderServiceImplTest {
                 new BigDecimal("7.00"),
                 "PURCHASE_RECEIVE",
                 "PO-0010");
+        verify(accountingPostingService, never()).postPurchase(any());
+        assertThat(existing.getStatus()).isEqualTo(PurchaseStatus.PARTIAL_RECEIVED);
+    }
+
+    @Test
+    void receive_fullReceiptPostsAccounting() {
+        PurchaseOrder existing = purchaseOrder(PurchaseStatus.APPROVED);
+        PurchaseItem existingItem = new PurchaseItem();
+        existingItem.setId(31L);
+        existingItem.setPurchase(existing);
+        existingItem.setProduct(product(4L));
+        existingItem.setQuantity(new BigDecimal("2.00"));
+        existing.getItems().add(existingItem);
+
+        when(purchaseOrderRepository.findById(10L)).thenReturn(Optional.of(existing));
+        when(goodsReceiveNoteRepository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
+        when(goodsReceiveNoteRepository.existsByGrnNo("GRN-0001")).thenReturn(false);
+        when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(goodsReceiveNoteRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.receive(10L, receiveDto("2.00"));
+
+        verify(accountingPostingService).postPurchase(existing);
+        assertThat(existing.getStatus()).isEqualTo(PurchaseStatus.RECEIVED);
     }
 
     @Test
     void update_receivedPurchaseIsRejected() {
         PurchaseOrder existing = purchaseOrder(PurchaseStatus.RECEIVED);
-        PurchaseOrderDTO dto = purchaseOrderDto(PurchaseStatus.RECEIVED);
+        PurchaseOrderDTO dto = purchaseOrderDto(PurchaseStatus.DRAFT);
 
         when(purchaseOrderRepository.findById(10L)).thenReturn(Optional.of(existing));
 
         assertThatThrownBy(() -> service.update(10L, dto))
-                .hasMessage("Received purchase cannot be edited");
-
-        verify(stockService, never()).stockIn(any(), any(), any(), any());
-        verify(stockService, never()).stockIn(any(), any(), any(), any(), any(), any());
+                .hasMessage("Only draft or rejected purchase orders can be edited");
     }
 
     private void mockReferences(PurchaseOrder existing, PurchaseOrderDTO dto) {
@@ -173,6 +212,17 @@ class PurchaseOrderServiceImplTest {
         dto.setPurchaseDate(LocalDateTime.of(2026, 6, 6, 0, 0));
         dto.setPaidAmount(BigDecimal.ZERO);
         dto.setStatus(status);
+        dto.getItems().add(item);
+        return dto;
+    }
+
+    private PurchaseReceiveDTO receiveDto(String receivedQty) {
+        PurchaseReceiveItemDTO item = new PurchaseReceiveItemDTO();
+        item.setProductId(4L);
+        item.setReceivedQty(new BigDecimal(receivedQty));
+
+        PurchaseReceiveDTO dto = new PurchaseReceiveDTO();
+        dto.setReceiveDate(LocalDateTime.of(2026, 6, 7, 0, 0));
         dto.getItems().add(item);
         return dto;
     }

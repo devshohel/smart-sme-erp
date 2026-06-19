@@ -1,19 +1,19 @@
 <div class="container-fluid p-4">
   <app-page-header
-    title="Purchase Invoices"
-    subtitle="Receive approved purchase orders, update stock, and record supplier payment status.">
+    title="Purchase Receives & Payables"
+    subtitle="Receive approved purchase orders through GRN and monitor fully received supplier payables.">
   </app-page-header>
 
   <div class="row g-4">
     <div class="col-12">
-      <app-card title="Purchase Invoice List" subtitle="Received purchases and supplier payment overview.">
+      <app-card title="Posted Purchase Payables" subtitle="Fully received purchases now tracked in supplier payable workflow.">
         <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
 
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
               <tr>
-                <th>Invoice Ref</th>
+                <th>Purchase Ref</th>
                 <th>Supplier</th>
                 <th>Warehouse</th>
                 <th class="text-end">Net Total</th>
@@ -33,7 +33,7 @@
                 <td class="text-end">{{ invoice.dueAmount | number:'1.2-2' }}</td>
                 <td>
                   <span class="badge px-3 py-2" [ngClass]="statusClass(invoice.status)">
-                    {{ invoice.status || 'PENDING' }}
+                    {{ invoice.status || 'DRAFT' }}
                   </span>
                 </td>
                 <td class="text-center">
@@ -43,10 +43,10 @@
                 </td>
               </tr>
               <tr *ngIf="!loading && invoiceList.length === 0">
-                <td colspan="8" class="text-center text-muted py-5">No purchase invoices found.</td>
+                <td colspan="8" class="text-center text-muted py-5">No posted purchase payables found.</td>
               </tr>
               <tr *ngIf="loading">
-                <td colspan="8" class="text-center text-muted py-5">Loading purchase invoices...</td>
+                <td colspan="8" class="text-center text-muted py-5">Loading purchase payables...</td>
               </tr>
             </tbody>
           </table>
@@ -55,7 +55,7 @@
     </div>
 
     <div class="col-12">
-      <app-card title="Goods Receive / Purchase Receive" subtitle="Generate purchase invoice from an approved purchase order.">
+      <app-card title="Goods Receive Note" subtitle="Receive approved purchase orders partially or fully without editing order status manually.">
         <form [formGroup]="form" (ngSubmit)="receiveAndSaveInvoice()" novalidate>
           <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
 
@@ -66,7 +66,7 @@
               <select class="form-select" formControlName="purchaseId" (change)="onPurchaseChange()">
                 <option [ngValue]="null">Select Purchase Order</option>
                 <option *ngFor="let order of eligibleOrders" [ngValue]="order.id">
-                  {{ order.purchaseCode || ('Purchase #' + order.id) }} - {{ order.supplierName || 'Supplier' }}
+                  {{ order.purchaseCode || ('Purchase #' + order.id) }} - {{ order.supplierName || 'Supplier' }} - {{ order.status }}
                 </option>
               </select>
               <div class="invalid-feedback d-block" *ngIf="hasError('purchaseId', 'required')">Purchase order is required.</div>
@@ -89,32 +89,30 @@
             </div>
           </div>
 
-          <div class="section-title mt-4">Item Table Section</div>
+          <div class="section-title mt-4">Receive Items</div>
           <div class="table-responsive purchase-invoice-items-wrap">
             <table class="table table-sm align-middle purchase-invoice-items-table">
               <thead class="table-light">
                 <tr>
                   <th>Product</th>
                   <th>UOM</th>
-                  <th class="text-end">Qty Received</th>
-                  <th class="text-end">Unit Cost</th>
-                  <th class="text-end">Discount</th>
-                  <th class="text-end">Tax</th>
-                  <th class="text-end">Subtotal</th>
+                  <th class="text-end">Ordered</th>
+                  <th class="text-end">Received</th>
+                  <th class="text-end">Remaining</th>
+                  <th class="text-end">This GRN</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr *ngFor="let item of selectedOrder?.items">
-                  <td>{{ item.productName || 'N/A' }}</td>
-                  <td>{{ item.uomName || 'N/A' }}</td>
-                  <td class="text-end">{{ item.quantity | number:'1.2-2' }}</td>
-                  <td class="text-end">{{ item.unitPrice | number:'1.2-2' }}</td>
-                  <td class="text-end">{{ item.discount | number:'1.2-2' }}</td>
-                  <td class="text-end">{{ item.tax | number:'1.2-2' }}</td>
-                  <td class="text-end">{{ item.subTotal | number:'1.2-2' }}</td>
+              <tbody formArrayName="items">
+                <tr *ngFor="let group of items.controls; let i = index" [formGroupName]="i">
+                  <td>{{ group.get('productName')?.value || 'N/A' }}</td>
+                  <td>{{ selectedOrder?.items?.[i]?.uomName || 'N/A' }}</td>
+                  <td class="text-end">{{ group.get('orderedQty')?.value | number:'1.2-2' }}</td>
+                  <td class="text-end">{{ group.get('alreadyReceivedQty')?.value | number:'1.2-2' }}</td>
+                  <td class="text-end">{{ group.get('remainingQty')?.value | number:'1.2-2' }}</td>
+                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="receivedQty" min="0" step="0.01"></td>
                 </tr>
                 <tr *ngIf="!selectedOrder">
-                  <td colspan="7" class="text-center text-muted py-5">Select a purchase order to receive.</td>
+                  <td colspan="6" class="text-center text-muted py-5">Select a purchase order to receive.</td>
                 </tr>
               </tbody>
             </table>
@@ -122,7 +120,7 @@
 
           <div class="row g-4 mt-1">
             <div class="col-12 col-lg-6">
-              <div class="section-title">Summary Section</div>
+              <div class="section-title">Financial Summary</div>
               <div class="summary-panel">
                 <div class="d-flex justify-content-between"><span>Total Amount</span><strong>{{ selectedOrder?.totalAmount || 0 | number:'1.2-2' }}</strong></div>
                 <div class="d-flex justify-content-between mt-2"><span>Discount Amount</span><strong>{{ selectedOrder?.discountAmount || 0 | number:'1.2-2' }}</strong></div>
@@ -132,20 +130,18 @@
             </div>
 
             <div class="col-12 col-lg-6">
-              <div class="section-title">Payment Section</div>
+              <div class="section-title">Receive Summary</div>
               <div class="summary-panel">
-                <label class="form-label">Supplier Payment *</label>
-                <input type="number" class="form-control text-end" formControlName="paidAmount" min="0" step="0.01">
-                <div class="invalid-feedback d-block" *ngIf="hasError('paidAmount', 'min')">Payment cannot be negative.</div>
-                <div class="d-flex justify-content-between mt-3"><span>Due Amount</span><strong>{{ dueAmount | number:'1.2-2' }}</strong></div>
-                <div class="d-flex justify-content-between mt-2"><span>Advance Amount</span><strong>{{ advanceAmount | number:'1.2-2' }}</strong></div>
+                <div class="d-flex justify-content-between"><span>Total This GRN</span><strong>{{ totalReceivingQty | number:'1.2-2' }}</strong></div>
+                <div class="d-flex justify-content-between mt-2"><span>Current Due</span><strong>{{ selectedOrder?.dueAmount || 0 | number:'1.2-2' }}</strong></div>
+                <div class="d-flex justify-content-between mt-2"><span>Current Status</span><strong>{{ selectedOrder?.status || 'N/A' }}</strong></div>
               </div>
             </div>
           </div>
 
           <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">
             <button type="submit" class="btn btn-success px-4" [disabled]="submitting || !selectedOrder">
-              {{ submitting ? 'Saving...' : 'Receive & Generate Invoice' }}
+              {{ submitting ? 'Posting...' : 'Post Goods Receive' }}
             </button>
           </div>
         </form>
