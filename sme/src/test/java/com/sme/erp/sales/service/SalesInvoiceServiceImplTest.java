@@ -2,6 +2,7 @@ package com.sme.erp.sales.service;
 
 import com.sme.erp.accounting.service.AccountingPostingService;
 import com.sme.erp.audit.service.ActivityLogService;
+import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.inventory.entity.Warehouse;
@@ -18,6 +19,7 @@ import com.sme.erp.sales.mapper.SalesInvoiceMapper;
 import com.sme.erp.sales.mapper.SalesItemMapper;
 import com.sme.erp.sales.repository.SalesInvoiceRepository;
 import com.sme.erp.sales.repository.SalesOrderRepository;
+import com.sme.erp.sales.repository.SalesReturnRepository;
 import com.sme.erp.sales.service.impl.SalesInvoiceServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,8 +46,10 @@ class SalesInvoiceServiceImplTest {
     @Mock private WarehouseRepository warehouseRepository;
     @Mock private ProductRepository productRepository;
     @Mock private UomRepository uomRepository;
+    @Mock private SalesReturnRepository salesReturnRepository;
     @Mock private StockService stockService;
     @Mock private ActivityLogService activityLogService;
+    @Mock private AuditLogService auditLogService;
     @Mock private AccountingPostingService accountingPostingService;
 
     private SalesInvoiceServiceImpl service;
@@ -60,14 +64,16 @@ class SalesInvoiceServiceImplTest {
                 productRepository,
                 uomRepository,
                 new SalesInvoiceMapper(new SalesItemMapper()),
+                salesReturnRepository,
                 stockService,
                 activityLogService,
+                auditLogService,
                 accountingPostingService);
     }
 
     @Test
-    void create_confirmedInvoiceDeductsStock() {
-        SalesInvoiceDTO dto = invoiceDto(SalesInvoiceStatus.CONFIRMED);
+    void create_draftInvoiceDoesNotDeductStock() {
+        SalesInvoiceDTO dto = invoiceDto(SalesInvoiceStatus.DRAFT);
 
         mockReferences();
         when(salesInvoiceRepository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
@@ -76,23 +82,23 @@ class SalesInvoiceServiceImplTest {
 
         service.create(dto);
 
-        verify(stockService).stockOut(4L, 3L, new BigDecimal("2.00"), "SALES_INVOICE", "INV-0001");
+        verify(stockService, never()).stockOut(4L, 3L, new BigDecimal("2.00"), "SALES_INVOICE", "INV-0001");
     }
 
     @Test
-    void update_alreadyConfirmedInvoiceIsRejected() {
+    void update_postedInvoiceIsRejected() {
         SalesInvoice existing = new SalesInvoice();
         existing.setId(8L);
         existing.setInvoiceNo("INV-0008");
-        existing.setStatus(SalesInvoiceStatus.CONFIRMED);
+        existing.setStatus(SalesInvoiceStatus.POSTED);
 
-        SalesInvoiceDTO dto = invoiceDto(SalesInvoiceStatus.CONFIRMED);
+        SalesInvoiceDTO dto = invoiceDto(SalesInvoiceStatus.DRAFT);
         dto.setInvoiceNo("INV-0008");
 
         when(salesInvoiceRepository.findById(8L)).thenReturn(Optional.of(existing));
 
         assertThatThrownBy(() -> service.update(8L, dto))
-                .hasMessage("Posted sales invoice cannot be edited");
+                .hasMessage("Only draft sales invoices can be edited");
 
         verify(stockService, never()).stockOut(any(), any(), any());
         verify(stockService, never()).stockOut(any(), any(), any(), any(), any());

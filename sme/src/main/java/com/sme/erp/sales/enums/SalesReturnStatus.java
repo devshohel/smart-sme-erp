@@ -1,11 +1,10 @@
 package com.sme.erp.sales.enums;
 
-public enum SalesOrderStatus {
+public enum SalesReturnStatus {
     DRAFT,
     SUBMITTED,
     APPROVED,
     REJECTED,
-    CONVERTED,
-    CANCELLED,
-    PENDING
+    POSTED,
+    CANCELLED
 }

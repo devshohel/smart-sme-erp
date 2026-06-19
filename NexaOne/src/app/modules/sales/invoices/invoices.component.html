@@ -8,6 +8,20 @@
     <div class="col-12">
       <app-card title="Invoice List" subtitle="Saved invoices with payment tracking overview.">
         <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <input class="form-control" [(ngModel)]="searchTerm" [ngModelOptions]="{ standalone: true }" placeholder="Search invoice, customer, warehouse">
+          </div>
+          <div class="col-md-4">
+            <select class="form-select" [(ngModel)]="statusFilter" [ngModelOptions]="{ standalone: true }">
+              <option value="">All statuses</option>
+              <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <input class="form-control" type="date" [(ngModel)]="dateFilter" [ngModelOptions]="{ standalone: true }">
+          </div>
+        </div>
 
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
@@ -18,23 +32,25 @@
                 <th>Date</th>
                 <th class="text-end">Net Total</th>
                 <th class="text-end">Due</th>
+                <th>Status</th>
                 <th>Payment</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let invoice of invoices" class="cursor-pointer" (click)="selectInvoice(invoice)">
+              <tr *ngFor="let invoice of filteredInvoices" class="cursor-pointer" (click)="selectInvoice(invoice)">
                 <td class="fw-semibold">{{ invoice.invoiceNo || 'Draft' }}</td>
                 <td>{{ invoice.customerName || 'N/A' }}</td>
                 <td>{{ invoice.saleDate }}</td>
                 <td class="text-end">{{ invoice.netTotal | number:'1.2-2' }}</td>
                 <td class="text-end">{{ invoice.dueAmount | number:'1.2-2' }}</td>
+                <td><app-sales-status-badge [label]="invoice.status || 'DRAFT'"></app-sales-status-badge></td>
                 <td><app-sales-status-badge [label]="invoice.paymentStatus" type="payment"></app-sales-status-badge></td>
               </tr>
-              <tr *ngIf="!loading && invoices.length === 0">
-                <td colspan="6" class="text-center text-muted py-5">No invoices found.</td>
+              <tr *ngIf="!loading && filteredInvoices.length === 0">
+                <td colspan="7" class="text-center text-muted py-5">No invoices found.</td>
               </tr>
               <tr *ngIf="loading">
-                <td colspan="6" class="text-center text-muted py-5">Loading invoices...</td>
+                <td colspan="7" class="text-center text-muted py-5">Loading invoices...</td>
               </tr>
             </tbody>
           </table>
@@ -44,9 +60,36 @@
       <app-card *ngIf="selectedInvoice" title="Invoice Details" subtitle="Selected invoice detail snapshot.">
         <div class="row g-3 mb-3">
           <div class="col-md-6"><strong>Invoice No:</strong> {{ selectedInvoice.invoiceNo || 'Draft' }}</div>
+          <div class="col-md-6"><strong>Status:</strong> <app-sales-status-badge [label]="selectedInvoice.status || 'DRAFT'"></app-sales-status-badge></div>
           <div class="col-md-6"><strong>Payment:</strong> <app-sales-status-badge [label]="selectedInvoice.paymentStatus" type="payment"></app-sales-status-badge></div>
           <div class="col-md-6"><strong>Customer:</strong> {{ selectedInvoice.customerName }}</div>
           <div class="col-md-6"><strong>Warehouse:</strong> {{ selectedInvoice.warehouseName }}</div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <button *ngIf="canEdit(selectedInvoice)" type="button" class="btn btn-outline-primary btn-sm" (click)="editInvoice(selectedInvoice)">
+            Edit Draft
+          </button>
+          <button *ngIf="canSubmit(selectedInvoice)" type="button" class="btn btn-warning btn-sm" (click)="submitSelected()">
+            Submit
+          </button>
+          <button *ngIf="canApprove(selectedInvoice)" type="button" class="btn btn-success btn-sm" (click)="approveSelected()">
+            Approve
+          </button>
+          <button *ngIf="canPost(selectedInvoice)" type="button" class="btn btn-primary btn-sm" (click)="postSelected()">
+            Post
+          </button>
+          <button *ngIf="canCancel(selectedInvoice)" type="button" class="btn btn-outline-danger btn-sm" (click)="cancelSelected()">
+            Cancel
+          </button>
+          <button *ngIf="canReverse(selectedInvoice)" type="button" class="btn btn-outline-dark btn-sm" (click)="reverseSelected()">
+            Reverse
+          </button>
+          <button *ngIf="hasPermission('SALES_RETURN_CREATE')" type="button" class="btn btn-outline-success btn-sm" (click)="newReturnFromInvoice()">
+            Create Return
+          </button>
+          <button *ngIf="hasPermission('SALES_INVOICE_PRINT')" type="button" class="btn btn-outline-secondary btn-sm" (click)="printSelected()">
+            Print
+          </button>
         </div>
 
         <div class="table-responsive">
@@ -77,7 +120,7 @@
     </div>
 
     <div class="col-12">
-      <app-card title="Create Sales Invoice" subtitle="Generate an invoice from an approved order or create a direct invoice.">
+      <app-card *ngIf="hasPermission(editingInvoiceId ? 'SALES_INVOICE_EDIT' : 'SALES_INVOICE_CREATE')" [title]="editingInvoiceId ? 'Edit Sales Invoice' : 'Create Sales Invoice'" subtitle="Generate an invoice from an approved order or create a direct invoice.">
         <form [formGroup]="invoiceForm" (ngSubmit)="saveInvoice()" novalidate>
           <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
 
@@ -116,8 +159,8 @@
             </div>
 
             <div class="col-12 col-md-6 col-xl-3">
-              <label class="form-label">Paid Amount *</label>
-              <input type="number" class="form-control" formControlName="paidAmount" min="0" step="0.01">
+              <label class="form-label">Receipt Allocation</label>
+              <input type="number" class="form-control" formControlName="paidAmount" readonly>
             </div>
 
             <div class="col-12">
@@ -183,7 +226,7 @@
           <div class="d-flex flex-wrap justify-content-end gap-2">
             <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">Reset</button>
             <button type="submit" class="btn btn-success px-4" [disabled]="submitting">
-              {{ submitting ? 'Saving...' : 'Save Invoice' }}
+              {{ submitting ? 'Saving...' : (editingInvoiceId ? 'Update Invoice' : 'Save Invoice') }}
             </button>
           </div>
         </form>

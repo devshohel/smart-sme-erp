@@ -8,6 +8,20 @@
     <div class="col-12">
       <app-card title="Sales Return List" subtitle="Return history from saved sales invoices.">
         <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <input class="form-control" [(ngModel)]="searchTerm" [ngModelOptions]="{ standalone: true }" placeholder="Search return, invoice, customer">
+          </div>
+          <div class="col-md-4">
+            <select class="form-select" [(ngModel)]="statusFilter" [ngModelOptions]="{ standalone: true }">
+              <option value="">All statuses</option>
+              <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <input class="form-control" type="date" [(ngModel)]="dateFilter" [ngModelOptions]="{ standalone: true }">
+          </div>
+        </div>
 
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
@@ -18,21 +32,23 @@
                 <th>Customer</th>
                 <th>Date</th>
                 <th class="text-end">Total</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let salesReturn of returns" class="cursor-pointer" [class.table-active]="selectedReturn?.id === salesReturn.id" (click)="selectedReturn = salesReturn">
+              <tr *ngFor="let salesReturn of filteredReturns" class="cursor-pointer" [class.table-active]="selectedReturn?.id === salesReturn.id" (click)="selectedReturn = salesReturn">
                 <td class="fw-semibold">{{ salesReturn.returnNo || 'Draft' }}</td>
                 <td>{{ salesReturn.invoiceNo || 'N/A' }}</td>
                 <td>{{ salesReturn.customerName || 'N/A' }}</td>
                 <td>{{ salesReturn.returnDate }}</td>
                 <td class="text-end">{{ salesReturn.totalAmount | number:'1.2-2' }}</td>
+                <td><app-sales-status-badge [label]="salesReturn.status || 'DRAFT'"></app-sales-status-badge></td>
               </tr>
-              <tr *ngIf="!loading && returns.length === 0">
-                <td colspan="5" class="text-center text-muted py-5">No sales returns found.</td>
+              <tr *ngIf="!loading && filteredReturns.length === 0">
+                <td colspan="6" class="text-center text-muted py-5">No sales returns found.</td>
               </tr>
               <tr *ngIf="loading">
-                <td colspan="5" class="text-center text-muted py-5">Loading sales returns...</td>
+                <td colspan="6" class="text-center text-muted py-5">Loading sales returns...</td>
               </tr>
             </tbody>
           </table>
@@ -46,11 +62,34 @@
           <div class="col-md-6"><strong>Customer:</strong> {{ selectedReturn.customerName || 'N/A' }}</div>
           <div class="col-md-6"><strong>Total:</strong> {{ selectedReturn.totalAmount | number:'1.2-2' }}</div>
         </div>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <button *ngIf="canEdit(selectedReturn)" type="button" class="btn btn-outline-primary btn-sm" (click)="editReturn(selectedReturn)">
+            Edit Draft
+          </button>
+          <button *ngIf="canSubmit(selectedReturn)" type="button" class="btn btn-warning btn-sm" (click)="submitSelected()">
+            Submit
+          </button>
+          <button *ngIf="canApprove(selectedReturn)" type="button" class="btn btn-success btn-sm" (click)="approveSelected()">
+            Approve
+          </button>
+          <button *ngIf="canReject(selectedReturn)" type="button" class="btn btn-outline-dark btn-sm" (click)="rejectSelected()">
+            Reject
+          </button>
+          <button *ngIf="canPost(selectedReturn)" type="button" class="btn btn-primary btn-sm" (click)="postSelected()">
+            Post
+          </button>
+          <button *ngIf="canCancel(selectedReturn)" type="button" class="btn btn-outline-danger btn-sm" (click)="cancelSelected()">
+            Cancel
+          </button>
+          <button *ngIf="hasPermission('SALES_RETURN_PRINT')" type="button" class="btn btn-outline-secondary btn-sm" (click)="printSelected()">
+            Print
+          </button>
+        </div>
       </app-card>
     </div>
 
     <div class="col-12">
-      <app-card title="Create Sales Return" subtitle="Select invoice items and compute return totals automatically.">
+      <app-card *ngIf="hasPermission(editingReturnId ? 'SALES_RETURN_EDIT' : 'SALES_RETURN_CREATE')" [title]="editingReturnId ? 'Edit Sales Return' : 'Create Sales Return'" subtitle="Select invoice items and compute return totals automatically.">
         <form [formGroup]="returnForm" (ngSubmit)="saveReturn()" novalidate>
           <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
 
@@ -137,7 +176,7 @@
           <div class="d-flex flex-wrap justify-content-end gap-2">
             <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">Reset</button>
             <button type="submit" class="btn btn-success px-4" [disabled]="submitting">
-              {{ submitting ? 'Saving...' : 'Save Return' }}
+              {{ submitting ? 'Saving...' : (editingReturnId ? 'Update Return' : 'Save Return') }}
             </button>
           </div>
         </form>

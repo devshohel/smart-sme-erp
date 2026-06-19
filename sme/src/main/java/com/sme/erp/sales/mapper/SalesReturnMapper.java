@@ -35,7 +35,20 @@ public class SalesReturnMapper {
         dto.setTotalAmount(entity.getTotalAmount());
         dto.setCreatedBy(entity.getCreatedBy());
         dto.setCreatedAt(entity.getCreatedAt());
+        dto.setUpdatedAt(entity.getUpdatedAt());
         dto.setNotes(entity.getNotes());
+        dto.setStatus(entity.getStatus());
+        dto.setSubmittedAt(entity.getSubmittedAt());
+        dto.setSubmittedBy(entity.getSubmittedBy());
+        dto.setApprovedAt(entity.getApprovedAt());
+        dto.setApprovedBy(entity.getApprovedBy());
+        dto.setRejectedAt(entity.getRejectedAt());
+        dto.setRejectedBy(entity.getRejectedBy());
+        dto.setRejectionReason(entity.getRejectionReason());
+        dto.setPostedAt(entity.getPostedAt());
+        dto.setPostedBy(entity.getPostedBy());
+        dto.setCancelledAt(entity.getCancelledAt());
+        dto.setCancelledBy(entity.getCancelledBy());
         dto.setItems(entity.getItems().stream().map(salesReturnItemMapper::toDTO).collect(Collectors.toList()));
         return dto;
     }

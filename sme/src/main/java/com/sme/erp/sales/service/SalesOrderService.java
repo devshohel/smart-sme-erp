@@ -1,5 +1,6 @@
 package com.sme.erp.sales.service;
 
+import com.sme.erp.sales.dto.SalesInvoiceDTO;
 import com.sme.erp.sales.dto.SalesOrderDTO;
 
 import java.util.List;
@@ -9,4 +10,9 @@ public interface SalesOrderService {
     SalesOrderDTO getById(Long id);
     SalesOrderDTO create(SalesOrderDTO dto);
     SalesOrderDTO update(Long id, SalesOrderDTO dto);
+    SalesOrderDTO submit(Long id);
+    SalesOrderDTO approve(Long id);
+    SalesOrderDTO reject(Long id, String reason);
+    SalesOrderDTO cancel(Long id);
+    SalesInvoiceDTO convertToInvoice(Long id);
 }

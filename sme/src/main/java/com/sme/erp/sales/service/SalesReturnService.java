@@ -8,4 +8,10 @@ public interface SalesReturnService {
     List<SalesReturnDTO> getAll();
     SalesReturnDTO getById(Long id);
     SalesReturnDTO create(SalesReturnDTO dto);
+    SalesReturnDTO update(Long id, SalesReturnDTO dto);
+    SalesReturnDTO submit(Long id);
+    SalesReturnDTO approve(Long id);
+    SalesReturnDTO reject(Long id, String reason);
+    SalesReturnDTO post(Long id);
+    SalesReturnDTO cancel(Long id);
 }

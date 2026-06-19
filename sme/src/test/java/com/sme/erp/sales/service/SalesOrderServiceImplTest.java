@@ -9,12 +9,14 @@ import com.sme.erp.inventory.repository.WarehouseRepository;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.repository.ProductRepository;
 import com.sme.erp.product.repository.UomRepository;
+import com.sme.erp.sales.mapper.SalesInvoiceMapper;
 import com.sme.erp.sales.dto.SalesItemDTO;
 import com.sme.erp.sales.dto.SalesOrderDTO;
 import com.sme.erp.sales.entity.SalesOrder;
 import com.sme.erp.sales.enums.SalesOrderStatus;
 import com.sme.erp.sales.mapper.SalesItemMapper;
 import com.sme.erp.sales.mapper.SalesOrderMapper;
+import com.sme.erp.sales.repository.SalesInvoiceRepository;
 import com.sme.erp.sales.repository.SalesOrderRepository;
 import com.sme.erp.sales.service.impl.SalesOrderServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +37,7 @@ import static org.mockito.Mockito.when;
 class SalesOrderServiceImplTest {
 
     @Mock private SalesOrderRepository salesOrderRepository;
+    @Mock private SalesInvoiceRepository salesInvoiceRepository;
     @Mock private CustomerRepository customerRepository;
     @Mock private WarehouseRepository warehouseRepository;
     @Mock private ProductRepository productRepository;
@@ -48,20 +51,23 @@ class SalesOrderServiceImplTest {
     void setUp() {
         service = new SalesOrderServiceImpl(
                 salesOrderRepository,
+                salesInvoiceRepository,
                 customerRepository,
                 warehouseRepository,
                 productRepository,
                 uomRepository,
                 new SalesOrderMapper(new SalesItemMapper()),
+                new SalesInvoiceMapper(new SalesItemMapper()),
                 activityLogService,
                 auditLogService);
     }
 
     @Test
-    void update_persistsOrderItemsNotesAndGrandTotal() {
+    void update_persistsDraftOrderItemsNotesAndGrandTotal() {
         SalesOrder existing = new SalesOrder();
         existing.setId(7L);
         existing.setOrderNo("SO-0007");
+        existing.setStatus(SalesOrderStatus.DRAFT);
 
         SalesOrderDTO dto = orderDto();
 
@@ -74,7 +80,7 @@ class SalesOrderServiceImplTest {
 
         SalesOrderDTO result = service.update(7L, dto);
 
-        assertThat(result.getStatus()).isEqualTo(SalesOrderStatus.APPROVED);
+        assertThat(result.getStatus()).isEqualTo(SalesOrderStatus.DRAFT);
         assertThat(result.getNotes()).isEqualTo("Urgent delivery");
         assertThat(result.getItems()).hasSize(1);
         assertThat(result.getItems().get(0).getProductId()).isEqualTo(4L);
@@ -92,7 +98,7 @@ class SalesOrderServiceImplTest {
         dto.setCustomerId(2L);
         dto.setWarehouseId(3L);
         dto.setOrderDate(LocalDateTime.of(2026, 6, 6, 0, 0));
-        dto.setStatus(SalesOrderStatus.APPROVED);
+        dto.setStatus(SalesOrderStatus.DRAFT);
         dto.setNotes("Urgent delivery");
         dto.getItems().add(item);
         return dto;

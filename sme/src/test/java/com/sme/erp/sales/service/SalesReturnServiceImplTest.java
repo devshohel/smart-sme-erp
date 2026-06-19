@@ -1,6 +1,8 @@
 package com.sme.erp.sales.service;
 
 import com.sme.erp.accounting.service.AccountingPostingService;
+import com.sme.erp.audit.service.ActivityLogService;
+import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.inventory.entity.Warehouse;
@@ -10,6 +12,7 @@ import com.sme.erp.product.repository.ProductRepository;
 import com.sme.erp.sales.dto.SalesReturnDTO;
 import com.sme.erp.sales.dto.SalesReturnItemDTO;
 import com.sme.erp.sales.entity.SalesInvoice;
+import com.sme.erp.sales.enums.SalesReturnStatus;
 import com.sme.erp.sales.mapper.SalesReturnItemMapper;
 import com.sme.erp.sales.mapper.SalesReturnMapper;
 import com.sme.erp.sales.repository.SalesInvoiceRepository;
@@ -37,6 +40,8 @@ class SalesReturnServiceImplTest {
     @Mock private CustomerRepository customerRepository;
     @Mock private ProductRepository productRepository;
     @Mock private StockService stockService;
+    @Mock private ActivityLogService activityLogService;
+    @Mock private AuditLogService auditLogService;
     @Mock private AccountingPostingService accountingPostingService;
 
     private SalesReturnServiceImpl service;
@@ -50,11 +55,13 @@ class SalesReturnServiceImplTest {
                 productRepository,
                 new SalesReturnMapper(new SalesReturnItemMapper()),
                 stockService,
+                activityLogService,
+                auditLogService,
                 accountingPostingService);
     }
 
     @Test
-    void createRestocksReturnedItems() {
+    void createDraftReturnDoesNotRestockItems() {
         Customer customer = customer();
         SalesReturnDTO dto = returnDto();
 
@@ -67,7 +74,7 @@ class SalesReturnServiceImplTest {
 
         service.create(dto);
 
-        verify(stockService).stockIn(
+        verify(stockService, org.mockito.Mockito.never()).stockIn(
                 4L,
                 3L,
                 new BigDecimal("2.00"),
@@ -86,6 +93,7 @@ class SalesReturnServiceImplTest {
         dto.setInvoiceId(9L);
         dto.setCustomerId(2L);
         dto.setReturnDate(LocalDateTime.of(2026, 6, 6, 0, 0));
+        dto.setStatus(SalesReturnStatus.DRAFT);
         dto.getItems().add(item);
         return dto;
     }

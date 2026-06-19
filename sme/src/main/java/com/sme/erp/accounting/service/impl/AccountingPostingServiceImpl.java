@@ -110,6 +110,27 @@ public class AccountingPostingServiceImpl implements AccountingPostingService {
 
     @Override
     @Transactional
+    public void reverseSalesInvoice(SalesInvoice invoice, String reversalReason) {
+        if (invoice == null || invoice.getId() == null || isPosted("SALES_INVOICE_REVERSAL", invoice.getId())) {
+            return;
+        }
+        JournalEntry original = journalEntryRepository.findBySource("SALES_INVOICE", invoice.getId())
+                .orElseThrow(() -> new BadRequestException("Original sales invoice journal not found"));
+        BigDecimal netTotal = safe(invoice.getNetTotal());
+        if (netTotal.signum() <= 0) {
+            return;
+        }
+        JournalEntry entry = baseEntry("SALES_INVOICE_REVERSAL", invoice.getId(), invoice.getInvoiceNo() + "-REV", LocalDate.now(),
+                "Sales invoice reversal " + invoice.getInvoiceNo() + " against journal " + original.getJournalNo());
+        addLine(entry, account("Sales Income"), netTotal, BigDecimal.ZERO, "Reverse sales income");
+        addLine(entry, account("Accounts Receivable"), BigDecimal.ZERO, netTotal, "Reverse receivable");
+        saveIfBalanced(entry);
+        activityLogService.log("ACCOUNTING_REVERSE_SALES_INVOICE", "ACCOUNTING", "accounting_journal_entries", entry.getId(),
+                "Reversed sales invoice " + invoice.getInvoiceNo() + ": " + reversalReason);
+    }
+
+    @Override
+    @Transactional
     public void postPurchase(PurchaseOrder purchaseOrder) {
         if (purchaseOrder == null || purchaseOrder.getId() == null || isPosted("PURCHASE", purchaseOrder.getId())) {
             return;

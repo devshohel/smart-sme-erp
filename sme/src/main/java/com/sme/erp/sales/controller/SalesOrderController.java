@@ -1,5 +1,7 @@
 package com.sme.erp.sales.controller;
 
+import com.sme.erp.sales.dto.SalesActionReasonDTO;
+import com.sme.erp.sales.dto.SalesInvoiceDTO;
 import com.sme.erp.sales.dto.SalesOrderDTO;
 import com.sme.erp.sales.service.SalesOrderService;
 import jakarta.validation.Valid;
@@ -28,26 +30,56 @@ public class SalesOrderController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('SALES_VIEW')")
+    @PreAuthorize("hasAuthority('SALES_ORDER_VIEW')")
     public ResponseEntity<List<SalesOrderDTO>> getAll() {
         return ResponseEntity.ok(salesOrderService.getAll());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('SALES_VIEW')")
+    @PreAuthorize("hasAuthority('SALES_ORDER_VIEW')")
     public ResponseEntity<SalesOrderDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(salesOrderService.getById(id));
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('SALES_CREATE')")
+    @PreAuthorize("hasAuthority('SALES_ORDER_CREATE')")
     public ResponseEntity<SalesOrderDTO> create(@Valid @RequestBody SalesOrderDTO dto) {
         return ResponseEntity.ok(salesOrderService.create(dto));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('SALES_EDIT')")
+    @PreAuthorize("hasAuthority('SALES_ORDER_EDIT')")
     public ResponseEntity<SalesOrderDTO> update(@PathVariable Long id, @Valid @RequestBody SalesOrderDTO dto) {
         return ResponseEntity.ok(salesOrderService.update(id, dto));
+    }
+
+    @PostMapping("/{id}/submit")
+    @PreAuthorize("hasAuthority('SALES_ORDER_SUBMIT')")
+    public ResponseEntity<SalesOrderDTO> submit(@PathVariable Long id) {
+        return ResponseEntity.ok(salesOrderService.submit(id));
+    }
+
+    @PostMapping("/{id}/approve")
+    @PreAuthorize("hasAuthority('SALES_ORDER_APPROVE')")
+    public ResponseEntity<SalesOrderDTO> approve(@PathVariable Long id) {
+        return ResponseEntity.ok(salesOrderService.approve(id));
+    }
+
+    @PostMapping("/{id}/reject")
+    @PreAuthorize("hasAuthority('SALES_ORDER_REJECT')")
+    public ResponseEntity<SalesOrderDTO> reject(@PathVariable Long id, @Valid @RequestBody SalesActionReasonDTO request) {
+        return ResponseEntity.ok(salesOrderService.reject(id, request.getReason()));
+    }
+
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAuthority('SALES_ORDER_CANCEL')")
+    public ResponseEntity<SalesOrderDTO> cancel(@PathVariable Long id) {
+        return ResponseEntity.ok(salesOrderService.cancel(id));
+    }
+
+    @PostMapping("/{id}/convert-to-invoice")
+    @PreAuthorize("hasAuthority('SALES_ORDER_CONVERT')")
+    public ResponseEntity<SalesInvoiceDTO> convertToInvoice(@PathVariable Long id) {
+        return ResponseEntity.ok(salesOrderService.convertToInvoice(id));
     }
 }

@@ -1,4 +1,4 @@
-import { SalesCustomer, SalesReturnLineItem } from './sales-common.model';
+import { SalesCustomer, SalesReturnLineItem, SalesReturnStatus } from './sales-common.model';
 
 export interface SalesReturn {
   id?: number;
@@ -11,6 +11,18 @@ export interface SalesReturn {
   customer?: SalesCustomer;
   returnDate: string;
   notes?: string;
+  status?: SalesReturnStatus;
+  submittedAt?: string;
+  submittedBy?: string;
+  approvedAt?: string;
+  approvedBy?: string;
+  rejectedAt?: string;
+  rejectedBy?: string;
+  rejectionReason?: string;
+  postedAt?: string;
+  postedBy?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;
   items: SalesReturnLineItem[];
   totalAmount: number;
 }

@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Product } from '../../../models/product.model';
-import { SalesCustomer, SalesReturnLineItem } from '../../../models/sales-common.model';
+import { SalesCustomer, SalesReturnLineItem, SalesReturnStatus } from '../../../models/sales-common.model';
 import { SalesInvoice } from '../../../models/sales-invoice.model';
 import { SalesReturn } from '../../../models/sales-return.model';
 import { ProductService } from '../../../services/product.service';
@@ -9,6 +10,7 @@ import { SalesCustomerService } from '../../../services/sales-customer.service';
 import { SalesInvoiceService } from '../../../services/sales-invoice.service';
 import { SalesReturnService } from '../../../services/sales-return.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-returns',
@@ -26,13 +28,23 @@ export class ReturnsComponent implements OnInit {
   successMessage = '';
   errorMessage = '';
   selectedReturn: SalesReturn | null = null;
+  editingReturnId: number | null = null;
+  currentMode: 'list' | 'create' | 'edit' | 'details' = 'list';
+  searchTerm = '';
+  statusFilter = '';
+  dateFilter = '';
+
+  readonly statuses: SalesReturnStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'POSTED', 'CANCELLED'];
 
   constructor(
     private fb: FormBuilder,
     private returnService: SalesReturnService,
     private invoiceService: SalesInvoiceService,
     private customerService: SalesCustomerService,
-    private productService: ProductService
+    private productService: ProductService,
+    private authService: AuthService,
+    private route: ActivatedRoute,
+    private router: Router
   ) {
     this.returnForm = this.fb.group({
       invoiceId: [null, Validators.required],
@@ -47,6 +59,18 @@ export class ReturnsComponent implements OnInit {
   ngOnInit(): void {
     this.loadReturns();
     this.loadReferenceData();
+    this.route.data.subscribe(data => {
+      this.currentMode = data['mode'] || 'list';
+      if (this.currentMode === 'create') {
+        this.resetForm();
+      }
+    });
+    this.route.paramMap.subscribe(params => {
+      const id = Number(params.get('id') || 0);
+      if (id > 0) {
+        this.loadReturns(id);
+      }
+    });
   }
 
   get items(): FormArray {
@@ -57,12 +81,28 @@ export class ReturnsComponent implements OnInit {
     return this.items.controls.reduce((sum, control) => sum + Number(control.get('total')?.value || 0), 0);
   }
 
+  get filteredReturns(): SalesReturn[] {
+    const keyword = this.searchTerm.trim().toLowerCase();
+    return this.returns.filter(item => {
+      const matchesKeyword = !keyword
+        || (item.returnNo || item.returnCode || '').toLowerCase().includes(keyword)
+        || (item.invoiceNo || '').toLowerCase().includes(keyword)
+        || (item.customerName || '').toLowerCase().includes(keyword);
+      const matchesStatus = !this.statusFilter || item.status === this.statusFilter;
+      const matchesDate = !this.dateFilter || (item.returnDate || '').slice(0, 10) === this.dateFilter;
+      return matchesKeyword && matchesStatus && matchesDate;
+    });
+  }
+
   loadReturns(selectedId?: number): void {
     this.loading = true;
     this.returnService.getAllReturns().subscribe({
       next: (returns) => {
         this.returns = returns;
         this.selectedReturn = returns.find(item => item.id === selectedId) || returns[0] || null;
+        if (selectedId && this.currentMode === 'edit' && this.selectedReturn) {
+          this.editReturn(this.selectedReturn);
+        }
         this.loading = false;
       },
       error: (error) => {
@@ -167,7 +207,7 @@ export class ReturnsComponent implements OnInit {
     this.returnService.saveReturn(payload).subscribe({
       next: (saved) => {
         this.submitting = false;
-        this.successMessage = 'Sales return saved successfully.';
+        this.successMessage = this.editingReturnId ? 'Sales return updated successfully.' : 'Sales return saved successfully.';
         this.selectedReturn = saved;
         this.resetForm();
         this.loadReturns(saved.id);
@@ -181,6 +221,7 @@ export class ReturnsComponent implements OnInit {
   }
 
   resetForm(): void {
+    this.editingReturnId = null;
     while (this.items.length > 0) {
       this.items.removeAt(0);
     }
@@ -192,11 +233,120 @@ export class ReturnsComponent implements OnInit {
       notes: ''
     });
     this.addItem();
+    if (this.currentMode !== 'create') {
+      this.router.navigate(['/sales/returns']);
+    }
   }
 
   hasError(path: string, errorName: string): boolean {
     const control = this.returnForm.get(path);
     return !!control && control.touched && control.hasError(errorName);
+  }
+
+  editReturn(salesReturn: SalesReturn): void {
+    this.editingReturnId = salesReturn.id || null;
+    this.selectedReturn = salesReturn;
+    while (this.items.length > 0) {
+      this.items.removeAt(0);
+    }
+    this.returnForm.patchValue({
+      invoiceId: salesReturn.invoiceId,
+      customerId: salesReturn.customerId,
+      returnDate: this.toDateInput(salesReturn.returnDate),
+      notes: salesReturn.notes || ''
+    });
+    (salesReturn.items || []).forEach(item => this.addItem(item));
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
+  }
+
+  canEdit(salesReturn: SalesReturn | null): boolean {
+    return !!salesReturn && !!salesReturn.id && ['DRAFT', 'REJECTED'].includes(salesReturn.status || '') && this.hasPermission('SALES_RETURN_EDIT');
+  }
+
+  canSubmit(salesReturn: SalesReturn | null): boolean {
+    return !!salesReturn && !!salesReturn.id && ['DRAFT', 'REJECTED'].includes(salesReturn.status || '') && this.hasPermission('SALES_RETURN_SUBMIT');
+  }
+
+  canApprove(salesReturn: SalesReturn | null): boolean {
+    return !!salesReturn && !!salesReturn.id && salesReturn.status === 'SUBMITTED' && this.hasPermission('SALES_RETURN_APPROVE');
+  }
+
+  canReject(salesReturn: SalesReturn | null): boolean {
+    return !!salesReturn && !!salesReturn.id && salesReturn.status === 'SUBMITTED' && this.hasPermission('SALES_RETURN_REJECT');
+  }
+
+  canPost(salesReturn: SalesReturn | null): boolean {
+    return !!salesReturn && !!salesReturn.id && salesReturn.status === 'APPROVED' && this.hasPermission('SALES_RETURN_POST');
+  }
+
+  canCancel(salesReturn: SalesReturn | null): boolean {
+    return !!salesReturn && !!salesReturn.id && !['POSTED', 'CANCELLED'].includes(salesReturn.status || '') && this.hasPermission('SALES_RETURN_CANCEL');
+  }
+
+  submitSelected(): void {
+    if (!this.selectedReturn?.id) {
+      return;
+    }
+    this.submitting = true;
+    this.returnService.submitReturn(this.selectedReturn.id).subscribe({
+      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales return submitted successfully.'),
+      error: (error) => this.handleWorkflowError(error, 'Return submit failed.')
+    });
+  }
+
+  approveSelected(): void {
+    if (!this.selectedReturn?.id) {
+      return;
+    }
+    this.submitting = true;
+    this.returnService.approveReturn(this.selectedReturn.id).subscribe({
+      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales return approved successfully.'),
+      error: (error) => this.handleWorkflowError(error, 'Return approval failed.')
+    });
+  }
+
+  rejectSelected(): void {
+    if (!this.selectedReturn?.id) {
+      return;
+    }
+    const reason = window.prompt('Rejection reason');
+    if (!reason) {
+      return;
+    }
+    this.submitting = true;
+    this.returnService.rejectReturn(this.selectedReturn.id, reason).subscribe({
+      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales return rejected successfully.'),
+      error: (error) => this.handleWorkflowError(error, 'Return rejection failed.')
+    });
+  }
+
+  postSelected(): void {
+    if (!this.selectedReturn?.id) {
+      return;
+    }
+    this.submitting = true;
+    this.returnService.postReturn(this.selectedReturn.id).subscribe({
+      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales return posted successfully.'),
+      error: (error) => this.handleWorkflowError(error, 'Return posting failed.')
+    });
+  }
+
+  cancelSelected(): void {
+    if (!this.selectedReturn?.id) {
+      return;
+    }
+    this.submitting = true;
+    this.returnService.cancelReturn(this.selectedReturn.id).subscribe({
+      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales return cancelled successfully.'),
+      error: (error) => this.handleWorkflowError(error, 'Return cancellation failed.')
+    });
+  }
+
+  printSelected(): void {
+    window.print();
   }
 
   private buildReturnPayload(): SalesReturn {
@@ -212,12 +362,14 @@ export class ReturnsComponent implements OnInit {
     }));
 
     return {
+      id: this.editingReturnId || undefined,
       invoiceId: value.invoiceId !== null ? Number(value.invoiceId) : null,
       invoiceNo: invoice?.invoiceNo || '',
       customerId: value.customerId !== null ? Number(value.customerId) : null,
       customerName: customer?.name || '',
       returnDate: value.returnDate,
       notes: value.notes || '',
+      status: 'DRAFT',
       items,
       totalAmount: items.reduce((sum, item) => sum + item.total, 0)
     };
@@ -225,5 +377,22 @@ export class ReturnsComponent implements OnInit {
 
   private today(): string {
     return new Date().toISOString().slice(0, 10);
+  }
+
+  private toDateInput(value?: string): string {
+    return value ? value.slice(0, 10) : this.today();
+  }
+
+  private handleWorkflowSuccess(saved: SalesReturn, message: string): void {
+    this.submitting = false;
+    this.successMessage = message;
+    this.selectedReturn = saved;
+    this.loadReturns(saved.id);
+  }
+
+  private handleWorkflowError(error: unknown, fallbackMessage: string): void {
+    this.submitting = false;
+    this.errorMessage = extractApiErrorMessage(error, fallbackMessage);
+    debugApiError('ReturnsComponent.workflow', error);
   }
 }

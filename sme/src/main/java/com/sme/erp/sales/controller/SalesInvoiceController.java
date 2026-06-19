@@ -1,5 +1,6 @@
 package com.sme.erp.sales.controller;
 
+import com.sme.erp.sales.dto.SalesReverseRequestDTO;
 import com.sme.erp.sales.dto.SalesInvoiceDTO;
 import com.sme.erp.sales.service.SalesInvoiceService;
 import jakarta.validation.Valid;
@@ -29,32 +30,62 @@ public class SalesInvoiceController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('SALES_VIEW')")
+    @PreAuthorize("hasAuthority('SALES_INVOICE_VIEW')")
     public ResponseEntity<List<SalesInvoiceDTO>> getAll() {
         return ResponseEntity.ok(salesInvoiceService.getAll());
     }
 
     @GetMapping("/unpaid")
-    @PreAuthorize("hasAuthority('SALES_VIEW')")
+    @PreAuthorize("hasAuthority('SALES_INVOICE_VIEW')")
     public ResponseEntity<List<SalesInvoiceDTO>> getUnpaidByCustomerId(@RequestParam Long customerId) {
         return ResponseEntity.ok(salesInvoiceService.getUnpaidByCustomerId(customerId));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('SALES_VIEW')")
+    @PreAuthorize("hasAuthority('SALES_INVOICE_VIEW')")
     public ResponseEntity<SalesInvoiceDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(salesInvoiceService.getById(id));
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('SALES_CREATE')")
+    @PreAuthorize("hasAuthority('SALES_INVOICE_CREATE')")
     public ResponseEntity<SalesInvoiceDTO> create(@Valid @RequestBody SalesInvoiceDTO dto) {
         return ResponseEntity.ok(salesInvoiceService.create(dto));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('SALES_EDIT')")
+    @PreAuthorize("hasAuthority('SALES_INVOICE_EDIT')")
     public ResponseEntity<SalesInvoiceDTO> update(@PathVariable Long id, @Valid @RequestBody SalesInvoiceDTO dto) {
         return ResponseEntity.ok(salesInvoiceService.update(id, dto));
+    }
+
+    @PostMapping("/{id}/submit")
+    @PreAuthorize("hasAuthority('SALES_INVOICE_SUBMIT')")
+    public ResponseEntity<SalesInvoiceDTO> submit(@PathVariable Long id) {
+        return ResponseEntity.ok(salesInvoiceService.submit(id));
+    }
+
+    @PostMapping("/{id}/approve")
+    @PreAuthorize("hasAuthority('SALES_INVOICE_APPROVE')")
+    public ResponseEntity<SalesInvoiceDTO> approve(@PathVariable Long id) {
+        return ResponseEntity.ok(salesInvoiceService.approve(id));
+    }
+
+    @PostMapping("/{id}/post")
+    @PreAuthorize("hasAuthority('SALES_INVOICE_POST')")
+    public ResponseEntity<SalesInvoiceDTO> post(@PathVariable Long id) {
+        return ResponseEntity.ok(salesInvoiceService.post(id));
+    }
+
+    @PostMapping("/{id}/cancel")
+    @PreAuthorize("hasAuthority('SALES_INVOICE_CANCEL')")
+    public ResponseEntity<SalesInvoiceDTO> cancel(@PathVariable Long id) {
+        return ResponseEntity.ok(salesInvoiceService.cancel(id));
+    }
+
+    @PostMapping("/{id}/reverse")
+    @PreAuthorize("hasAuthority('SALES_INVOICE_REVERSE')")
+    public ResponseEntity<SalesInvoiceDTO> reverse(@PathVariable Long id, @Valid @RequestBody SalesReverseRequestDTO request) {
+        return ResponseEntity.ok(salesInvoiceService.reverse(id, request.getReversalReason()));
     }
 }

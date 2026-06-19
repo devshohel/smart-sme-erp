@@ -31,6 +31,31 @@ export class SalesInvoiceService {
       .pipe(map(response => this.normalizeInvoice(unwrapApiResponse(response))));
   }
 
+  submitInvoice(id: number): Observable<SalesInvoice> {
+    return this.http.post<SalesInvoice | ApiResponse<SalesInvoice>>(`${this.baseUrl}/${id}/submit`, {})
+      .pipe(map(response => this.normalizeInvoice(unwrapApiResponse(response))));
+  }
+
+  approveInvoice(id: number): Observable<SalesInvoice> {
+    return this.http.post<SalesInvoice | ApiResponse<SalesInvoice>>(`${this.baseUrl}/${id}/approve`, {})
+      .pipe(map(response => this.normalizeInvoice(unwrapApiResponse(response))));
+  }
+
+  postInvoice(id: number): Observable<SalesInvoice> {
+    return this.http.post<SalesInvoice | ApiResponse<SalesInvoice>>(`${this.baseUrl}/${id}/post`, {})
+      .pipe(map(response => this.normalizeInvoice(unwrapApiResponse(response))));
+  }
+
+  cancelInvoice(id: number): Observable<SalesInvoice> {
+    return this.http.post<SalesInvoice | ApiResponse<SalesInvoice>>(`${this.baseUrl}/${id}/cancel`, {})
+      .pipe(map(response => this.normalizeInvoice(unwrapApiResponse(response))));
+  }
+
+  reverseInvoice(id: number, reversalReason: string): Observable<SalesInvoice> {
+    return this.http.post<SalesInvoice | ApiResponse<SalesInvoice>>(`${this.baseUrl}/${id}/reverse`, { reversalReason })
+      .pipe(map(response => this.normalizeInvoice(unwrapApiResponse(response))));
+  }
+
   private normalizeInvoice(invoice: SalesInvoice): SalesInvoice {
     return {
       ...invoice,
@@ -45,7 +70,7 @@ export class SalesInvoiceService {
       paidAmount: Number(invoice.paidAmount || 0),
       dueAmount: Number(invoice.dueAmount || 0),
       paymentStatus: invoice.paymentStatus || 'DUE',
-      status: invoice.status || 'CONFIRMED',
+      status: invoice.status || 'DRAFT',
       items: (invoice.items || []).map(item => ({
         ...item,
         productId: item.productId ?? null,

@@ -343,7 +343,10 @@ public class DashboardServiceImpl implements DashboardService {
     private boolean isCompletedSale(SalesInvoice invoice) {
         return invoice != null
                 && invoice.getSaleDate() != null
-                && (invoice.getStatus() == SalesInvoiceStatus.CONFIRMED
+                && (invoice.getStatus() == SalesInvoiceStatus.POSTED
+                || invoice.getStatus() == SalesInvoiceStatus.PARTIAL_PAID
+                || invoice.getStatus() == SalesInvoiceStatus.PAID
+                || invoice.getStatus() == SalesInvoiceStatus.CONFIRMED
                 || invoice.getStatus() == SalesInvoiceStatus.COMPLETED);
     }
 

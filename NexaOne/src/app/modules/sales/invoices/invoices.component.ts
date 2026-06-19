@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { InventoryWarehouse } from '../../../models/inventory-warehouse.model';
 import { Product } from '../../../models/product.model';
-import { PaymentStatus, SalesCustomer, SalesInvoiceLineItem } from '../../../models/sales-common.model';
+import { PaymentStatus, SalesCustomer, SalesInvoiceLineItem, SalesInvoiceStatus } from '../../../models/sales-common.model';
 import { SalesInvoice } from '../../../models/sales-invoice.model';
 import { SalesOrder } from '../../../models/sales-order.model';
 import { InventoryWarehouseService } from '../../../services/inventory-warehouse.service';
@@ -11,6 +12,7 @@ import { SalesCustomerService } from '../../../services/sales-customer.service';
 import { SalesInvoiceService } from '../../../services/sales-invoice.service';
 import { SalesOrderService } from '../../../services/sales-order.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-invoices',
@@ -29,8 +31,14 @@ export class InvoicesComponent implements OnInit {
   successMessage = '';
   errorMessage = '';
   selectedInvoice: SalesInvoice | null = null;
+  editingInvoiceId: number | null = null;
+  currentMode: 'list' | 'create' | 'edit' | 'details' = 'list';
+  searchTerm = '';
+  statusFilter = '';
+  dateFilter = '';
 
   readonly paymentStatuses: PaymentStatus[] = ['PAID', 'PARTIAL', 'DUE'];
+  readonly statuses: SalesInvoiceStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'POSTED', 'PARTIAL_PAID', 'PAID', 'CANCELLED', 'REVERSED'];
 
   constructor(
     private fb: FormBuilder,
@@ -38,14 +46,17 @@ export class InvoicesComponent implements OnInit {
     private orderService: SalesOrderService,
     private customerService: SalesCustomerService,
     private productService: ProductService,
-    private warehouseService: InventoryWarehouseService
+    private warehouseService: InventoryWarehouseService,
+    private authService: AuthService,
+    private route: ActivatedRoute,
+    private router: Router
   ) {
     this.invoiceForm = this.fb.group({
       orderId: [null],
       customerId: [null, Validators.required],
       warehouseId: [null, Validators.required],
       saleDate: [this.today(), Validators.required],
-      paidAmount: [0, [Validators.required, Validators.min(0)]],
+      paidAmount: [{ value: 0, disabled: true }],
       notes: ['', [Validators.maxLength(500)]],
       items: this.fb.array([])
     });
@@ -55,6 +66,18 @@ export class InvoicesComponent implements OnInit {
   ngOnInit(): void {
     this.loadInvoices();
     this.loadReferenceData();
+    this.route.data.subscribe(data => {
+      this.currentMode = data['mode'] || 'list';
+      if (this.currentMode === 'create') {
+        this.resetForm();
+      }
+    });
+    this.route.paramMap.subscribe(params => {
+      const id = Number(params.get('id') || 0);
+      if (id > 0) {
+        this.loadInvoices(id);
+      }
+    });
   }
 
   get items(): FormArray {
@@ -105,6 +128,9 @@ export class InvoicesComponent implements OnInit {
       next: (invoices) => {
         this.invoices = invoices;
         this.selectedInvoice = invoices.find(invoice => invoice.id === selectedId) || invoices[0] || null;
+        if (selectedId && this.currentMode === 'edit' && this.selectedInvoice) {
+          this.editInvoice(this.selectedInvoice);
+        }
         this.loading = false;
       },
       error: (error) => {
@@ -235,7 +261,7 @@ export class InvoicesComponent implements OnInit {
     this.invoiceService.saveInvoice(payload).subscribe({
       next: (saved) => {
         this.submitting = false;
-        this.successMessage = 'Invoice saved successfully.';
+        this.successMessage = this.editingInvoiceId ? 'Invoice updated successfully.' : 'Invoice saved successfully.';
         this.selectedInvoice = saved;
         this.resetForm();
         this.loadInvoices(saved.id);
@@ -252,7 +278,38 @@ export class InvoicesComponent implements OnInit {
     this.selectedInvoice = invoice;
   }
 
+  editInvoice(invoice: SalesInvoice): void {
+    this.editingInvoiceId = invoice.id || null;
+    this.selectedInvoice = invoice;
+    while (this.items.length > 0) {
+      this.items.removeAt(0);
+    }
+    this.invoiceForm.patchValue({
+      orderId: invoice.orderId ?? null,
+      customerId: invoice.customerId,
+      warehouseId: invoice.warehouseId,
+      saleDate: this.toDateInput(invoice.saleDate),
+      paidAmount: Number(invoice.paidAmount || 0),
+      notes: invoice.notes || ''
+    });
+    (invoice.items || []).forEach(item => this.addItem(item));
+  }
+
+  get filteredInvoices(): SalesInvoice[] {
+    const keyword = this.searchTerm.trim().toLowerCase();
+    return this.invoices.filter(invoice => {
+      const matchesKeyword = !keyword
+        || (invoice.invoiceNo || '').toLowerCase().includes(keyword)
+        || (invoice.customerName || '').toLowerCase().includes(keyword)
+        || (invoice.warehouseName || '').toLowerCase().includes(keyword);
+      const matchesStatus = !this.statusFilter || invoice.status === this.statusFilter;
+      const matchesDate = !this.dateFilter || (invoice.saleDate || '').slice(0, 10) === this.dateFilter;
+      return matchesKeyword && matchesStatus && matchesDate;
+    });
+  }
+
   resetForm(): void {
+    this.editingInvoiceId = null;
     while (this.items.length > 0) {
       this.items.removeAt(0);
     }
@@ -266,6 +323,9 @@ export class InvoicesComponent implements OnInit {
       notes: ''
     });
     this.addItem();
+    if (this.currentMode !== 'create') {
+      this.router.navigate(['/sales/invoices']);
+    }
   }
 
   hasError(path: string, errorName: string): boolean {
@@ -288,6 +348,7 @@ export class InvoicesComponent implements OnInit {
     }));
 
     return {
+      id: this.editingInvoiceId || undefined,
       orderId: value.orderId !== null ? Number(value.orderId) : null,
       orderNo: this.orders.find(order => order.id === Number(value.orderId))?.orderNo || '',
       customerId: value.customerId !== null ? Number(value.customerId) : null,
@@ -301,14 +362,129 @@ export class InvoicesComponent implements OnInit {
       discountAmount: this.discountAmount,
       taxAmount: this.taxAmount,
       netTotal: this.netTotal,
-      paidAmount: Number(value.paidAmount || 0),
-      dueAmount: this.dueAmount,
-      paymentStatus: this.paymentStatus,
-      status: 'CONFIRMED'
+      paidAmount: 0,
+      dueAmount: this.netTotal,
+      paymentStatus: 'DUE',
+      status: 'DRAFT'
     };
   }
 
   private today(): string {
     return new Date().toISOString().slice(0, 10);
+  }
+
+  private toDateInput(value?: string): string {
+    return value ? value.slice(0, 10) : this.today();
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
+  }
+
+  canEdit(invoice: SalesInvoice | null): boolean {
+    return !!invoice && !!invoice.id && invoice.status === 'DRAFT' && this.hasPermission('SALES_INVOICE_EDIT');
+  }
+
+  canSubmit(invoice: SalesInvoice | null): boolean {
+    return !!invoice && !!invoice.id && invoice.status === 'DRAFT' && this.hasPermission('SALES_INVOICE_SUBMIT');
+  }
+
+  canApprove(invoice: SalesInvoice | null): boolean {
+    return !!invoice && !!invoice.id && ['SUBMITTED', 'PENDING'].includes(invoice.status || '') && this.hasPermission('SALES_INVOICE_APPROVE');
+  }
+
+  canPost(invoice: SalesInvoice | null): boolean {
+    return !!invoice && !!invoice.id && invoice.status === 'APPROVED' && this.hasPermission('SALES_INVOICE_POST');
+  }
+
+  canCancel(invoice: SalesInvoice | null): boolean {
+    return !!invoice && !!invoice.id && ['DRAFT', 'SUBMITTED', 'APPROVED'].includes(invoice.status || '') && this.hasPermission('SALES_INVOICE_CANCEL');
+  }
+
+  canReverse(invoice: SalesInvoice | null): boolean {
+    return !!invoice && !!invoice.id && ['POSTED', 'PARTIAL_PAID', 'PAID', 'CONFIRMED', 'COMPLETED'].includes(invoice.status || '') && this.hasPermission('SALES_INVOICE_REVERSE');
+  }
+
+  submitSelected(): void {
+    if (!this.selectedInvoice?.id) {
+      return;
+    }
+    this.submitting = true;
+    this.invoiceService.submitInvoice(this.selectedInvoice.id).subscribe({
+      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales invoice submitted successfully.'),
+      error: (error) => this.handleWorkflowError(error, 'Invoice submit failed.')
+    });
+  }
+
+  approveSelected(): void {
+    if (!this.selectedInvoice?.id) {
+      return;
+    }
+    this.submitting = true;
+    this.invoiceService.approveInvoice(this.selectedInvoice.id).subscribe({
+      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales invoice approved successfully.'),
+      error: (error) => this.handleWorkflowError(error, 'Invoice approval failed.')
+    });
+  }
+
+  postSelected(): void {
+    if (!this.selectedInvoice?.id) {
+      return;
+    }
+    this.submitting = true;
+    this.invoiceService.postInvoice(this.selectedInvoice.id).subscribe({
+      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales invoice posted successfully.'),
+      error: (error) => this.handleWorkflowError(error, 'Invoice posting failed.')
+    });
+  }
+
+  cancelSelected(): void {
+    if (!this.selectedInvoice?.id) {
+      return;
+    }
+    this.submitting = true;
+    this.invoiceService.cancelInvoice(this.selectedInvoice.id).subscribe({
+      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales invoice cancelled successfully.'),
+      error: (error) => this.handleWorkflowError(error, 'Invoice cancellation failed.')
+    });
+  }
+
+  reverseSelected(): void {
+    if (!this.selectedInvoice?.id) {
+      return;
+    }
+    const reversalReason = window.prompt('Reversal reason');
+    if (!reversalReason) {
+      return;
+    }
+    this.submitting = true;
+    this.invoiceService.reverseInvoice(this.selectedInvoice.id, reversalReason).subscribe({
+      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales invoice reversed successfully.'),
+      error: (error) => this.handleWorkflowError(error, 'Invoice reversal failed.')
+    });
+  }
+
+  newReturnFromInvoice(): void {
+    if (!this.selectedInvoice?.id || !this.hasPermission('SALES_RETURN_CREATE')) {
+      return;
+    }
+    this.router.navigate(['/sales/returns/create']);
+  }
+
+  printSelected(): void {
+    window.print();
+  }
+
+  private handleWorkflowSuccess(saved: SalesInvoice, message: string): void {
+    this.submitting = false;
+    this.successMessage = message;
+    this.selectedInvoice = saved;
+    this.loadInvoices(saved.id);
+  }
+
+  private handleWorkflowError(error: unknown, fallbackMessage: string): void {
+    this.submitting = false;
+    this.errorMessage = extractApiErrorMessage(error, fallbackMessage);
+    debugApiError('InvoicesComponent.workflow', error);
   }
 }

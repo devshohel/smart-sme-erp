@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Product } from '../../../models/product.model';
 import { InventoryWarehouse } from '../../../models/inventory-warehouse.model';
 import { SalesCustomer, SalesOrderLineItem, SalesOrderStatus } from '../../../models/sales-common.model';
@@ -28,8 +29,12 @@ export class OrdersComponent implements OnInit {
   errorMessage = '';
   selectedOrder: SalesOrder | null = null;
   editingOrderId: number | null = null;
+  currentMode: 'list' | 'create' | 'edit' | 'details' = 'list';
+  searchTerm = '';
+  statusFilter = '';
+  dateFilter = '';
 
-  readonly statuses: SalesOrderStatus[] = ['DRAFT', 'PENDING', 'APPROVED', 'CANCELLED'];
+  readonly statuses: SalesOrderStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'CONVERTED', 'CANCELLED'];
 
   constructor(
     private fb: FormBuilder,
@@ -37,13 +42,15 @@ export class OrdersComponent implements OnInit {
     private customerService: SalesCustomerService,
     private productService: ProductService,
     private warehouseService: InventoryWarehouseService,
-    private authService: AuthService
+    private authService: AuthService,
+    private route: ActivatedRoute,
+    private router: Router
   ) {
     this.orderForm = this.fb.group({
       customerId: [null, Validators.required],
       warehouseId: [null, Validators.required],
       orderDate: [this.today(), Validators.required],
-      status: ['PENDING', Validators.required],
+      status: ['DRAFT', Validators.required],
       notes: ['', [Validators.maxLength(500)]],
       items: this.fb.array([])
     });
@@ -53,6 +60,18 @@ export class OrdersComponent implements OnInit {
   ngOnInit(): void {
     this.loadOrders();
     this.loadReferenceData();
+    this.route.data.subscribe(data => {
+      this.currentMode = data['mode'] || 'list';
+      if (this.currentMode === 'create') {
+        this.resetForm();
+      }
+    });
+    this.route.paramMap.subscribe(params => {
+      const id = Number(params.get('id') || 0);
+      if (id > 0) {
+        this.loadOrders(id);
+      }
+    });
   }
 
   get items(): FormArray {
@@ -65,6 +84,9 @@ export class OrdersComponent implements OnInit {
       next: (orders) => {
         this.orders = orders;
         this.selectedOrder = orders.find(order => order.id === selectedId) || orders[0] || null;
+        if (selectedId && this.currentMode === 'edit' && this.selectedOrder) {
+          this.editOrder(this.selectedOrder);
+        }
         this.loading = false;
       },
       error: (error) => {
@@ -142,6 +164,19 @@ export class OrdersComponent implements OnInit {
     return this.items.controls.reduce((sum, control) => sum + Number(control.get('subtotal')?.value || 0), 0);
   }
 
+  get filteredOrders(): SalesOrder[] {
+    const keyword = this.searchTerm.trim().toLowerCase();
+    return this.orders.filter(order => {
+      const matchesKeyword = !keyword
+        || (order.orderNo || '').toLowerCase().includes(keyword)
+        || (order.customerName || '').toLowerCase().includes(keyword)
+        || (order.warehouseName || '').toLowerCase().includes(keyword);
+      const matchesStatus = !this.statusFilter || order.status === this.statusFilter;
+      const matchesDate = !this.dateFilter || (order.orderDate || '').slice(0, 10) === this.dateFilter;
+      return matchesKeyword && matchesStatus && matchesDate;
+    });
+  }
+
   saveOrder(): void {
     this.successMessage = '';
     this.errorMessage = '';
@@ -172,6 +207,9 @@ export class OrdersComponent implements OnInit {
 
   selectOrder(order: SalesOrder): void {
     this.selectedOrder = order;
+    if (this.currentMode === 'details' && order.id) {
+      this.router.navigate(['/sales/orders/details', order.id]);
+    }
   }
 
   editOrder(order: SalesOrder): void {
@@ -185,7 +223,7 @@ export class OrdersComponent implements OnInit {
       customerId: order.customerId,
       warehouseId: order.warehouseId,
       orderDate: this.toDateInput(order.orderDate),
-      status: order.status || 'PENDING',
+      status: order.status || 'DRAFT',
       notes: order.notes || ''
     });
 
@@ -207,10 +245,13 @@ export class OrdersComponent implements OnInit {
       customerId: null,
       warehouseId: null,
       orderDate: this.today(),
-      status: 'PENDING',
+      status: 'DRAFT',
       notes: ''
     });
     this.addItem();
+    if (this.currentMode !== 'create') {
+      this.router.navigate(['/sales/orders']);
+    }
   }
 
   productName(productId: number | null): string {
@@ -224,6 +265,98 @@ export class OrdersComponent implements OnInit {
 
   hasPermission(permission: string): boolean {
     return this.authService.hasPermission(permission);
+  }
+
+  canEdit(order: SalesOrder | null): boolean {
+    return !!order && !!order.id && ['DRAFT', 'REJECTED'].includes(order.status) && this.hasPermission('SALES_ORDER_EDIT');
+  }
+
+  canSubmit(order: SalesOrder | null): boolean {
+    return !!order && !!order.id && ['DRAFT', 'REJECTED'].includes(order.status) && this.hasPermission('SALES_ORDER_SUBMIT');
+  }
+
+  canApprove(order: SalesOrder | null): boolean {
+    return !!order && !!order.id && ['SUBMITTED', 'PENDING'].includes(order.status) && this.hasPermission('SALES_ORDER_APPROVE');
+  }
+
+  canReject(order: SalesOrder | null): boolean {
+    return !!order && !!order.id && ['SUBMITTED', 'PENDING'].includes(order.status) && this.hasPermission('SALES_ORDER_REJECT');
+  }
+
+  canCancel(order: SalesOrder | null): boolean {
+    return !!order && !!order.id && !['CONVERTED', 'CANCELLED'].includes(order.status) && this.hasPermission('SALES_ORDER_CANCEL');
+  }
+
+  canConvert(order: SalesOrder | null): boolean {
+    return !!order && !!order.id && order.status === 'APPROVED' && this.hasPermission('SALES_ORDER_CONVERT');
+  }
+
+  printSelected(): void {
+    window.print();
+  }
+
+  submitSelected(): void {
+    if (!this.selectedOrder?.id) {
+      return;
+    }
+    this.submitting = true;
+    this.orderService.submitOrder(this.selectedOrder.id).subscribe({
+      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales order submitted successfully.'),
+      error: (error) => this.handleWorkflowError(error, 'Sales order submit failed.')
+    });
+  }
+
+  approveSelected(): void {
+    if (!this.selectedOrder?.id) {
+      return;
+    }
+    this.submitting = true;
+    this.orderService.approveOrder(this.selectedOrder.id).subscribe({
+      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales order approved successfully.'),
+      error: (error) => this.handleWorkflowError(error, 'Sales order approval failed.')
+    });
+  }
+
+  rejectSelected(): void {
+    if (!this.selectedOrder?.id) {
+      return;
+    }
+    const reason = window.prompt('Rejection reason');
+    if (!reason) {
+      return;
+    }
+    this.submitting = true;
+    this.orderService.rejectOrder(this.selectedOrder.id, reason).subscribe({
+      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales order rejected successfully.'),
+      error: (error) => this.handleWorkflowError(error, 'Sales order rejection failed.')
+    });
+  }
+
+  cancelSelected(): void {
+    if (!this.selectedOrder?.id) {
+      return;
+    }
+    this.submitting = true;
+    this.orderService.cancelOrder(this.selectedOrder.id).subscribe({
+      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales order cancelled successfully.'),
+      error: (error) => this.handleWorkflowError(error, 'Sales order cancellation failed.')
+    });
+  }
+
+  convertSelected(): void {
+    if (!this.selectedOrder?.id) {
+      return;
+    }
+    this.submitting = true;
+    this.orderService.convertOrderToInvoice(this.selectedOrder.id).subscribe({
+      next: () => {
+        this.submitting = false;
+        this.successMessage = 'Sales order converted to invoice successfully.';
+        this.loadOrders(this.selectedOrder?.id);
+        this.router.navigate(['/sales/invoices']);
+      },
+      error: (error) => this.handleWorkflowError(error, 'Order conversion failed.')
+    });
   }
 
   private buildOrderPayload(): SalesOrder {
@@ -247,7 +380,7 @@ export class OrdersComponent implements OnInit {
       warehouseName: warehouse?.name || '',
       orderDate: value.orderDate,
       notes: value.notes || '',
-      status: value.status,
+      status: 'DRAFT',
       items,
       grandTotal: items.reduce((sum, item) => sum + item.subtotal, 0)
     };
@@ -259,5 +392,18 @@ export class OrdersComponent implements OnInit {
 
   private toDateInput(value?: string): string {
     return value ? value.slice(0, 10) : this.today();
+  }
+
+  private handleWorkflowSuccess(saved: SalesOrder, message: string): void {
+    this.submitting = false;
+    this.successMessage = message;
+    this.selectedOrder = saved;
+    this.loadOrders(saved.id);
+  }
+
+  private handleWorkflowError(error: unknown, fallbackMessage: string): void {
+    this.submitting = false;
+    this.errorMessage = extractApiErrorMessage(error, fallbackMessage);
+    debugApiError('OrdersComponent.workflow', error);
   }
 }

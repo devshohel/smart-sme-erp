@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { SalesInvoice } from '../models/sales-invoice.model';
 import { SalesOrder } from '../models/sales-order.model';
 import { ApiResponse, unwrapApiResponse } from '../shared/utils/api-response.util';
 
@@ -31,13 +32,38 @@ export class SalesOrderService {
       .pipe(map(response => this.normalizeOrder(unwrapApiResponse(response))));
   }
 
+  submitOrder(id: number): Observable<SalesOrder> {
+    return this.http.post<SalesOrder | ApiResponse<SalesOrder>>(`${this.baseUrl}/${id}/submit`, {})
+      .pipe(map(response => this.normalizeOrder(unwrapApiResponse(response))));
+  }
+
+  approveOrder(id: number): Observable<SalesOrder> {
+    return this.http.post<SalesOrder | ApiResponse<SalesOrder>>(`${this.baseUrl}/${id}/approve`, {})
+      .pipe(map(response => this.normalizeOrder(unwrapApiResponse(response))));
+  }
+
+  rejectOrder(id: number, reason: string): Observable<SalesOrder> {
+    return this.http.post<SalesOrder | ApiResponse<SalesOrder>>(`${this.baseUrl}/${id}/reject`, { reason })
+      .pipe(map(response => this.normalizeOrder(unwrapApiResponse(response))));
+  }
+
+  cancelOrder(id: number): Observable<SalesOrder> {
+    return this.http.post<SalesOrder | ApiResponse<SalesOrder>>(`${this.baseUrl}/${id}/cancel`, {})
+      .pipe(map(response => this.normalizeOrder(unwrapApiResponse(response))));
+  }
+
+  convertOrderToInvoice(id: number): Observable<SalesInvoice> {
+    return this.http.post<SalesInvoice | ApiResponse<SalesInvoice>>(`${this.baseUrl}/${id}/convert-to-invoice`, {})
+      .pipe(map(response => unwrapApiResponse(response) as SalesInvoice));
+  }
+
   private normalizeOrder(order: SalesOrder): SalesOrder {
     return {
       ...order,
       customerId: order.customerId ?? null,
       warehouseId: order.warehouseId ?? null,
       orderDate: this.toApiDateTime(order.orderDate),
-      status: order.status || 'PENDING',
+      status: order.status || 'DRAFT',
       grandTotal: Number(order.grandTotal || 0),
       items: (order.items || []).map(item => ({
         ...item,

@@ -11,6 +11,17 @@ export interface SalesOrder {
   orderDate: string;
   notes?: string;
   status: SalesOrderStatus;
+  submittedAt?: string;
+  submittedBy?: string;
+  approvedAt?: string;
+  approvedBy?: string;
+  rejectedAt?: string;
+  rejectedBy?: string;
+  rejectionReason?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;
+  convertedAt?: string;
+  convertedBy?: string;
   items: SalesOrderLineItem[];
   grandTotal: number;
 }

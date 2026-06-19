@@ -47,7 +47,7 @@ public class SalesOrder {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private SalesOrderStatus status = SalesOrderStatus.PENDING;
+    private SalesOrderStatus status = SalesOrderStatus.DRAFT;
 
     @Column(name = "created_by")
     private Long createdBy;
@@ -64,6 +64,39 @@ public class SalesOrder {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "submitted_at")
+    private LocalDateTime submittedAt;
+
+    @Column(name = "submitted_by", length = 120)
+    private String submittedBy;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Column(name = "approved_by", length = 120)
+    private String approvedBy;
+
+    @Column(name = "rejected_at")
+    private LocalDateTime rejectedAt;
+
+    @Column(name = "rejected_by", length = 120)
+    private String rejectedBy;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    @Column(name = "cancelled_by", length = 120)
+    private String cancelledBy;
+
+    @Column(name = "converted_at")
+    private LocalDateTime convertedAt;
+
+    @Column(name = "converted_by", length = 120)
+    private String convertedBy;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SalesItem> items = new ArrayList<>();
 
@@ -73,7 +106,7 @@ public class SalesOrder {
         this.createdAt = now;
         this.updatedAt = now;
         if (this.status == null) {
-            this.status = SalesOrderStatus.PENDING;
+            this.status = SalesOrderStatus.DRAFT;
         }
     }
 
@@ -81,7 +114,7 @@ public class SalesOrder {
     public void onUpdate() {
         this.updatedAt = LocalDateTime.now();
         if (this.status == null) {
-            this.status = SalesOrderStatus.PENDING;
+            this.status = SalesOrderStatus.DRAFT;
         }
     }
 
@@ -117,6 +150,39 @@ public class SalesOrder {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public LocalDateTime getSubmittedAt() { return submittedAt; }
+    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
+
+    public String getSubmittedBy() { return submittedBy; }
+    public void setSubmittedBy(String submittedBy) { this.submittedBy = submittedBy; }
+
+    public LocalDateTime getApprovedAt() { return approvedAt; }
+    public void setApprovedAt(LocalDateTime approvedAt) { this.approvedAt = approvedAt; }
+
+    public String getApprovedBy() { return approvedBy; }
+    public void setApprovedBy(String approvedBy) { this.approvedBy = approvedBy; }
+
+    public LocalDateTime getRejectedAt() { return rejectedAt; }
+    public void setRejectedAt(LocalDateTime rejectedAt) { this.rejectedAt = rejectedAt; }
+
+    public String getRejectedBy() { return rejectedBy; }
+    public void setRejectedBy(String rejectedBy) { this.rejectedBy = rejectedBy; }
+
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
+
+    public LocalDateTime getCancelledAt() { return cancelledAt; }
+    public void setCancelledAt(LocalDateTime cancelledAt) { this.cancelledAt = cancelledAt; }
+
+    public String getCancelledBy() { return cancelledBy; }
+    public void setCancelledBy(String cancelledBy) { this.cancelledBy = cancelledBy; }
+
+    public LocalDateTime getConvertedAt() { return convertedAt; }
+    public void setConvertedAt(LocalDateTime convertedAt) { this.convertedAt = convertedAt; }
+
+    public String getConvertedBy() { return convertedBy; }
+    public void setConvertedBy(String convertedBy) { this.convertedBy = convertedBy; }
 
     public List<SalesItem> getItems() { return items; }
     public void setItems(List<SalesItem> items) { this.items = items; }

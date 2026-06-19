@@ -26,11 +26,22 @@ export class SalesStatusBadgeComponent {
     switch (value) {
       case 'DRAFT':
         return 'bg-secondary-subtle text-secondary';
+      case 'SUBMITTED':
+      case 'PENDING':
+        return 'bg-warning-subtle text-warning';
       case 'APPROVED':
       case 'CONFIRMED':
         return 'bg-success-subtle text-success';
+      case 'POSTED':
+      case 'PARTIAL_PAID':
+      case 'PAID':
       case 'COMPLETED':
         return 'bg-info-subtle text-info';
+      case 'REJECTED':
+      case 'REVERSED':
+        return 'bg-dark-subtle text-dark';
+      case 'CONVERTED':
+        return 'bg-primary-subtle text-primary';
       case 'CANCELLED':
         return 'bg-danger-subtle text-danger';
       default:

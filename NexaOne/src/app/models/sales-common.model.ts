@@ -1,5 +1,6 @@
-export type SalesOrderStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'CANCELLED';
-export type SalesInvoiceStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+export type SalesOrderStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'CONVERTED' | 'CANCELLED' | 'PENDING';
+export type SalesInvoiceStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'POSTED' | 'PARTIAL_PAID' | 'PAID' | 'CANCELLED' | 'REVERSED' | 'PENDING' | 'CONFIRMED' | 'COMPLETED';
+export type SalesReturnStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'POSTED' | 'CANCELLED';
 export type PaymentStatus = 'PAID' | 'PARTIAL' | 'DUE';
 
 export interface SalesCustomer {

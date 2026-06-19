@@ -14,6 +14,7 @@ public interface SalesReturnRepository extends JpaRepository<SalesReturn, Long> 
     Optional<SalesReturn> findTopByOrderByIdDesc();
     boolean existsByReturnCode(String returnCode);
     boolean existsByReturnCodeAndIdNot(String returnCode, Long id);
+    boolean existsByInvoiceIdAndStatus(Long invoiceId, com.sme.erp.sales.enums.SalesReturnStatus status);
     List<SalesReturn> findByCustomerIdOrderByReturnDateDescIdDesc(Long customerId, Pageable pageable);
 
     @Query("""

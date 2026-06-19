@@ -21,4 +21,15 @@ export interface SalesInvoice {
   dueAmount: number;
   paymentStatus: PaymentStatus;
   status?: SalesInvoiceStatus;
+  submittedAt?: string;
+  submittedBy?: string;
+  approvedAt?: string;
+  approvedBy?: string;
+  postedAt?: string;
+  postedBy?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;
+  reversedAt?: string;
+  reversedBy?: string;
+  reversalReason?: string;
 }

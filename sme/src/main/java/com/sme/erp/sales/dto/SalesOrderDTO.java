@@ -33,7 +33,19 @@ public class SalesOrderDTO {
     private SalesOrderStatus status;
     private Long createdBy;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private String notes;
+    private LocalDateTime submittedAt;
+    private String submittedBy;
+    private LocalDateTime approvedAt;
+    private String approvedBy;
+    private LocalDateTime rejectedAt;
+    private String rejectedBy;
+    private String rejectionReason;
+    private LocalDateTime cancelledAt;
+    private String cancelledBy;
+    private LocalDateTime convertedAt;
+    private String convertedBy;
 
     @Valid
     private List<SalesItemDTO> items = new ArrayList<>();
@@ -70,8 +82,44 @@ public class SalesOrderDTO {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public LocalDateTime getSubmittedAt() { return submittedAt; }
+    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
+
+    public String getSubmittedBy() { return submittedBy; }
+    public void setSubmittedBy(String submittedBy) { this.submittedBy = submittedBy; }
+
+    public LocalDateTime getApprovedAt() { return approvedAt; }
+    public void setApprovedAt(LocalDateTime approvedAt) { this.approvedAt = approvedAt; }
+
+    public String getApprovedBy() { return approvedBy; }
+    public void setApprovedBy(String approvedBy) { this.approvedBy = approvedBy; }
+
+    public LocalDateTime getRejectedAt() { return rejectedAt; }
+    public void setRejectedAt(LocalDateTime rejectedAt) { this.rejectedAt = rejectedAt; }
+
+    public String getRejectedBy() { return rejectedBy; }
+    public void setRejectedBy(String rejectedBy) { this.rejectedBy = rejectedBy; }
+
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
+
+    public LocalDateTime getCancelledAt() { return cancelledAt; }
+    public void setCancelledAt(LocalDateTime cancelledAt) { this.cancelledAt = cancelledAt; }
+
+    public String getCancelledBy() { return cancelledBy; }
+    public void setCancelledBy(String cancelledBy) { this.cancelledBy = cancelledBy; }
+
+    public LocalDateTime getConvertedAt() { return convertedAt; }
+    public void setConvertedAt(LocalDateTime convertedAt) { this.convertedAt = convertedAt; }
+
+    public String getConvertedBy() { return convertedBy; }
+    public void setConvertedBy(String convertedBy) { this.convertedBy = convertedBy; }
 
     public List<SalesItemDTO> getItems() { return items; }
     public void setItems(List<SalesItemDTO> items) { this.items = items; }

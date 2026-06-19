@@ -8,6 +8,20 @@
     <div class="col-12">
       <app-card title="Sales Order List" subtitle="Approved orders can be converted into sales invoices.">
         <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <input class="form-control" [(ngModel)]="searchTerm" [ngModelOptions]="{ standalone: true }" placeholder="Search order, customer, warehouse">
+          </div>
+          <div class="col-md-4">
+            <select class="form-select" [(ngModel)]="statusFilter" [ngModelOptions]="{ standalone: true }">
+              <option value="">All statuses</option>
+              <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <input class="form-control" type="date" [(ngModel)]="dateFilter" [ngModelOptions]="{ standalone: true }">
+          </div>
+        </div>
 
         <div class="table-responsive">
           <table class="table table-hover align-middle mb-0">
@@ -23,7 +37,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let order of orders" class="cursor-pointer" (click)="selectOrder(order)">
+              <tr *ngFor="let order of filteredOrders" class="cursor-pointer" (click)="selectOrder(order)">
                 <td class="fw-semibold">{{ order.orderNo || 'Draft' }}</td>
                 <td>{{ order.customerName || 'N/A' }}</td>
                 <td>{{ order.warehouseName || 'N/A' }}</td>
@@ -31,12 +45,12 @@
                 <td class="text-end">{{ order.grandTotal | number:'1.2-2' }}</td>
                 <td><app-sales-status-badge [label]="order.status"></app-sales-status-badge></td>
                 <td class="text-center">
-                  <button *ngIf="hasPermission('SALES_EDIT')" type="button" class="btn btn-sm btn-outline-primary" (click)="editOrder(order)">
+                  <button *ngIf="canEdit(order)" type="button" class="btn btn-sm btn-outline-primary" (click)="editOrder(order); $event.stopPropagation()">
                     <i class="bi bi-pencil"></i>
                   </button>
                 </td>
               </tr>
-              <tr *ngIf="!loading && orders.length === 0">
+              <tr *ngIf="!loading && filteredOrders.length === 0">
                 <td colspan="7" class="text-center text-muted py-5">No sales orders found.</td>
               </tr>
               <tr *ngIf="loading">
@@ -56,11 +70,34 @@
           <div class="col-md-6"><strong>Order Date:</strong> {{ selectedOrder.orderDate }}</div>
           <div class="col-md-6"><strong>Notes:</strong> {{ selectedOrder.notes || 'N/A' }}</div>
         </div>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <button *ngIf="canEdit(selectedOrder)" type="button" class="btn btn-outline-primary btn-sm" (click)="editOrder(selectedOrder)">
+            Edit Draft
+          </button>
+          <button *ngIf="canSubmit(selectedOrder)" type="button" class="btn btn-warning btn-sm" (click)="submitSelected()">
+            Submit
+          </button>
+          <button *ngIf="canApprove(selectedOrder)" type="button" class="btn btn-success btn-sm" (click)="approveSelected()">
+            Approve
+          </button>
+          <button *ngIf="canReject(selectedOrder)" type="button" class="btn btn-outline-dark btn-sm" (click)="rejectSelected()">
+            Reject
+          </button>
+          <button *ngIf="canCancel(selectedOrder)" type="button" class="btn btn-outline-danger btn-sm" (click)="cancelSelected()">
+            Cancel
+          </button>
+          <button *ngIf="canConvert(selectedOrder)" type="button" class="btn btn-primary btn-sm" (click)="convertSelected()">
+            Convert to Invoice
+          </button>
+          <button *ngIf="hasPermission('SALES_ORDER_PRINT')" type="button" class="btn btn-outline-secondary btn-sm" (click)="printSelected()">
+            Print
+          </button>
+        </div>
       </app-card>
     </div>
 
     <div class="col-12">
-      <app-card *ngIf="hasPermission(editingOrderId ? 'SALES_EDIT' : 'SALES_CREATE')" [title]="editingOrderId ? 'Edit Sales Order' : 'Create Sales Order'" subtitle="Create customer order requests before invoice confirmation.">
+      <app-card *ngIf="hasPermission(editingOrderId ? 'SALES_ORDER_EDIT' : 'SALES_ORDER_CREATE')" [title]="editingOrderId ? 'Edit Sales Order' : 'Create Sales Order'" subtitle="Create customer order requests before invoice confirmation.">
         <form [formGroup]="orderForm" (ngSubmit)="saveOrder()" novalidate>
           <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
 
@@ -91,10 +128,8 @@
             </div>
 
             <div class="col-md-6">
-              <label class="form-label">Status *</label>
-              <select class="form-select" formControlName="status">
-                <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
-              </select>
+              <label class="form-label">Document Status</label>
+              <input class="form-control" formControlName="status" readonly>
             </div>
 
             <div class="col-12">
@@ -105,7 +140,7 @@
 
           <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
             <div class="section-title mb-0">Item Table</div>
-            <button *ngIf="hasPermission(editingOrderId ? 'SALES_EDIT' : 'SALES_CREATE')" type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
+            <button *ngIf="hasPermission(editingOrderId ? 'SALES_ORDER_EDIT' : 'SALES_ORDER_CREATE')" type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
               <i class="bi bi-plus-lg me-1"></i>Add Row
             </button>
           </div>
@@ -155,7 +190,7 @@
             <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">
               {{ editingOrderId ? 'Cancel Edit' : 'Reset' }}
             </button>
-            <button type="submit" class="btn btn-success px-4" [disabled]="submitting || !hasPermission(editingOrderId ? 'SALES_EDIT' : 'SALES_CREATE')">
+            <button type="submit" class="btn btn-success px-4" [disabled]="submitting || !hasPermission(editingOrderId ? 'SALES_ORDER_EDIT' : 'SALES_ORDER_CREATE')">
               {{ submitting ? 'Saving...' : (editingOrderId ? 'Update Order' : 'Save Order') }}
             </button>
           </div>
