@@ -89,6 +89,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     public List<SalesInvoiceDTO> getAll() {
         return salesInvoiceRepository.findAll().stream()
                 .map(salesInvoiceMapper::toDTO)
+                .map(this::normalizeReversedPaymentState)
                 .collect(Collectors.toList());
     }
 
@@ -97,13 +98,14 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     public List<SalesInvoiceDTO> getUnpaidByCustomerId(Long customerId) {
         return salesInvoiceRepository.findUnpaidByCustomerIdOrderBySaleDateAscIdAsc(customerId).stream()
                 .map(salesInvoiceMapper::toDTO)
+                .map(this::normalizeReversedPaymentState)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
     public SalesInvoiceDTO getById(Long id) {
-        return salesInvoiceMapper.toDTO(findInvoiceById(id));
+        return normalizeReversedPaymentState(salesInvoiceMapper.toDTO(findInvoiceById(id)));
     }
 
     @Override
@@ -139,7 +141,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         entity.setStatus(SalesInvoiceStatus.SUBMITTED);
         entity.setSubmittedAt(LocalDateTime.now());
         entity.setSubmittedBy(currentUsername());
-        SalesInvoiceDTO saved = salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity));
+        SalesInvoiceDTO saved = normalizeReversedPaymentState(salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity)));
         activityLogService.log("SALES_INVOICE_SUBMIT", "SALES", "sales_invoices", saved.getId(), "Submitted sales invoice " + saved.getInvoiceNo());
         auditLogService.log("sales_invoices", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "SUBMIT");
         return saved;
@@ -156,7 +158,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         entity.setStatus(SalesInvoiceStatus.APPROVED);
         entity.setApprovedAt(LocalDateTime.now());
         entity.setApprovedBy(currentUsername());
-        SalesInvoiceDTO saved = salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity));
+        SalesInvoiceDTO saved = normalizeReversedPaymentState(salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity)));
         activityLogService.log("SALES_INVOICE_APPROVE", "SALES", "sales_invoices", saved.getId(), "Approved sales invoice " + saved.getInvoiceNo());
         auditLogService.log("sales_invoices", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "APPROVE");
         return saved;
@@ -180,7 +182,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         entity.setStatus(resolvePostedStatus(entity));
         entity.setPostedAt(LocalDateTime.now());
         entity.setPostedBy(currentUsername());
-        SalesInvoiceDTO saved = salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity));
+        SalesInvoiceDTO saved = normalizeReversedPaymentState(salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity)));
         activityLogService.log("SALES_INVOICE_POST", "SALES", "sales_invoices", saved.getId(), "Posted sales invoice " + saved.getInvoiceNo());
         auditLogService.log("sales_invoices", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "POST");
         return saved;
@@ -201,7 +203,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         entity.setStatus(SalesInvoiceStatus.CANCELLED);
         entity.setCancelledAt(LocalDateTime.now());
         entity.setCancelledBy(currentUsername());
-        SalesInvoiceDTO saved = salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity));
+        SalesInvoiceDTO saved = normalizeReversedPaymentState(salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity)));
         activityLogService.log("SALES_INVOICE_CANCEL", "SALES", "sales_invoices", saved.getId(), "Cancelled sales invoice " + saved.getInvoiceNo());
         auditLogService.log("sales_invoices", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "CANCEL");
         return saved;
@@ -235,7 +237,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         entity.setPaidAmount(BigDecimal.ZERO);
         entity.setDueAmount(BigDecimal.ZERO);
         entity.setPaymentStatus(SalesPaymentStatus.DUE);
-        SalesInvoiceDTO saved = salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity));
+        SalesInvoiceDTO saved = normalizeReversedPaymentState(salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity)));
         activityLogService.log("SALES_INVOICE_REVERSE", "SALES", "sales_invoices", saved.getId(), "Reversed sales invoice " + saved.getInvoiceNo());
         auditLogService.log("sales_invoices", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "REVERSE");
         return saved;
@@ -265,7 +267,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         entity.setPaidAmount(BigDecimal.ZERO);
         entity.setDueAmount(calculation.netTotal());
         entity.setPaymentStatus(SalesPaymentStatus.DUE);
-        return salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity));
+        return normalizeReversedPaymentState(salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity)));
     }
 
     private void deductStock(SalesInvoice invoice) {
@@ -429,9 +431,19 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
             return;
         }
         SalesOrderStatus status = order.getStatus();
-        if (status == SalesOrderStatus.CANCELLED || status == SalesOrderStatus.REJECTED) {
-            throw new BadRequestException("Cancelled or rejected sales order cannot be invoiced");
+        if (status != SalesOrderStatus.APPROVED) {
+            throw new BadRequestException("Only approved sales orders can be invoiced");
         }
+    }
+
+    private SalesInvoiceDTO normalizeReversedPaymentState(SalesInvoiceDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        if (dto.getStatus() == SalesInvoiceStatus.REVERSED) {
+            dto.setPaymentStatus(null);
+        }
+        return dto;
     }
 
     private SalesInvoice findInvoiceById(Long id) {

@@ -14,7 +14,10 @@ import com.sme.erp.product.repository.UomRepository;
 import com.sme.erp.sales.dto.SalesInvoiceDTO;
 import com.sme.erp.sales.dto.SalesItemDTO;
 import com.sme.erp.sales.entity.SalesInvoice;
+import com.sme.erp.sales.entity.SalesOrder;
 import com.sme.erp.sales.enums.SalesInvoiceStatus;
+import com.sme.erp.sales.enums.SalesOrderStatus;
+import com.sme.erp.sales.enums.SalesPaymentStatus;
 import com.sme.erp.sales.mapper.SalesInvoiceMapper;
 import com.sme.erp.sales.mapper.SalesItemMapper;
 import com.sme.erp.sales.repository.SalesInvoiceRepository;
@@ -29,10 +32,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -102,6 +108,47 @@ class SalesInvoiceServiceImplTest {
 
         verify(stockService, never()).stockOut(any(), any(), any());
         verify(stockService, never()).stockOut(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void create_invoiceWithNonApprovedOrderIsRejected() {
+        SalesInvoiceDTO dto = invoiceDto(SalesInvoiceStatus.DRAFT);
+        dto.setOrderId(9L);
+
+        SalesOrder order = new SalesOrder();
+        order.setId(9L);
+        order.setStatus(SalesOrderStatus.SUBMITTED);
+
+        when(salesOrderRepository.findById(9L)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> service.create(dto))
+                .hasMessage("Only approved sales orders can be invoiced");
+    }
+
+    @Test
+    void reverse_clearsPaymentStatusFromApiState() {
+        SalesInvoice invoice = new SalesInvoice();
+        invoice.setId(12L);
+        invoice.setInvoiceNo("INV-0012");
+        invoice.setStatus(SalesInvoiceStatus.POSTED);
+        invoice.setPaymentStatus(SalesPaymentStatus.DUE);
+        invoice.setPaidAmount(BigDecimal.ZERO);
+        invoice.setDueAmount(new BigDecimal("100.00"));
+        invoice.setNetTotal(new BigDecimal("100.00"));
+        invoice.setCustomer(customer());
+        invoice.setWarehouse(warehouse());
+        invoice.setSaleDate(LocalDateTime.of(2026, 6, 6, 0, 0));
+        invoice.setItems(List.of());
+
+        when(salesInvoiceRepository.findById(12L)).thenReturn(Optional.of(invoice));
+        when(salesReturnRepository.existsByInvoiceIdAndStatus(12L, com.sme.erp.sales.enums.SalesReturnStatus.POSTED)).thenReturn(false);
+        when(salesInvoiceRepository.save(any(SalesInvoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SalesInvoiceDTO result = service.reverse(12L, "Duplicate posting");
+
+        assertThat(result.getStatus()).isEqualTo(SalesInvoiceStatus.REVERSED);
+        assertThat(result.getPaymentStatus()).isNull();
+        verify(accountingPostingService).reverseSalesInvoice(eq(invoice), eq("Duplicate posting"));
     }
 
     private SalesInvoiceDTO invoiceDto(SalesInvoiceStatus status) {

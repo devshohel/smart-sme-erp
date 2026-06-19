@@ -69,7 +69,7 @@ export class SalesInvoiceService {
       netTotal: Number(invoice.netTotal || 0),
       paidAmount: Number(invoice.paidAmount || 0),
       dueAmount: Number(invoice.dueAmount || 0),
-      paymentStatus: invoice.paymentStatus || 'DUE',
+      paymentStatus: invoice.status === 'REVERSED' ? null : (invoice.paymentStatus || 'DUE'),
       status: invoice.status || 'DRAFT',
       items: (invoice.items || []).map(item => ({
         ...item,

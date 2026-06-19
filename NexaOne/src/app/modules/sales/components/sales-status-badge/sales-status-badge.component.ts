@@ -6,13 +6,16 @@ import { Component, Input } from '@angular/core';
   styleUrls: ['./sales-status-badge.component.css']
 })
 export class SalesStatusBadgeComponent {
-  @Input() label = '';
+  @Input() label: string | null | undefined = '';
   @Input() type: 'order' | 'payment' = 'order';
 
   get badgeClass(): string {
     const value = this.label || '';
 
     if (this.type === 'payment') {
+      if (!value) {
+        return 'bg-secondary-subtle text-secondary';
+      }
       switch (value) {
         case 'PAID':
           return 'bg-success-subtle text-success';

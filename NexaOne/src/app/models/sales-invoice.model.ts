@@ -19,7 +19,7 @@ export interface SalesInvoice {
   netTotal: number;
   paidAmount: number;
   dueAmount: number;
-  paymentStatus: PaymentStatus;
+  paymentStatus?: PaymentStatus | null;
   status?: SalesInvoiceStatus;
   submittedAt?: string;
   submittedBy?: string;
