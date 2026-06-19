@@ -1,192 +1,296 @@
 <div class="dashboard-page">
-  <div class="dashboard-header">
-    <div>
-      <h1>Dashboard</h1>
-      <p>Current sales, purchase, inventory, and due position.</p>
+  <section class="hero-card">
+    <div class="hero-copy">
+      <p class="eyebrow">Executive Dashboard</p>
+      <h1>Enterprise overview</h1>
+      <p>Accounting, sales, purchase, inventory, supplier, customer, and expense indicators from live ERP data.</p>
     </div>
-  </div>
 
+    <div class="hero-actions">
+      <div class="filter-row">
+        <label for="period">Range</label>
+        <select id="period" class="form-select" [(ngModel)]="filter.period" (ngModelChange)="onPeriodChange()">
+          <option *ngFor="let option of periodOptions" [ngValue]="option.value">{{ option.label }}</option>
+        </select>
+      </div>
+
+      <div class="filter-row custom-grid" *ngIf="filter.period === 'custom'">
+        <div>
+          <label for="fromDate">From</label>
+          <input id="fromDate" type="date" class="form-control" [(ngModel)]="filter.fromDate">
+        </div>
+        <div>
+          <label for="toDate">To</label>
+          <input id="toDate" type="date" class="form-control" [(ngModel)]="filter.toDate">
+        </div>
+      </div>
+
+      <div class="hero-meta">
+        <button type="button" class="btn btn-success" [disabled]="loading" (click)="refresh()">
+          <span class="spinner-border spinner-border-sm me-2" *ngIf="loading"></span>
+          Refresh
+        </button>
+        <span>Last updated: {{ lastUpdatedLabel }}</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="note-panel" *ngIf="validationMessage">{{ validationMessage }}</div>
   <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
-  <div class="dashboard-loading" *ngIf="loading && !summary">Loading dashboard data...</div>
+  <div class="loading-panel" *ngIf="loading">Loading dashboard data...</div>
 
-  <ng-container *ngIf="summary as data">
-    <div class="metric-grid">
-      <button type="button" class="metric-card accent-sales" (click)="navigateTo('/sales/invoices')">
-        <span>Today's Sales</span>
-        <strong>BDT {{ data.todaySales | number:'1.2-2' }}</strong>
-        <small>Sales invoices today</small>
-      </button>
+  <section class="card-grid" *ngIf="primaryCards.length">
+    <button
+      type="button"
+      class="kpi-card"
+      *ngFor="let card of primaryCards"
+      [ngClass]="'tone-' + card.tone"
+      [class.is-clickable]="!!card.route"
+      (click)="navigateTo(card.route)">
+      <span>{{ card.title }}</span>
+      <strong>{{ formatCardValue(card) }}</strong>
+      <small>{{ card.subtitle }}</small>
+    </button>
+  </section>
 
-      <button type="button" class="metric-card accent-purchase" (click)="navigateTo('/purchases/invoices')">
-        <span>Today's Purchase</span>
-        <strong>BDT {{ data.todayPurchase | number:'1.2-2' }}</strong>
-        <small>Purchase receive today</small>
-      </button>
+  <section class="card-grid secondary-grid" *ngIf="secondaryCards.length">
+    <button
+      type="button"
+      class="kpi-card"
+      *ngFor="let card of secondaryCards"
+      [ngClass]="'tone-' + card.tone"
+      [class.is-clickable]="!!card.route"
+      (click)="navigateTo(card.route)">
+      <span>{{ card.title }}</span>
+      <strong>{{ formatCardValue(card) }}</strong>
+      <small>{{ card.subtitle }}</small>
+    </button>
+  </section>
 
-      <button type="button" class="metric-card accent-expense" (click)="navigateTo('/expenses')">
-        <span>Today's Expense</span>
-        <strong>BDT {{ data.todayExpense | number:'1.2-2' }}</strong>
-        <small>Recorded expenses today</small>
-      </button>
+  <section class="panel-grid">
+    <article class="dashboard-panel" *ngIf="hasPermission('ACCOUNTING_VIEW')">
+      <div class="panel-head">
+        <div>
+          <h2>Income vs Expense</h2>
+          <p>{{ rangeLabel }} accounting movement</p>
+        </div>
+      </div>
+      <div class="bar-chart" *ngIf="summary.monthlyIncomeExpense.length; else emptyIncomeExpense">
+        <div class="chart-column" *ngFor="let point of summary.monthlyIncomeExpense">
+          <div class="bars">
+            <div class="bar income" [style.height.%]="percentOf(point.value, incomeExpenseMax)" title="Income"></div>
+            <div class="bar expense" [style.height.%]="percentOf(point.secondaryValue, incomeExpenseMax)" title="Expense"></div>
+          </div>
+          <span>{{ asChartLabel(point) }}</span>
+        </div>
+      </div>
+      <ng-template #emptyIncomeExpense><div class="empty-state">No accounting movement for this range.</div></ng-template>
+    </article>
 
-      <button type="button" class="metric-card accent-profit" (click)="navigateTo('/reports/profit-loss')">
-        <span>Today's Profit</span>
-        <strong>BDT {{ data.todayProfit | number:'1.2-2' }}</strong>
-        <small>Sales minus purchase and expense</small>
-      </button>
+    <article class="dashboard-panel" *ngIf="hasAnyPermission(['SALES_INVOICE_VIEW', 'SALES_VIEW', 'PURCHASE_INVOICE_VIEW', 'PURCHASE_ORDER_VIEW', 'PURCHASE_VIEW'])">
+      <div class="panel-head">
+        <div>
+          <h2>Sales vs Purchase Trend</h2>
+          <p>{{ rangeLabel }} commercial totals</p>
+        </div>
+      </div>
+      <div class="bar-chart" *ngIf="summary.salesPurchaseTrend.length; else emptySalesPurchase">
+        <div class="chart-column" *ngFor="let point of summary.salesPurchaseTrend">
+          <div class="bars">
+            <div class="bar sales" [style.height.%]="percentOf(point.sales, salesPurchaseMax)" title="Sales"></div>
+            <div class="bar purchase" [style.height.%]="percentOf(point.purchase, salesPurchaseMax)" title="Purchase"></div>
+          </div>
+          <span>{{ asChartLabel(point) }}</span>
+        </div>
+      </div>
+      <ng-template #emptySalesPurchase><div class="empty-state">No sales or purchase movement for this range.</div></ng-template>
+    </article>
 
-      <button type="button" class="metric-card accent-stock" (click)="navigateTo('/inventory/stocks')">
-        <span>Total Stock Value</span>
-        <strong>BDT {{ data.totalStockValue | number:'1.2-2' }}</strong>
-        <small>Quantity by purchase price</small>
-      </button>
-
-      <button type="button" class="metric-card accent-customer" (click)="navigateTo('/reports/customer-dues')">
-        <span>Customer Due</span>
-        <strong>BDT {{ data.customerDue | number:'1.2-2' }}</strong>
-        <small>Open sales invoice due</small>
-      </button>
-
-      <button type="button" class="metric-card accent-supplier" (click)="navigateTo('/reports/supplier-dues')">
-        <span>Supplier Due</span>
-        <strong>BDT {{ data.supplierDue | number:'1.2-2' }}</strong>
-        <small>Open purchase due</small>
-      </button>
-
-      <button type="button" class="metric-card accent-low-stock" (click)="navigateTo('/inventory/stocks')">
-        <span>Low Stock Items</span>
-        <strong>{{ data.lowStockItemsCount | number }}</strong>
-        <small>At or below reorder level</small>
-      </button>
-      <button type="button" class="metric-card accent-expense" (click)="navigateTo('/expenses/reports')">
-        <span>Tax Amount</span>
-        <strong>BDT {{ data.expenseTaxAmount | number:'1.2-2' }}</strong>
-        <small>Expense tax total</small>
-      </button>
-      <button type="button" class="metric-card accent-expense" (click)="navigateTo('/expenses')">
-        <span>Posted Expenses</span>
-        <strong>{{ data.postedExpenses | number }}</strong>
-        <small>Posted records</small>
-      </button>
-      <button type="button" class="metric-card accent-expense" (click)="navigateTo('/expenses/approval-queue')">
-        <span>Pending Approval</span>
-        <strong>{{ data.pendingApprovalExpenses | number }}</strong>
-        <small>Submitted expenses</small>
-      </button>
-      <button type="button" class="metric-card accent-expense" (click)="navigateTo('/expenses/reports')">
-        <span>Reversed Expenses</span>
-        <strong>{{ data.reversedExpenses | number }}</strong>
-        <small>Reversal count</small>
-      </button>
-    </div>
-
-    <div class="chart-grid">
-      <section class="dashboard-card chart-card">
-        <div class="section-heading">
+    <article class="dashboard-panel" *ngIf="hasAnyPermission(['SALES_INVOICE_VIEW', 'SALES_VIEW'])">
+      <div class="panel-head">
+        <div>
+          <h2>Top Selling Products</h2>
+          <p>Best sellers for {{ rangeLabel.toLowerCase() }}</p>
+        </div>
+      </div>
+      <div class="rank-list" *ngIf="visibleTopSellingProducts.length; else emptyTopProducts">
+        <div class="rank-row" *ngFor="let product of visibleTopSellingProducts">
           <div>
-            <h2>Top 10 Selling Products</h2>
-            <p>Highest selling products by amount</p>
+            <strong>{{ product.productName }}</strong>
+            <small>{{ product.sku || 'No SKU' }} · Qty {{ product.quantity | number:'1.0-2' }}</small>
           </div>
+          <div class="progress-line">
+            <span [style.width.%]="percentOf(product.amount, topSellingMax)"></span>
+          </div>
+          <strong>{{ formatMoney(product.amount) }}</strong>
         </div>
+      </div>
+      <ng-template #emptyTopProducts><div class="empty-state">No product sales for this range.</div></ng-template>
+    </article>
 
-        <div class="empty-state" *ngIf="data.topSellingProducts.length === 0">No data available yet.</div>
-        <div class="top-product-chart" *ngIf="data.topSellingProducts.length > 0">
-          <div class="product-bar-row" *ngFor="let product of data.topSellingProducts | slice:0:10">
-            <div class="product-label">
-              <span>{{ product.productName || 'Unnamed Product' }}</span>
-              <small>Qty {{ product.quantity | number:'1.0-2' }}</small>
-            </div>
-            <div class="product-bar-track">
-              <div class="product-bar" [style.width.%]="productBarWidth(product.amount)"></div>
-            </div>
-            <strong>BDT {{ product.amount | number:'1.0-0' }}</strong>
-          </div>
+    <article class="dashboard-panel" *ngIf="hasAnyPermission(['EXPENSE_VIEW', 'ACCOUNTING_VIEW'])">
+      <div class="panel-head">
+        <div>
+          <h2>Expense by Category</h2>
+          <p>Posted expenses only</p>
         </div>
-      </section>
+      </div>
+      <div class="stack-list" *ngIf="summary.expenseByCategory.length; else emptyExpenseCategory">
+        <div class="stack-row" *ngFor="let item of summary.expenseByCategory">
+          <div class="stack-copy">
+            <strong>{{ item.label }}</strong>
+            <small>{{ formatMoney(item.value) }}</small>
+          </div>
+          <div class="progress-line"><span class="warning-fill" [style.width.%]="percentOf(item.value, expenseCategoryMax)"></span></div>
+        </div>
+      </div>
+      <ng-template #emptyExpenseCategory><div class="empty-state">No posted expenses in this range.</div></ng-template>
+    </article>
 
-      <section class="dashboard-card chart-card">
-        <div class="section-heading">
-          <div>
-            <h2>Monthly Sales vs Purchase</h2>
-            <p>Latest four months net totals</p>
-          </div>
+    <article class="dashboard-panel" *ngIf="hasAnyPermission(['REPORT_VIEW', 'INVENTORY_VIEW'])">
+      <div class="panel-head">
+        <div>
+          <h2>Warehouse Stock Value</h2>
+          <p>Current inventory valuation by warehouse</p>
         </div>
+      </div>
+      <div class="stack-list" *ngIf="summary.warehouseStockValue.length; else emptyWarehouseStock">
+        <div class="stack-row" *ngFor="let item of summary.warehouseStockValue">
+          <div class="stack-copy">
+            <strong>{{ item.label }}</strong>
+            <small>{{ item.secondaryValue | number:'1.0-2' }} qty</small>
+          </div>
+          <div class="progress-line"><span class="stock-fill" [style.width.%]="percentOf(item.value, warehouseValueMax)"></span></div>
+          <strong>{{ formatMoney(item.value) }}</strong>
+        </div>
+      </div>
+      <ng-template #emptyWarehouseStock><div class="empty-state">No warehouse valuation data available.</div></ng-template>
+    </article>
 
-        <div class="empty-state" *ngIf="latestMonthlyRows().length === 0">No data available yet.</div>
-        <div class="monthly-chart" *ngIf="latestMonthlyRows().length > 0">
-          <div class="chart-column" *ngFor="let row of latestMonthlyRows(); trackBy: trackByMonth">
-            <div class="chart-bars">
-              <div class="bar sales" [style.height.px]="barHeight(row.sales)" title="Sales"></div>
-              <div class="bar purchase" [style.height.px]="barHeight(row.purchase)" title="Purchase"></div>
-            </div>
-            <span>{{ monthLabel(row.month) }}</span>
+    <article class="dashboard-panel" *ngIf="hasPermission('ACCOUNTING_VIEW') || hasPermission('FINANCIAL_DASHBOARD_VIEW')">
+      <div class="panel-head">
+        <div>
+          <h2>Cash / Bank Trend</h2>
+          <p>Running balances up to selected period end</p>
+        </div>
+      </div>
+      <div class="stack-list" *ngIf="summary.cashBankTrend.length; else emptyCashBank">
+        <div class="stack-row" *ngFor="let item of summary.cashBankTrend">
+          <div class="stack-copy">
+            <strong>{{ item.label }}</strong>
+            <small>Cash {{ formatMoney(item.value) }}</small>
           </div>
+          <div class="progress-line"><span class="cash-fill" [style.width.%]="percentOf(item.secondaryValue, cashBankMax)"></span></div>
+          <strong>Bank {{ formatMoney(item.secondaryValue) }}</strong>
         </div>
-        <div class="chart-legend">
-          <span><i class="legend-dot sales-dot"></i>Sales</span>
-          <span><i class="legend-dot purchase-dot"></i>Purchase</span>
-        </div>
-      </section>
-      <section class="dashboard-card chart-card">
-        <div class="section-heading">
-          <div>
-            <h2>Monthly Expense Trend</h2>
-            <p>Posted expense and tax totals</p>
-          </div>
-        </div>
-        <div class="empty-state" *ngIf="latestExpenseRows().length === 0">No data available yet.</div>
-        <div class="monthly-chart" *ngIf="latestExpenseRows().length > 0">
-          <div class="chart-column" *ngFor="let row of latestExpenseRows()">
-            <div class="chart-bars">
-              <div class="bar purchase" [style.height.px]="barHeight(row.amount)" title="Expense"></div>
-              <div class="bar sales" [style.height.px]="barHeight(row.taxAmount)" title="Tax"></div>
-            </div>
-            <span>{{ monthLabel(row.month) }}</span>
-          </div>
-        </div>
-        <div class="chart-legend">
-          <span><i class="legend-dot purchase-dot"></i>Expense</span>
-          <span><i class="legend-dot sales-dot"></i>Tax</span>
-        </div>
-      </section>
-    </div>
+      </div>
+      <ng-template #emptyCashBank><div class="empty-state">No cash or bank trend data available.</div></ng-template>
+    </article>
+  </section>
 
-    <section class="dashboard-card transactions-card">
-      <div class="section-heading">
+  <section class="list-grid">
+    <article class="dashboard-panel">
+      <div class="panel-head">
         <div>
           <h2>Recent Transactions</h2>
-          <p>Latest sales, purchases, and expenses</p>
+          <p>Latest posted activity</p>
         </div>
       </div>
-      <div class="table-responsive">
-        <table class="table table-sm align-middle mb-0">
-          <thead>
-            <tr>
-              <th>Transaction No</th>
-              <th>Type</th>
-              <th>Name / Party</th>
-              <th>Description</th>
-              <th class="text-end">Amount</th>
-              <th>Status</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of data.recentTransactions">
-              <td><strong>{{ item.referenceNo }}</strong></td>
-              <td>{{ item.type }}</td>
-              <td>{{ item.partyName }}</td>
-              <td>{{ item.description || item.type || 'Transaction' }}</td>
-              <td class="text-end">BDT {{ item.amount | number:'1.2-2' }}</td>
-              <td><span class="status-badge" [ngClass]="statusClass(item.status)">{{ item.status }}</span></td>
-              <td>{{ item.date | date:'mediumDate' }}</td>
-            </tr>
-            <tr *ngIf="data.recentTransactions.length === 0">
-              <td colspan="7" class="empty-table">No data available yet.</td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="table-shell" *ngIf="visibleRecentTransactions.length; else emptyTransactions">
+        <button type="button" class="table-row" *ngFor="let item of visibleRecentTransactions" (click)="navigateTo(recentTransactionRoute(item))">
+          <div>
+            <strong>{{ item.referenceNo }}</strong>
+            <small>{{ item.type }} · {{ item.partyName }}</small>
+          </div>
+          <span class="status-pill" [ngClass]="statusClass(item.status)">{{ item.status || 'OPEN' }}</span>
+          <strong>{{ formatMoney(item.amount) }}</strong>
+        </button>
       </div>
-    </section>
-  </ng-container>
+      <ng-template #emptyTransactions><div class="empty-state">No recent transactions for this range.</div></ng-template>
+    </article>
+
+    <article class="dashboard-panel" *ngIf="hasAnyPermission(['EXPENSE_APPROVE', 'EXPENSE_VIEW'])">
+      <div class="panel-head">
+        <div>
+          <h2>Pending Approvals</h2>
+          <p>Requires workflow attention</p>
+        </div>
+        <a *ngIf="pendingApprovalsRoute()" class="panel-link" [routerLink]="pendingApprovalsRoute()">View All</a>
+      </div>
+      <div class="table-shell" *ngIf="visiblePendingApprovals.length; else emptyApprovals">
+        <button type="button" class="table-row" *ngFor="let item of visiblePendingApprovals" (click)="navigateTo(approvalRoute(item))">
+          <div>
+            <strong>{{ item.referenceNo || item.type }}</strong>
+            <small>{{ item.type }} · {{ item.partyName }}</small>
+          </div>
+          <span class="status-pill" [ngClass]="statusClass(item.status)">{{ item.status }}</span>
+          <strong>{{ item.amount ? formatMoney(item.amount) : 'Pending' }}</strong>
+        </button>
+      </div>
+      <ng-template #emptyApprovals><div class="empty-state">No approvals waiting right now.</div></ng-template>
+    </article>
+
+    <article class="dashboard-panel" *ngIf="hasAnyPermission(['REPORT_VIEW', 'INVENTORY_VIEW'])">
+      <div class="panel-head">
+        <div>
+          <h2>Low Stock Alerts</h2>
+          <p>Products at or below reorder level</p>
+        </div>
+        <a *ngIf="lowStockRoute()" class="panel-link" [routerLink]="lowStockRoute()">View All</a>
+      </div>
+      <div class="table-shell" *ngIf="visibleLowStockAlerts.length; else emptyLowStock">
+        <button type="button" class="table-row" *ngFor="let item of visibleLowStockAlerts" (click)="navigateTo(lowStockRoute())">
+          <div>
+            <strong>{{ item.productName }}</strong>
+            <small>{{ item.warehouseName }} · {{ item.sku || 'No SKU' }}</small>
+          </div>
+          <span class="status-pill status-bad">Low</span>
+          <strong>{{ item.quantity | number:'1.0-2' }} / {{ item.reorderLevel | number:'1.0-2' }}</strong>
+        </button>
+      </div>
+      <ng-template #emptyLowStock><div class="empty-state">No low stock alerts at the moment.</div></ng-template>
+    </article>
+
+    <article class="dashboard-panel" *ngIf="hasAnyPermission(['SALES_INVOICE_VIEW', 'SALES_VIEW'])">
+      <div class="panel-head">
+        <div>
+          <h2>Recent Sales</h2>
+          <p>Latest posted invoices</p>
+        </div>
+        <a class="panel-link" routerLink="/sales/invoices">View All</a>
+      </div>
+      <div class="table-shell" *ngIf="visibleRecentSales.length; else emptyRecentSales">
+        <button type="button" class="table-row" *ngFor="let item of visibleRecentSales" (click)="navigateTo('/sales/invoices')">
+          <div>
+            <strong>{{ item.referenceNo }}</strong>
+            <small>{{ item.partyName }}</small>
+          </div>
+          <span class="status-pill" [ngClass]="statusClass(item.status)">{{ item.status }}</span>
+          <strong>{{ formatMoney(item.amount) }}</strong>
+        </button>
+      </div>
+      <ng-template #emptyRecentSales><div class="empty-state">No recent sales found for this range.</div></ng-template>
+    </article>
+
+    <article class="dashboard-panel" *ngIf="hasAnyPermission(['PURCHASE_INVOICE_VIEW', 'PURCHASE_ORDER_VIEW', 'PURCHASE_VIEW'])">
+      <div class="panel-head">
+        <div>
+          <h2>Recent Purchases</h2>
+          <p>Latest received or posted purchases</p>
+        </div>
+        <a *ngIf="purchaseRoute()" class="panel-link" [routerLink]="purchaseRoute()">View All</a>
+      </div>
+      <div class="table-shell" *ngIf="visibleRecentPurchases.length; else emptyRecentPurchases">
+        <button type="button" class="table-row" *ngFor="let item of visibleRecentPurchases" (click)="navigateTo(purchaseRoute())">
+          <div>
+            <strong>{{ item.referenceNo }}</strong>
+            <small>{{ item.partyName }}</small>
+          </div>
+          <span class="status-pill" [ngClass]="statusClass(item.status)">{{ item.status }}</span>
+          <strong>{{ formatMoney(item.amount) }}</strong>
+        </button>
+      </div>
+      <ng-template #emptyRecentPurchases><div class="empty-state">No recent purchases found for this range.</div></ng-template>
+    </article>
+  </section>
 </div>

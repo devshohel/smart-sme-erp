@@ -5,10 +5,10 @@ import com.sme.erp.reports.dto.PurchaseReportRowDTO;
 import com.sme.erp.reports.dto.SupplierPurchaseRowDTO;
 import com.sme.erp.reports.dto.SupplierDueReportRowDTO;
 import com.sme.erp.supplier.dto.SupplierPurchaseSummaryDTO;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
@@ -176,6 +176,27 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
             order by p.purchaseDate desc, p.id desc
             """)
     List<SupplierPurchaseSummaryDTO> findRecentPurchaseSummariesBySupplierId(@Param("supplierId") Long supplierId, Pageable pageable);
+
+    @Query("""
+            select p
+            from PurchaseOrder p
+            where p.status in (
+                com.sme.erp.purchase.enums.PurchaseStatus.SUBMITTED,
+                com.sme.erp.purchase.enums.PurchaseStatus.PENDING
+            )
+            order by p.purchaseDate desc, p.id desc
+            """)
+    List<PurchaseOrder> findSubmittedForApproval(Pageable pageable);
+
+    @Query("""
+            select count(p)
+            from PurchaseOrder p
+            where p.status in (
+                com.sme.erp.purchase.enums.PurchaseStatus.SUBMITTED,
+                com.sme.erp.purchase.enums.PurchaseStatus.PENDING
+            )
+            """)
+    long countSubmittedForApproval();
 
     @Query("""
             select p

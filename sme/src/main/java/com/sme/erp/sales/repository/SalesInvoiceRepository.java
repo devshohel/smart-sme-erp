@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 
 public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long> {
     Optional<SalesInvoice> findTopByOrderByIdDesc();
@@ -247,6 +248,27 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
     LocalDateTime findLastPaymentDateByCustomerId(@Param("customerId") Long customerId);
 
     List<SalesInvoice> findByCustomerIdOrderBySaleDateDescIdDesc(Long customerId, Pageable pageable);
+
+    @Query("""
+            select i
+            from SalesInvoice i
+            where i.status in (
+                com.sme.erp.sales.enums.SalesInvoiceStatus.SUBMITTED,
+                com.sme.erp.sales.enums.SalesInvoiceStatus.PENDING
+            )
+            order by i.saleDate desc, i.id desc
+            """)
+    List<SalesInvoice> findSubmittedForApproval(Pageable pageable);
+
+    @Query("""
+            select count(i)
+            from SalesInvoice i
+            where i.status in (
+                com.sme.erp.sales.enums.SalesInvoiceStatus.SUBMITTED,
+                com.sme.erp.sales.enums.SalesInvoiceStatus.PENDING
+            )
+            """)
+    long countSubmittedForApproval();
 
     @Query("""
             select i

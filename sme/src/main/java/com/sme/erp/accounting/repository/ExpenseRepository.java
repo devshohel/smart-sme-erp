@@ -96,6 +96,18 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     BigDecimal sumActiveAmountBetween(@Param("fromDate") LocalDate fromDate, @Param("toDate") LocalDate toDate);
 
     @Query("""
+            select coalesce(c.name, 'Uncategorized'), coalesce(sum(e.amount), 0)
+            from Expense e
+            left join e.category c
+            where e.status = com.sme.erp.accounting.enums.ExpenseStatus.POSTED
+              and (:fromDate is null or e.expenseDate >= :fromDate)
+              and (:toDate is null or e.expenseDate <= :toDate)
+            group by c.name
+            order by coalesce(sum(e.amount), 0) desc, coalesce(c.name, 'Uncategorized') asc
+            """)
+    List<Object[]> summarizePostedByCategory(@Param("fromDate") LocalDate fromDate, @Param("toDate") LocalDate toDate);
+
+    @Query("""
             select e from Expense e
             where e.status = :status and e.paymentMethod = :paymentMethod
             order by e.expenseDate, e.id
