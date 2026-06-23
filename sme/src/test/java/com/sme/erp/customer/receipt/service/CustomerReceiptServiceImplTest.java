@@ -174,6 +174,57 @@ class CustomerReceiptServiceImplTest {
     }
 
     @Test
+    void partialAllocation_transitionsInvoiceToPartialPaidAndUpdatesDue() {
+        Customer customer = customer(1L, "CUS-0001", "Acme Trading");
+        CustomerReceipt receipt = receipt(1L, customer, CustomerReceiptStatus.DRAFT, CustomerReceiptPaymentMethod.CASH, new BigDecimal("40.00"));
+        receipt.setAllocationMode(CustomerReceiptAllocationMode.AUTO);
+        SalesInvoice invoice = invoice(11L, customer, "INV-001", new BigDecimal("100.00"), BigDecimal.ZERO, new BigDecimal("100.00"));
+
+        stubReceiptPosting(receipt, List.of(invoice));
+
+        service.post(1L);
+
+        assertThat(invoice.getPaidAmount()).isEqualByComparingTo("40.00");
+        assertThat(invoice.getDueAmount()).isEqualByComparingTo("60.00");
+        assertThat(invoice.getPaymentStatus()).isEqualTo(SalesPaymentStatus.PARTIAL);
+        assertThat(invoice.getStatus()).isEqualTo(SalesInvoiceStatus.PARTIAL_PAID);
+    }
+
+    @Test
+    void fullAllocation_transitionsInvoiceToPaidAndClearsDue() {
+        Customer customer = customer(1L, "CUS-0001", "Acme Trading");
+        CustomerReceipt receipt = receipt(1L, customer, CustomerReceiptStatus.DRAFT, CustomerReceiptPaymentMethod.CASH, new BigDecimal("100.00"));
+        receipt.setAllocationMode(CustomerReceiptAllocationMode.AUTO);
+        SalesInvoice invoice = invoice(11L, customer, "INV-001", new BigDecimal("100.00"), BigDecimal.ZERO, new BigDecimal("100.00"));
+
+        stubReceiptPosting(receipt, List.of(invoice));
+
+        service.post(1L);
+
+        assertThat(invoice.getPaidAmount()).isEqualByComparingTo("100.00");
+        assertThat(invoice.getDueAmount()).isEqualByComparingTo("0.00");
+        assertThat(invoice.getPaymentStatus()).isEqualTo(SalesPaymentStatus.PAID);
+        assertThat(invoice.getStatus()).isEqualTo(SalesInvoiceStatus.PAID);
+    }
+
+    @Test
+    void allocationAfterSalesReturnPreservesReducedDueAmount() {
+        Customer customer = customer(1L, "CUS-0001", "Acme Trading");
+        CustomerReceipt receipt = receipt(1L, customer, CustomerReceiptStatus.DRAFT, CustomerReceiptPaymentMethod.CASH, new BigDecimal("40.00"));
+        receipt.setAllocationMode(CustomerReceiptAllocationMode.AUTO);
+        SalesInvoice invoice = invoice(11L, customer, "INV-001", new BigDecimal("100.00"), BigDecimal.ZERO, new BigDecimal("70.00"));
+
+        stubReceiptPosting(receipt, List.of(invoice));
+
+        service.post(1L);
+
+        assertThat(invoice.getPaidAmount()).isEqualByComparingTo("40.00");
+        assertThat(invoice.getDueAmount()).isEqualByComparingTo("30.00");
+        assertThat(invoice.getPaymentStatus()).isEqualTo(SalesPaymentStatus.PARTIAL);
+        assertThat(invoice.getStatus()).isEqualTo(SalesInvoiceStatus.PARTIAL_PAID);
+    }
+
+    @Test
     void manualAllocation_updatesReceiptAllocationSummary() {
         Customer customer = customer(1L, "CUS-0001", "Acme Trading");
         CustomerReceipt receipt = receipt(1L, customer, CustomerReceiptStatus.DRAFT, CustomerReceiptPaymentMethod.CASH, new BigDecimal("120.00"));
@@ -326,6 +377,21 @@ class CustomerReceiptServiceImplTest {
         receipt.setAmount(amount);
         receipt.setStatus(status);
         return receipt;
+    }
+
+    private void stubReceiptPosting(CustomerReceipt receipt, List<SalesInvoice> invoices) {
+        when(receiptRepository.findDetailedById(1L)).thenReturn(Optional.of(receipt));
+        when(salesInvoiceRepository.findUnpaidByCustomerIdOrderBySaleDateAscIdAsc(1L)).thenReturn(invoices);
+        for (SalesInvoice invoice : invoices) {
+            when(salesInvoiceRepository.findById(invoice.getId())).thenReturn(Optional.of(invoice));
+        }
+        when(salesInvoiceRepository.save(any(SalesInvoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(journalEntryRepository.existsBySourceTypeAndSourceId("CUSTOMER_RECEIPT", 1L)).thenReturn(false);
+        when(journalEntryRepository.findMaxId()).thenReturn(0L);
+        when(journalEntryRepository.existsByJournalNo("JRN-0001")).thenReturn(false);
+        when(accountRepository.findByAccountNameIgnoreCase("Cash")).thenReturn(Optional.of(account("1000", "Cash")));
+        when(accountRepository.findByAccountNameIgnoreCase("Accounts Receivable")).thenReturn(Optional.of(account("1020", "Accounts Receivable")));
+        when(receiptRepository.save(any(CustomerReceipt.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     private SalesInvoice invoice(Long id, Customer customer, String invoiceNo, BigDecimal netTotal,

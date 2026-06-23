@@ -64,7 +64,7 @@ public class PurchaseOrder {
     private BigDecimal dueAmount = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "ENUM('DRAFT','SUBMITTED','PENDING','APPROVED','REJECTED','PARTIAL_RECEIVED','RECEIVED','POSTED','PARTIAL_PAID','PAID','REVERSED','CANCELLED')")
     private PurchaseStatus status = PurchaseStatus.DRAFT;
 
     @Column(name = "created_by")

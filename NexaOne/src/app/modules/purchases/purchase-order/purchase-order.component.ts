@@ -32,7 +32,7 @@ export class PurchaseOrderComponent implements OnInit {
   selectedOrder: PurchaseOrder | null = null;
   editingOrderId: number | null = null;
 
-  readonly statuses: PurchaseStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'PARTIAL_RECEIVED', 'RECEIVED', 'PARTIAL_PAID', 'PAID', 'CANCELLED'];
+  readonly statuses: PurchaseStatus[] = ['DRAFT', 'SUBMITTED', 'PENDING', 'APPROVED', 'REJECTED', 'PARTIAL_RECEIVED', 'RECEIVED', 'POSTED', 'PARTIAL_PAID', 'PAID', 'REVERSED', 'CANCELLED'];
   readonly activeStatus: Status = 'ACTIVE';
 
   constructor(
@@ -272,6 +272,7 @@ export class PurchaseOrderComponent implements OnInit {
   statusClass(status?: PurchaseStatus): string {
     switch (status) {
       case 'RECEIVED':
+      case 'POSTED':
       case 'PAID':
         return 'bg-primary-subtle text-primary';
       case 'APPROVED':
@@ -281,9 +282,13 @@ export class PurchaseOrderComponent implements OnInit {
         return 'bg-info-subtle text-info';
       case 'REJECTED':
       case 'CANCELLED':
+      case 'REVERSED':
         return 'bg-danger-subtle text-danger';
       case 'DRAFT':
         return 'bg-secondary-subtle text-secondary';
+      case 'SUBMITTED':
+      case 'PENDING':
+        return 'bg-warning-subtle text-warning';
       default:
         return 'bg-warning-subtle text-warning';
     }

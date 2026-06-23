@@ -384,7 +384,7 @@ public class SupplierPaymentServiceImpl implements SupplierPaymentService {
             PurchaseOrder purchase = allocation.getPurchaseOrder();
             BigDecimal allocated = safe(allocation.getAllocatedAmount());
             BigDecimal newPaid = safe(purchase.getPaidAmount()).add(allocated);
-            BigDecimal newDue = safe(purchase.getNetTotal()).subtract(newPaid).max(BigDecimal.ZERO);
+            BigDecimal newDue = safe(purchase.getDueAmount()).subtract(allocated).max(BigDecimal.ZERO);
             purchase.setPaidAmount(newPaid);
             purchase.setDueAmount(newDue);
             purchase.setStatus(resolvePurchaseStatus(newPaid, newDue));
@@ -413,7 +413,7 @@ public class SupplierPaymentServiceImpl implements SupplierPaymentService {
             }
             BigDecimal allocated = safe(allocation.getAllocatedAmount());
             BigDecimal newPaid = safe(purchase.getPaidAmount()).subtract(allocated).max(BigDecimal.ZERO);
-            BigDecimal newDue = safe(purchase.getNetTotal()).subtract(newPaid).max(BigDecimal.ZERO);
+            BigDecimal newDue = safe(purchase.getDueAmount()).add(allocated);
             purchase.setPaidAmount(newPaid);
             purchase.setDueAmount(newDue);
             purchase.setStatus(resolvePurchaseStatus(newPaid, newDue));

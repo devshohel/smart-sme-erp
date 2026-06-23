@@ -98,12 +98,6 @@ public class AccountingPostingServiceImpl implements AccountingPostingService {
         JournalEntry entry = baseEntry("SALES_INVOICE", invoice.getId(), invoice.getInvoiceNo(), invoice.getSaleDate().toLocalDate(), "Sales invoice posting " + invoice.getInvoiceNo());
         addLine(entry, account("Accounts Receivable"), netTotal, BigDecimal.ZERO, "Sales receivable");
         addLine(entry, account("Sales Income"), BigDecimal.ZERO, netTotal, "Sales income");
-        BigDecimal paid = safe(invoice.getPaidAmount()).min(netTotal);
-        if (paid.signum() > 0) {
-            // Sales invoices do not currently store payment method, so paid amount posts to Cash by default.
-            addLine(entry, account("Cash"), paid, BigDecimal.ZERO, "Customer payment");
-            addLine(entry, account("Accounts Receivable"), BigDecimal.ZERO, paid, "Receivable collection");
-        }
         saveIfBalanced(entry);
         activityLogService.log("ACCOUNTING_POST_SALES_INVOICE", "ACCOUNTING", "accounting_journal_entries", entry.getId(), "Posted sales invoice " + invoice.getInvoiceNo());
     }

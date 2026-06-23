@@ -68,7 +68,7 @@ public class SupplierPayment {
     private List<SupplierPaymentAllocation> allocations = new ArrayList<>();
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "ENUM('DRAFT','POSTED','CANCELLED','REVERSED')")
     private SupplierPaymentStatus status = SupplierPaymentStatus.DRAFT;
 
     @Column(name = "posted_at")

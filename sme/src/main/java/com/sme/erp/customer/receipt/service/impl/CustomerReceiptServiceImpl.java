@@ -381,7 +381,7 @@ public class CustomerReceiptServiceImpl implements CustomerReceiptService {
             SalesInvoice invoice = allocation.getSalesInvoice();
             BigDecimal allocated = safe(allocation.getAllocatedAmount());
             BigDecimal newPaid = safe(invoice.getPaidAmount()).add(allocated);
-            BigDecimal newDue = safe(invoice.getNetTotal()).subtract(newPaid).max(BigDecimal.ZERO);
+            BigDecimal newDue = safe(invoice.getDueAmount()).subtract(allocated).max(BigDecimal.ZERO);
             invoice.setPaidAmount(newPaid);
             invoice.setDueAmount(newDue);
             invoice.setPaymentStatus(resolvePaymentStatus(newPaid, newDue));

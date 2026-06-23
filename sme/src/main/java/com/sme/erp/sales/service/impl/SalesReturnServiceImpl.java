@@ -33,6 +33,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Collectors;
 
 @Service
@@ -169,6 +171,7 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         if (invoice == null || !isPostedInvoice(invoice.getStatus())) {
             throw new BadRequestException("Sales return can only be posted against a posted sales invoice");
         }
+        validateReturnQuantities(entity);
         if (safe(entity.getTotalAmount()).compareTo(safe(invoice.getDueAmount())) > 0) {
             throw new BadRequestException("Posted return amount cannot exceed current invoice due until credit memo support is added");
         }
@@ -254,12 +257,20 @@ public class SalesReturnServiceImpl implements SalesReturnService {
     private CalculationResult buildItems(SalesReturn salesReturn, List<SalesReturnItemDTO> itemDTOs) {
         List<SalesReturnItem> items = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
+        Map<Long, BigDecimal> soldQtyByProduct = invoiceSoldQtyByProduct(salesReturn.getInvoice());
 
         for (SalesReturnItemDTO itemDTO : itemDTOs) {
             Product product = findProductById(itemDTO.getProductId());
             BigDecimal quantity = positive(itemDTO.getQuantity(), "Quantity must be positive");
             BigDecimal unitPrice = nonNegative(itemDTO.getUnitPrice(), "Unit price cannot be negative");
             BigDecimal total = quantity.multiply(unitPrice);
+            BigDecimal soldQty = soldQtyByProduct.get(itemDTO.getProductId());
+            if (soldQty == null) {
+                throw new BadRequestException("Returned product does not belong to the invoice");
+            }
+            if (quantity.compareTo(soldQty) > 0) {
+                throw new BadRequestException("Return quantity cannot exceed sold quantity");
+            }
 
             SalesReturnItem item = new SalesReturnItem();
             item.setReturnEntity(salesReturn);
@@ -273,6 +284,50 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         }
 
         return new CalculationResult(items, totalAmount);
+    }
+
+    private void validateReturnQuantities(SalesReturn salesReturn) {
+        SalesInvoice invoice = salesReturn.getInvoice();
+        Map<Long, BigDecimal> soldQtyByProduct = invoiceSoldQtyByProduct(invoice);
+        Map<Long, BigDecimal> currentReturnQty = salesReturn.getItems().stream()
+                .filter(item -> item.getProduct() != null && item.getProduct().getId() != null)
+                .collect(Collectors.toMap(
+                        item -> item.getProduct().getId(),
+                        item -> safe(item.getQuantity()),
+                        BigDecimal::add));
+        Map<Long, BigDecimal> previouslyReturnedQty = salesReturnRepository
+                .findPostedByInvoiceIdExcluding(invoice.getId(), salesReturn.getId())
+                .stream()
+                .flatMap(previousReturn -> previousReturn.getItems().stream())
+                .filter(item -> item.getProduct() != null && item.getProduct().getId() != null)
+                .collect(Collectors.toMap(
+                        item -> item.getProduct().getId(),
+                        item -> safe(item.getQuantity()),
+                        BigDecimal::add));
+
+        for (Map.Entry<Long, BigDecimal> entry : currentReturnQty.entrySet()) {
+            BigDecimal soldQty = soldQtyByProduct.get(entry.getKey());
+            if (soldQty == null) {
+                throw new BadRequestException("Returned product does not belong to the invoice");
+            }
+            BigDecimal requestedQty = entry.getValue();
+            if (requestedQty.compareTo(soldQty) > 0) {
+                throw new BadRequestException("Return quantity cannot exceed sold quantity");
+            }
+            BigDecimal remainingQty = soldQty.subtract(previouslyReturnedQty.getOrDefault(entry.getKey(), BigDecimal.ZERO));
+            if (requestedQty.compareTo(remainingQty) > 0) {
+                throw new BadRequestException("Return quantity cannot exceed remaining unreturned quantity");
+            }
+        }
+    }
+
+    private Map<Long, BigDecimal> invoiceSoldQtyByProduct(SalesInvoice invoice) {
+        return invoice.getItems().stream()
+                .filter(item -> item.getProduct() != null && item.getProduct().getId() != null)
+                .collect(Collectors.toMap(
+                        item -> item.getProduct().getId(),
+                        item -> safe(item.getQuantity()),
+                        BigDecimal::add));
     }
 
     private String resolveReturnCode(Long currentId, String requestedReturnCode) {

@@ -12,6 +12,11 @@ import com.sme.erp.product.repository.ProductRepository;
 import com.sme.erp.sales.dto.SalesReturnDTO;
 import com.sme.erp.sales.dto.SalesReturnItemDTO;
 import com.sme.erp.sales.entity.SalesInvoice;
+import com.sme.erp.sales.entity.SalesItem;
+import com.sme.erp.sales.entity.SalesReturn;
+import com.sme.erp.sales.entity.SalesReturnItem;
+import com.sme.erp.sales.enums.SalesInvoiceStatus;
+import com.sme.erp.sales.enums.SalesPaymentStatus;
 import com.sme.erp.sales.enums.SalesReturnStatus;
 import com.sme.erp.sales.mapper.SalesReturnItemMapper;
 import com.sme.erp.sales.mapper.SalesReturnMapper;
@@ -26,9 +31,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -83,6 +92,73 @@ class SalesReturnServiceImplTest {
                 "SR-0001");
     }
 
+    @Test
+    void post_validReturnRestocksAndPostsAccounting() {
+        Customer customer = customer();
+        SalesInvoice invoice = invoice(customer);
+        SalesReturn entity = returnEntity(invoice, customer, 4L, "2.00", "12.00");
+
+        when(salesReturnRepository.findById(15L)).thenReturn(Optional.of(entity));
+        when(salesReturnRepository.findPostedByInvoiceIdExcluding(9L, 15L)).thenReturn(List.of());
+        when(salesReturnRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(salesInvoiceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.post(15L);
+
+        verify(stockService).stockIn(4L, 3L, new BigDecimal("2.00"), new BigDecimal("6.00"), "SALES_RETURN", "SR-0001");
+        verify(accountingPostingService).postSalesReturn(entity);
+        assertThat(entity.getStatus()).isEqualTo(SalesReturnStatus.POSTED);
+        assertThat(invoice.getDueAmount()).isEqualByComparingTo("88.00");
+    }
+
+    @Test
+    void post_productNotInInvoiceIsRejectedBeforePosting() {
+        Customer customer = customer();
+        SalesInvoice invoice = invoice(customer);
+        SalesReturn entity = returnEntity(invoice, customer, 99L, "1.00", "6.00");
+
+        when(salesReturnRepository.findById(15L)).thenReturn(Optional.of(entity));
+        when(salesReturnRepository.findPostedByInvoiceIdExcluding(9L, 15L)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> service.post(15L))
+                .hasMessage("Returned product does not belong to the invoice");
+        verify(stockService, never()).stockIn(any(), any(), any(), any(), any(), any());
+        verify(accountingPostingService, never()).postSalesReturn(any());
+    }
+
+    @Test
+    void post_overSoldQuantityIsRejectedBeforePosting() {
+        Customer customer = customer();
+        SalesInvoice invoice = invoice(customer);
+        SalesReturn entity = returnEntity(invoice, customer, 4L, "6.00", "36.00");
+
+        when(salesReturnRepository.findById(15L)).thenReturn(Optional.of(entity));
+        when(salesReturnRepository.findPostedByInvoiceIdExcluding(9L, 15L)).thenReturn(List.of());
+
+        assertThatThrownBy(() -> service.post(15L))
+                .hasMessage("Return quantity cannot exceed sold quantity");
+        verify(stockService, never()).stockIn(any(), any(), any(), any(), any(), any());
+        verify(accountingPostingService, never()).postSalesReturn(any());
+    }
+
+    @Test
+    void post_multipleReturnAttemptsCannotExceedRemainingQuantity() {
+        Customer customer = customer();
+        SalesInvoice invoice = invoice(customer);
+        SalesReturn priorReturn = returnEntity(invoice, customer, 4L, "4.00", "24.00");
+        priorReturn.setId(14L);
+        priorReturn.setStatus(SalesReturnStatus.POSTED);
+        SalesReturn entity = returnEntity(invoice, customer, 4L, "2.00", "12.00");
+
+        when(salesReturnRepository.findById(15L)).thenReturn(Optional.of(entity));
+        when(salesReturnRepository.findPostedByInvoiceIdExcluding(9L, 15L)).thenReturn(List.of(priorReturn));
+
+        assertThatThrownBy(() -> service.post(15L))
+                .hasMessage("Return quantity cannot exceed remaining unreturned quantity");
+        verify(stockService, never()).stockIn(any(), any(), any(), any(), any(), any());
+        verify(accountingPostingService, never()).postSalesReturn(any());
+    }
+
     private SalesReturnDTO returnDto() {
         SalesReturnItemDTO item = new SalesReturnItemDTO();
         item.setProductId(4L);
@@ -108,7 +184,43 @@ class SalesReturnServiceImplTest {
         invoice.setInvoiceNo("INV-0009");
         invoice.setCustomer(customer);
         invoice.setWarehouse(warehouse);
+        invoice.setStatus(SalesInvoiceStatus.POSTED);
+        invoice.setPaymentStatus(SalesPaymentStatus.DUE);
+        invoice.setNetTotal(new BigDecimal("100.00"));
+        invoice.setPaidAmount(BigDecimal.ZERO);
+        invoice.setDueAmount(new BigDecimal("100.00"));
+        SalesItem item = new SalesItem();
+        item.setInvoice(invoice);
+        item.setProduct(product());
+        item.setQuantity(new BigDecimal("5.00"));
+        item.setUnitPrice(new BigDecimal("6.00"));
+        item.setSubTotal(new BigDecimal("30.00"));
+        invoice.getItems().add(item);
         return invoice;
+    }
+
+    private SalesReturn returnEntity(SalesInvoice invoice, Customer customer, Long productId, String quantity, String total) {
+        Product product = new Product();
+        product.setId(productId);
+        product.setProductName("Product " + productId);
+
+        SalesReturn entity = new SalesReturn();
+        entity.setId(15L);
+        entity.setReturnCode("SR-0001");
+        entity.setInvoice(invoice);
+        entity.setCustomer(customer);
+        entity.setReturnDate(LocalDateTime.of(2026, 6, 6, 0, 0));
+        entity.setStatus(SalesReturnStatus.APPROVED);
+        entity.setTotalAmount(new BigDecimal(total));
+
+        SalesReturnItem item = new SalesReturnItem();
+        item.setReturnEntity(entity);
+        item.setProduct(product);
+        item.setQuantity(new BigDecimal(quantity));
+        item.setUnitPrice(new BigDecimal("6.00"));
+        item.setTotal(new BigDecimal(total));
+        entity.getItems().add(item);
+        return entity;
     }
 
     private Customer customer() {

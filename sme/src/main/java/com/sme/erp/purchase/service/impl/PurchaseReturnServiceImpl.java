@@ -168,6 +168,7 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
         if (!isReceivedOrSettled(purchaseOrder.getStatus())) {
             throw new BadRequestException("Purchase return can only be posted against a received purchase order");
         }
+        validateReturnQuantities(entity);
         if (safe(entity.getTotalAmount()).compareTo(safe(purchaseOrder.getDueAmount())) > 0) {
             throw new BadRequestException("Posted return amount cannot exceed current purchase due until supplier credit memo support is added");
         }
@@ -251,16 +252,33 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
                             && item.getProduct().getId().equals(returnItem.getProduct().getId()))
                     .findFirst()
                     .orElseThrow(() -> new BadRequestException("Returned product does not belong to the purchase order"));
-            BigDecimal available = safe(matchedItem.getReceivedQuantity()).subtract(safe(matchedItem.getReturnedQuantity()));
-            if (safe(returnItem.getQuantity()).compareTo(available) > 0) {
-                throw new BadRequestException("Return quantity cannot exceed received and unreturned quantity");
-            }
             matchedItem.setReturnedQuantity(safe(matchedItem.getReturnedQuantity()).add(safe(returnItem.getQuantity())));
         }
         BigDecimal newDue = safe(purchaseOrder.getDueAmount()).subtract(safe(purchaseReturn.getTotalAmount())).max(BigDecimal.ZERO);
         purchaseOrder.setDueAmount(newDue);
         purchaseOrder.setStatus(resolvePurchaseStatusAfterReturn(purchaseOrder));
         purchaseOrderRepository.save(purchaseOrder);
+    }
+
+    private void validateReturnQuantities(PurchaseReturn purchaseReturn) {
+        PurchaseOrder purchaseOrder = purchaseReturn.getPurchase();
+        for (PurchaseReturnItem returnItem : purchaseReturn.getItems()) {
+            PurchaseItem matchedItem = purchaseOrder.getItems().stream()
+                    .filter(item -> item.getProduct() != null
+                            && returnItem.getProduct() != null
+                            && item.getProduct().getId().equals(returnItem.getProduct().getId()))
+                    .findFirst()
+                    .orElseThrow(() -> new BadRequestException("Returned product does not belong to the purchase order"));
+            BigDecimal returnQty = safe(returnItem.getQuantity());
+            BigDecimal receivedQty = safe(matchedItem.getReceivedQuantity());
+            if (returnQty.compareTo(receivedQty) > 0) {
+                throw new BadRequestException("Return quantity cannot exceed received quantity");
+            }
+            BigDecimal remainingQty = receivedQty.subtract(safe(matchedItem.getReturnedQuantity()));
+            if (returnQty.compareTo(remainingQty) > 0) {
+                throw new BadRequestException("Return quantity cannot exceed remaining unreturned quantity");
+            }
+        }
     }
 
     private CalculationResult buildItems(PurchaseReturn purchaseReturn, List<PurchaseReturnItemDTO> itemDTOs) {
@@ -353,8 +371,7 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
 
     private boolean isReceivedOrSettled(PurchaseStatus status) {
         PurchaseStatus normalized = normalizeStatus(status);
-        return normalized == PurchaseStatus.PARTIAL_RECEIVED
-                || normalized == PurchaseStatus.RECEIVED
+        return normalized == PurchaseStatus.RECEIVED
                 || normalized == PurchaseStatus.PARTIAL_PAID
                 || normalized == PurchaseStatus.PAID;
     }

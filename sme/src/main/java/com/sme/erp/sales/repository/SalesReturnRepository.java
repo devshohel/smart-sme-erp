@@ -20,6 +20,18 @@ public interface SalesReturnRepository extends JpaRepository<SalesReturn, Long> 
     @Query("""
             select r
             from SalesReturn r
+            join fetch r.items item
+            join fetch item.product
+            where r.invoice.id = :invoiceId
+              and r.status = com.sme.erp.sales.enums.SalesReturnStatus.POSTED
+              and (:excludeId is null or r.id <> :excludeId)
+            """)
+    List<SalesReturn> findPostedByInvoiceIdExcluding(@Param("invoiceId") Long invoiceId,
+                                                     @Param("excludeId") Long excludeId);
+
+    @Query("""
+            select r
+            from SalesReturn r
             where r.customer.id = :customerId
               and (:fromDate is null or r.returnDate >= :fromDate)
               and (:toDate is null or r.returnDate < :toDate)

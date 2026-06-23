@@ -21,6 +21,7 @@ import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.enums.Status;
 import com.sme.erp.file.dto.StoredFileDTO;
 import com.sme.erp.file.service.FileStorageService;
+import com.sme.erp.sales.entity.SalesInvoice;
 import com.sme.erp.settings.entity.TaxSettings;
 import com.sme.erp.settings.repository.TaxSettingsRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +34,7 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -408,6 +410,42 @@ class ExpenseServiceImplTest {
         assertThat(captor.getValue().getLines()).anySatisfy(line -> {
             assertThat(line.getAccount().getAccountName()).isEqualTo("Cash");
             assertThat(line.getDebit()).isEqualByComparingTo("125.00");
+        });
+    }
+
+    @Test
+    void salesInvoicePostingIgnoresInvoicePaidAmount() {
+        JournalEntryRepository journalRepository = org.mockito.Mockito.mock(JournalEntryRepository.class);
+        AccountRepository localAccountRepository = org.mockito.Mockito.mock(AccountRepository.class);
+        AccountingPostingServiceImpl realPostingService = new AccountingPostingServiceImpl(journalRepository, localAccountRepository, activityLogService, taxSettingsRepository);
+        SalesInvoice invoice = new SalesInvoice();
+        invoice.setId(200L);
+        invoice.setInvoiceNo("INV-0200");
+        invoice.setSaleDate(LocalDateTime.of(2026, 6, 18, 0, 0));
+        invoice.setNetTotal(new BigDecimal("100.00"));
+        invoice.setPaidAmount(new BigDecimal("40.00"));
+        Account receivable = account(30L, "1020", "Accounts Receivable", AccountType.ASSET);
+        Account income = account(31L, "4000", "Sales Income", AccountType.INCOME);
+        when(journalRepository.existsBySourceTypeAndSourceId("SALES_INVOICE", 200L)).thenReturn(false);
+        when(journalRepository.findMaxId()).thenReturn(0L);
+        when(journalRepository.existsByJournalNo("JRN-0001")).thenReturn(false);
+        when(localAccountRepository.findByAccountNameIgnoreCase("Accounts Receivable")).thenReturn(Optional.of(receivable));
+        when(localAccountRepository.findByAccountNameIgnoreCase("Sales Income")).thenReturn(Optional.of(income));
+
+        realPostingService.postSalesInvoice(invoice);
+
+        ArgumentCaptor<JournalEntry> captor = ArgumentCaptor.forClass(JournalEntry.class);
+        verify(journalRepository).save(captor.capture());
+        assertThat(captor.getValue().getLines()).hasSize(2);
+        assertThat(captor.getValue().getLines()).anySatisfy(line -> {
+            assertThat(line.getAccount().getAccountName()).isEqualTo("Accounts Receivable");
+            assertThat(line.getDebit()).isEqualByComparingTo("100.00");
+            assertThat(line.getCredit()).isEqualByComparingTo("0.00");
+        });
+        assertThat(captor.getValue().getLines()).anySatisfy(line -> {
+            assertThat(line.getAccount().getAccountName()).isEqualTo("Sales Income");
+            assertThat(line.getDebit()).isEqualByComparingTo("0.00");
+            assertThat(line.getCredit()).isEqualByComparingTo("100.00");
         });
     }
 

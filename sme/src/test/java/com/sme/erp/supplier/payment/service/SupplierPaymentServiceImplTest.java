@@ -189,10 +189,82 @@ class SupplierPaymentServiceImplTest {
 
         service.post(1L);
 
+        assertThat(purchase.getPaidAmount()).isEqualByComparingTo("700.00");
+        assertThat(purchase.getDueAmount()).isEqualByComparingTo("0.00");
+        assertThat(purchase.getStatus()).isEqualTo(PurchaseStatus.PAID);
         JournalEntry journal = capturedJournal();
         assertThat(journal.getLines()).hasSize(2);
         assertLine(journal, "Accounts Payable", "700.00", "0.00");
         assertLine(journal, "Cash", "0.00", "700.00");
+    }
+
+    @Test
+    void partialPayment_updatesPurchaseDueAndStatus() {
+        Supplier supplier = supplier();
+        PurchaseOrder purchase = purchase(11L, supplier, new BigDecimal("700.00"), BigDecimal.ZERO, new BigDecimal("700.00"));
+        SupplierPayment payment = draftPayment(supplier, new BigDecimal("300.00"));
+
+        when(paymentRepository.findDetailedById(1L)).thenReturn(Optional.of(payment));
+        when(purchaseOrderRepository.findUnpaidBySupplierIdOrderByPurchaseDateAscIdAsc(1L)).thenReturn(List.of(purchase));
+        when(purchaseOrderRepository.findById(11L)).thenReturn(Optional.of(purchase));
+        when(journalEntryRepository.existsBySourceTypeAndSourceId("SUPPLIER_PAYMENT", 1L)).thenReturn(false);
+        when(journalEntryRepository.findMaxId()).thenReturn(1L);
+        when(journalEntryRepository.existsByJournalNo("JRN-0002")).thenReturn(false);
+        when(accountRepository.findByAccountNameIgnoreCase("Cash")).thenReturn(Optional.of(account("1000", "Cash", AccountType.ASSET)));
+        when(accountRepository.findByAccountNameIgnoreCase("Accounts Payable")).thenReturn(Optional.of(account("2000", "Accounts Payable", AccountType.LIABILITY)));
+        when(paymentRepository.save(any(SupplierPayment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.post(1L);
+
+        assertThat(purchase.getPaidAmount()).isEqualByComparingTo("300.00");
+        assertThat(purchase.getDueAmount()).isEqualByComparingTo("400.00");
+        assertThat(purchase.getStatus()).isEqualTo(PurchaseStatus.PARTIAL_PAID);
+    }
+
+    @Test
+    void paymentAfterPurchaseReturnPreservesReducedDueAmount() {
+        Supplier supplier = supplier();
+        PurchaseOrder purchase = purchase(11L, supplier, new BigDecimal("1000.00"), BigDecimal.ZERO, new BigDecimal("700.00"));
+        SupplierPayment payment = draftPayment(supplier, new BigDecimal("400.00"));
+
+        when(paymentRepository.findDetailedById(1L)).thenReturn(Optional.of(payment));
+        when(purchaseOrderRepository.findUnpaidBySupplierIdOrderByPurchaseDateAscIdAsc(1L)).thenReturn(List.of(purchase));
+        when(purchaseOrderRepository.findById(11L)).thenReturn(Optional.of(purchase));
+        when(journalEntryRepository.existsBySourceTypeAndSourceId("SUPPLIER_PAYMENT", 1L)).thenReturn(false);
+        when(journalEntryRepository.findMaxId()).thenReturn(1L);
+        when(journalEntryRepository.existsByJournalNo("JRN-0002")).thenReturn(false);
+        when(accountRepository.findByAccountNameIgnoreCase("Cash")).thenReturn(Optional.of(account("1000", "Cash", AccountType.ASSET)));
+        when(accountRepository.findByAccountNameIgnoreCase("Accounts Payable")).thenReturn(Optional.of(account("2000", "Accounts Payable", AccountType.LIABILITY)));
+        when(paymentRepository.save(any(SupplierPayment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.post(1L);
+
+        assertThat(purchase.getPaidAmount()).isEqualByComparingTo("400.00");
+        assertThat(purchase.getDueAmount()).isEqualByComparingTo("300.00");
+        assertThat(purchase.getStatus()).isEqualTo(PurchaseStatus.PARTIAL_PAID);
+    }
+
+    @Test
+    void reversePaymentAfterPurchaseReturnRestoresOnlyReversedAllocation() {
+        Supplier supplier = supplier();
+        PurchaseOrder purchase = purchase(11L, supplier, new BigDecimal("1000.00"), new BigDecimal("500.00"), new BigDecimal("200.00"));
+        SupplierPayment payment = postedPayment(supplier, new BigDecimal("200.00"), new BigDecimal("200.00"), BigDecimal.ZERO);
+        payment.getAllocations().add(allocation(payment, purchase, new BigDecimal("200.00")));
+
+        when(paymentRepository.findDetailedById(1L)).thenReturn(Optional.of(payment));
+        when(journalEntryRepository.existsBySourceTypeAndSourceId("SUPPLIER_PAYMENT_REVERSAL", 1L)).thenReturn(false);
+        when(journalEntryRepository.findMaxId()).thenReturn(1L);
+        when(journalEntryRepository.existsByJournalNo("JRN-0002")).thenReturn(false);
+        when(accountRepository.findByAccountNameIgnoreCase("Cash")).thenReturn(Optional.of(account("1000", "Cash", AccountType.ASSET)));
+        when(accountRepository.findByAccountNameIgnoreCase("Accounts Payable")).thenReturn(Optional.of(account("2000", "Accounts Payable", AccountType.LIABILITY)));
+        when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(paymentRepository.save(any(SupplierPayment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.reverse(1L, "Wrong allocation");
+
+        assertThat(purchase.getPaidAmount()).isEqualByComparingTo("300.00");
+        assertThat(purchase.getDueAmount()).isEqualByComparingTo("400.00");
+        assertThat(purchase.getStatus()).isEqualTo(PurchaseStatus.PARTIAL_PAID);
     }
 
     private void assertReverseRejected(SupplierPaymentStatus status, String message) {

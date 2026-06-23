@@ -31,7 +31,9 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -75,15 +77,7 @@ class PurchaseReturnServiceImplTest {
     void post_deductsReturnedStockFromPurchaseWarehouse() {
         Supplier supplier = supplier();
         PurchaseOrder purchaseOrder = purchaseOrder(supplier);
-        PurchaseReturn entity = new PurchaseReturn();
-        entity.setId(15L);
-        entity.setReturnCode("PR-0001");
-        entity.setPurchase(purchaseOrder);
-        entity.setSupplier(supplier);
-        entity.setReturnDate(LocalDateTime.of(2026, 6, 6, 0, 0));
-        entity.setStatus(PurchaseStatus.APPROVED);
-        entity.getItems().addAll(serviceCreateItems(entity));
-        entity.setTotalAmount(new BigDecimal("14.00"));
+        PurchaseReturn entity = returnEntity(purchaseOrder, supplier, 4L, "2.00", "14.00");
 
         when(purchaseReturnRepository.findById(15L)).thenReturn(Optional.of(entity));
         when(purchaseReturnRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -94,6 +88,68 @@ class PurchaseReturnServiceImplTest {
         verify(stockService).stockOut(4L, 3L, new BigDecimal("2.00"), "PURCHASE_RETURN", "PR-0001");
         verify(accountingPostingService).postPurchaseReturn(entity);
         assertThat(entity.getStatus()).isEqualTo(PurchaseStatus.POSTED);
+    }
+
+    @Test
+    void post_overReceivedQuantityIsRejectedBeforePosting() {
+        Supplier supplier = supplier();
+        PurchaseOrder purchaseOrder = purchaseOrder(supplier);
+        PurchaseReturn entity = returnEntity(purchaseOrder, supplier, 4L, "6.00", "42.00");
+
+        when(purchaseReturnRepository.findById(15L)).thenReturn(Optional.of(entity));
+
+        assertThatThrownBy(() -> service.post(15L))
+                .hasMessage("Return quantity cannot exceed received quantity");
+        verify(stockService, never()).stockOut(any(), any(), any(), any(), any());
+        verify(accountingPostingService, never()).postPurchaseReturn(any());
+        verify(purchaseOrderRepository, never()).save(any());
+    }
+
+    @Test
+    void post_multipleReturnsCannotExceedRemainingQuantity() {
+        Supplier supplier = supplier();
+        PurchaseOrder purchaseOrder = purchaseOrder(supplier);
+        purchaseOrder.getItems().get(0).setReturnedQuantity(new BigDecimal("4.00"));
+        PurchaseReturn entity = returnEntity(purchaseOrder, supplier, 4L, "2.00", "14.00");
+
+        when(purchaseReturnRepository.findById(15L)).thenReturn(Optional.of(entity));
+
+        assertThatThrownBy(() -> service.post(15L))
+                .hasMessage("Return quantity cannot exceed remaining unreturned quantity");
+        verify(stockService, never()).stockOut(any(), any(), any(), any(), any());
+        verify(accountingPostingService, never()).postPurchaseReturn(any());
+        verify(purchaseOrderRepository, never()).save(any());
+    }
+
+    @Test
+    void post_invalidProductIsRejectedBeforePosting() {
+        Supplier supplier = supplier();
+        PurchaseOrder purchaseOrder = purchaseOrder(supplier);
+        PurchaseReturn entity = returnEntity(purchaseOrder, supplier, 99L, "1.00", "7.00");
+
+        when(purchaseReturnRepository.findById(15L)).thenReturn(Optional.of(entity));
+
+        assertThatThrownBy(() -> service.post(15L))
+                .hasMessage("Returned product does not belong to the purchase order");
+        verify(stockService, never()).stockOut(any(), any(), any(), any(), any());
+        verify(accountingPostingService, never()).postPurchaseReturn(any());
+        verify(purchaseOrderRepository, never()).save(any());
+    }
+
+    @Test
+    void post_partialReceivedPurchaseIsRejected() {
+        Supplier supplier = supplier();
+        PurchaseOrder purchaseOrder = purchaseOrder(supplier);
+        purchaseOrder.setStatus(PurchaseStatus.PARTIAL_RECEIVED);
+        PurchaseReturn entity = returnEntity(purchaseOrder, supplier, 4L, "1.00", "7.00");
+
+        when(purchaseReturnRepository.findById(15L)).thenReturn(Optional.of(entity));
+
+        assertThatThrownBy(() -> service.post(15L))
+                .hasMessage("Purchase return can only be posted against a received purchase order");
+        verify(stockService, never()).stockOut(any(), any(), any(), any(), any());
+        verify(accountingPostingService, never()).postPurchaseReturn(any());
+        verify(purchaseOrderRepository, never()).save(any());
     }
 
     private PurchaseReturnDTO returnDto() {
@@ -150,13 +206,30 @@ class PurchaseReturnServiceImplTest {
         return product;
     }
 
-    private java.util.List<com.sme.erp.purchase.entity.PurchaseReturnItem> serviceCreateItems(PurchaseReturn entity) {
+    private PurchaseReturn returnEntity(PurchaseOrder purchaseOrder, Supplier supplier, Long productId, String quantity, String total) {
+        PurchaseReturn entity = new PurchaseReturn();
+        entity.setId(15L);
+        entity.setReturnCode("PR-0001");
+        entity.setPurchase(purchaseOrder);
+        entity.setSupplier(supplier);
+        entity.setReturnDate(LocalDateTime.of(2026, 6, 6, 0, 0));
+        entity.setStatus(PurchaseStatus.APPROVED);
+        entity.setTotalAmount(new BigDecimal(total));
+        entity.getItems().add(returnItem(entity, productId, quantity, total));
+        return entity;
+    }
+
+    private com.sme.erp.purchase.entity.PurchaseReturnItem returnItem(PurchaseReturn entity, Long productId, String quantity, String total) {
+        Product product = new Product();
+        product.setId(productId);
+        product.setProductName("Product " + productId);
+
         com.sme.erp.purchase.entity.PurchaseReturnItem item = new com.sme.erp.purchase.entity.PurchaseReturnItem();
         item.setReturnEntity(entity);
-        item.setProduct(product());
-        item.setQuantity(new BigDecimal("2.00"));
+        item.setProduct(product);
+        item.setQuantity(new BigDecimal(quantity));
         item.setUnitPrice(new BigDecimal("7.00"));
-        item.setTotal(new BigDecimal("14.00"));
-        return java.util.List.of(item);
+        item.setTotal(new BigDecimal(total));
+        return item;
     }
 }
