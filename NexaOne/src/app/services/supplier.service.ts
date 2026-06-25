@@ -58,6 +58,12 @@ export class SupplierService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
+  getDeletedSuppliers(): Observable<Supplier[]> {
+    return this.http
+      .get<Supplier[] | ApiResponse<Supplier[]>>(`${this.baseUrl}/deleted`)
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
   searchSuppliers(keyword: string): Observable<Supplier[]> {
     const params = keyword.trim()
       ? new HttpParams().set('keyword', keyword.trim())
@@ -166,5 +172,11 @@ export class SupplierService {
 
   deleteSupplier(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  restoreSupplier(id: number): Observable<Supplier> {
+    return this.http
+      .put<Supplier | ApiResponse<Supplier>>(`${this.baseUrl}/${id}/restore`, {})
+      .pipe(map(response => unwrapApiResponse(response)));
   }
 }

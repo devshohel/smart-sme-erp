@@ -8,10 +8,12 @@ import java.util.List;
 
 public interface UserService {
     List<UserDTO> getAll(String keyword, Status status);
+    List<UserDTO> getDeleted();
     UserDTO getById(Long id);
     UserDTO create(UserDTO dto);
     UserDTO update(Long id, UserDTO dto);
     UserDTO deactivate(Long id);
     void delete(Long id);
+    UserDTO restore(Long id);
     List<RoleDTO> getRoles();
 }

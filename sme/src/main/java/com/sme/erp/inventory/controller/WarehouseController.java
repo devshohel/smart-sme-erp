@@ -27,22 +27,41 @@ public class WarehouseController {
         return ResponseEntity.ok(service.save(dto));
     }
 
+    @PutMapping("/{id:\\d+}")
+    @PreAuthorize("hasAuthority('INVENTORY_EDIT')")
+    public ResponseEntity<WarehouseDTO> update(@PathVariable Long id, @Valid @RequestBody WarehouseDTO dto) {
+        dto.setId(id);
+        return ResponseEntity.ok(service.save(dto));
+    }
+
     @GetMapping
     @PreAuthorize("hasAuthority('INVENTORY_VIEW')")
     public ResponseEntity<List<WarehouseDTO>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/deleted")
+    @PreAuthorize("hasAuthority('INVENTORY_VIEW')")
+    public ResponseEntity<List<WarehouseDTO>> getDeleted() {
+        return ResponseEntity.ok(service.getDeleted());
+    }
+
+    @GetMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('INVENTORY_VIEW')")
     public ResponseEntity<WarehouseDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('INVENTORY_DELETE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id:\\d+}/restore")
+    @PreAuthorize("hasAuthority('WAREHOUSE_RESTORE')")
+    public ResponseEntity<WarehouseDTO> restore(@PathVariable Long id) {
+        return ResponseEntity.ok(service.restore(id));
     }
 }

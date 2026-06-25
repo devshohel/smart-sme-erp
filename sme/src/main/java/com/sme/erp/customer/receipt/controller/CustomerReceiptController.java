@@ -25,13 +25,13 @@ public class CustomerReceiptController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('CUSTOMER_RECEIPT_VIEW')")
+    @PreAuthorize("hasAnyAuthority('CUSTOMER_RECEIPT_VIEW','CUSTOMER_RECEIPT_CREATE','CUSTOMER_RECEIPT_EDIT')")
     public ResponseEntity<List<CustomerReceiptDTO>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
 
     @GetMapping("/page")
-    @PreAuthorize("hasAuthority('CUSTOMER_RECEIPT_VIEW')")
+    @PreAuthorize("hasAnyAuthority('CUSTOMER_RECEIPT_VIEW','CUSTOMER_RECEIPT_CREATE','CUSTOMER_RECEIPT_EDIT')")
     public ResponseEntity<CustomerReceiptPageDTO> getPage(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long customerId,
@@ -47,7 +47,7 @@ public class CustomerReceiptController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('CUSTOMER_RECEIPT_VIEW')")
+    @PreAuthorize("hasAnyAuthority('CUSTOMER_RECEIPT_VIEW','CUSTOMER_RECEIPT_CREATE','CUSTOMER_RECEIPT_EDIT')")
     public ResponseEntity<CustomerReceiptDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }

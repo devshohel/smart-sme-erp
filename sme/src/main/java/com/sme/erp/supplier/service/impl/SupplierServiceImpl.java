@@ -105,6 +105,15 @@ public class SupplierServiceImpl implements SupplierService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<SupplierDTO> getDeleted() {
+        return supplierRepository.findDeletedSuppliers()
+                .stream()
+                .map(this::toDtoWithDue)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public SupplierPageDTO searchPage(String keyword, Status status, int page, int size, String sort, String direction) {
         String normalizedKeyword = RequestValueUtils.normalize(keyword);
         Pageable pageable = PageRequest.of(
@@ -449,6 +458,19 @@ public class SupplierServiceImpl implements SupplierService {
         SupplierDTO oldData = supplierMapper.toDTO(supplier);
         supplierRepository.delete(supplier);
         auditLogService.log("suppliers", id, auditLogService.toJson(oldData), null, "DELETE");
+    }
+
+    @Override
+    @Transactional
+    public SupplierDTO restore(Long id) {
+        int updated = supplierRepository.restoreById(id);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("Supplier not found with id: " + id);
+        }
+        SupplierDTO restored = toDtoWithDue(findSupplierById(id));
+        activityLogService.log("SUPPLIER_RESTORE", "SUPPLIER", "suppliers", id, "Restored supplier " + restored.getName());
+        auditLogService.log("suppliers", id, null, auditLogService.toJson(restored), "RESTORE");
+        return restored;
     }
 
     private void normalizeDto(SupplierDTO dto) {

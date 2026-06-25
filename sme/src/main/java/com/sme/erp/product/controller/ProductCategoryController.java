@@ -22,13 +22,13 @@ public class ProductCategoryController {
 
     // CREATE / UPDATE
     @PostMapping
-    @PreAuthorize("hasAuthority('PRODUCT_CREATE')")
+    @PreAuthorize("hasAuthority('CATEGORY_CREATE')")
     public ResponseEntity<ProductCategoryDTO> save(@Valid @RequestBody ProductCategoryDTO dto) {
         return ResponseEntity.ok(service.save(dto));
     }
 
-    @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('PRODUCT_EDIT')")
+    @PutMapping("/{id:\\d+}")
+    @PreAuthorize("hasAuthority('CATEGORY_EDIT')")
     public ResponseEntity<ProductCategoryDTO> update(@PathVariable Long id, @Valid @RequestBody ProductCategoryDTO dto) {
         dto.setId(id);
         return ResponseEntity.ok(service.save(dto));
@@ -36,16 +36,28 @@ public class ProductCategoryController {
 
     // GET ALL
     @GetMapping
-    @PreAuthorize("hasAuthority('PRODUCT_VIEW')")
+    @PreAuthorize("hasAuthority('CATEGORY_VIEW')")
     public ResponseEntity<List<ProductCategoryDTO>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
 
+    @GetMapping("/deleted")
+    @PreAuthorize("hasAuthority('CATEGORY_VIEW')")
+    public ResponseEntity<List<ProductCategoryDTO>> getDeleted() {
+        return ResponseEntity.ok(service.getDeleted());
+    }
+
     // DELETE
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('PRODUCT_DELETE')")
+    @DeleteMapping("/{id:\\d+}")
+    @PreAuthorize("hasAuthority('CATEGORY_DELETE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id:\\d+}/restore")
+    @PreAuthorize("hasAuthority('CATEGORY_RESTORE')")
+    public ResponseEntity<ProductCategoryDTO> restore(@PathVariable Long id) {
+        return ResponseEntity.ok(service.restore(id));
     }
 }

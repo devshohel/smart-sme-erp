@@ -5,6 +5,7 @@ import com.sme.erp.enums.Status;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -79,4 +80,11 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
             ORDER BY c.name ASC
             """)
     List<Customer> autocomplete(@Param("keyword") String keyword, Pageable pageable);
+
+    @Modifying
+    @Query(value = "UPDATE customers SET is_deleted = false, updated_at = CURRENT_TIMESTAMP WHERE id = :id", nativeQuery = true)
+    int restoreById(@Param("id") Long id);
+
+    @Query(value = "SELECT * FROM customers WHERE is_deleted = true ORDER BY id DESC", nativeQuery = true)
+    List<Customer> findDeletedCustomers();
 }

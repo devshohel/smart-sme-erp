@@ -2,6 +2,9 @@ package com.sme.erp.product.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.enums.Status;
@@ -30,6 +33,15 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     long countByStatus(Status status);
 
     long countByImageUrlIsNullOrImageUrl(String imageUrl);
+
+    long countByUomId(Long uomId);
+
+    @Query(value = "SELECT * FROM products WHERE is_deleted = true ORDER BY id DESC", nativeQuery = true)
+    List<Product> findDeletedProducts();
+
+    @Modifying
+    @Query(value = "UPDATE products SET is_deleted = false, updated_at = CURRENT_TIMESTAMP WHERE id = :id", nativeQuery = true)
+    int restoreById(@Param("id") Long id);
 
     // ♻️ Optional (future use - deleted data)
     // @Query("SELECT p FROM Product p WHERE p.deleted = true")

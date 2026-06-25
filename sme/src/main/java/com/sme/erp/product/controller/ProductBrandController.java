@@ -22,34 +22,46 @@ public class ProductBrandController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('PRODUCT_CREATE')")
+    @PreAuthorize("hasAuthority('BRAND_CREATE')")
     public ResponseEntity<ProductBrandDTO> save(@Valid @RequestBody ProductBrandDTO dto) {
         return ResponseEntity.ok(service.save(dto));
     }
 
-    @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('PRODUCT_EDIT')")
+    @PutMapping("/{id:\\d+}")
+    @PreAuthorize("hasAuthority('BRAND_EDIT')")
     public ResponseEntity<ProductBrandDTO> update(@PathVariable Long id, @Valid @RequestBody ProductBrandDTO dto) {
         dto.setId(id);
         return ResponseEntity.ok(service.save(dto));
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('PRODUCT_VIEW')")
+    @PreAuthorize("hasAuthority('BRAND_VIEW')")
     public ResponseEntity<List<ProductBrandDTO>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
 
-    @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('PRODUCT_VIEW')")
+    @GetMapping("/deleted")
+    @PreAuthorize("hasAuthority('BRAND_VIEW')")
+    public ResponseEntity<List<ProductBrandDTO>> getDeleted() {
+        return ResponseEntity.ok(service.getDeleted());
+    }
+
+    @GetMapping("/{id:\\d+}")
+    @PreAuthorize("hasAuthority('BRAND_VIEW')")
     public ResponseEntity<ProductBrandDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('PRODUCT_DELETE')")
+    @DeleteMapping("/{id:\\d+}")
+    @PreAuthorize("hasAuthority('BRAND_DELETE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id:\\d+}/restore")
+    @PreAuthorize("hasAuthority('BRAND_RESTORE')")
+    public ResponseEntity<ProductBrandDTO> restore(@PathVariable Long id) {
+        return ResponseEntity.ok(service.restore(id));
     }
 }

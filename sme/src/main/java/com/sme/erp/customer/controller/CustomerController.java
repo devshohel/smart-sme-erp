@@ -38,15 +38,21 @@ public class CustomerController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
+    @PreAuthorize("hasAnyAuthority('CUSTOMER_VIEW','CUSTOMER_LEDGER_VIEW','CUSTOMER_EDIT')")
     public ResponseEntity<List<CustomerDTO>> getAll(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Status status) {
         return ResponseEntity.ok(customerService.getAll(keyword, status));
     }
 
+    @GetMapping("/deleted")
+    @PreAuthorize("hasAnyAuthority('CUSTOMER_VIEW','CUSTOMER_LEDGER_VIEW','CUSTOMER_EDIT')")
+    public ResponseEntity<List<CustomerDTO>> getDeleted() {
+        return ResponseEntity.ok(customerService.getDeleted());
+    }
+
     @GetMapping("/page")
-    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
+    @PreAuthorize("hasAnyAuthority('CUSTOMER_VIEW','CUSTOMER_LEDGER_VIEW','CUSTOMER_EDIT')")
     public ResponseEntity<CustomerPageDTO> getPage(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Status status,
@@ -57,14 +63,14 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.searchPage(keyword, status, page, size, sort, direction));
     }
 
-    @GetMapping("/{id}/detail")
-    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
+    @GetMapping("/{id:\\d+}/detail")
+    @PreAuthorize("hasAnyAuthority('CUSTOMER_VIEW','CUSTOMER_LEDGER_VIEW','CUSTOMER_EDIT')")
     public ResponseEntity<CustomerDetailDTO> getDetail(@PathVariable Long id) {
         return ResponseEntity.ok(customerService.getDetail(id));
     }
 
-    @GetMapping("/{id}/ledger")
-    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
+    @GetMapping("/{id:\\d+}/ledger")
+    @PreAuthorize("hasAnyAuthority('CUSTOMER_VIEW','CUSTOMER_LEDGER_VIEW','CUSTOMER_EDIT')")
     public ResponseEntity<CustomerLedgerDTO> getLedger(
             @PathVariable Long id,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
@@ -73,7 +79,7 @@ public class CustomerController {
     }
 
     @GetMapping("/aging")
-    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
+    @PreAuthorize("hasAnyAuthority('CUSTOMER_VIEW','CUSTOMER_LEDGER_VIEW','CUSTOMER_EDIT','CUSTOMER_AGING_VIEW')")
     public ResponseEntity<CustomerAgingReportDTO> getAging(
             @RequestParam(required = false) Long customerId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
@@ -81,14 +87,14 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.getAging(customerId, fromDate, toDate));
     }
 
-    @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
+    @GetMapping("/{id:\\d+}")
+    @PreAuthorize("hasAnyAuthority('CUSTOMER_VIEW','CUSTOMER_LEDGER_VIEW','CUSTOMER_EDIT')")
     public ResponseEntity<CustomerDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(customerService.getById(id));
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasAuthority('CUSTOMER_VIEW')")
+    @PreAuthorize("hasAnyAuthority('CUSTOMER_VIEW','CUSTOMER_LEDGER_VIEW','CUSTOMER_EDIT','CUSTOMER_AGING_VIEW')")
     public ResponseEntity<List<CustomerOptionDTO>> search(@RequestParam(required = false) String keyword) {
         return ResponseEntity.ok(customerService.autocomplete(keyword));
     }
@@ -99,16 +105,22 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.create(dto));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('CUSTOMER_EDIT')")
     public ResponseEntity<CustomerDTO> update(@PathVariable Long id, @Valid @RequestBody CustomerDTO dto) {
         return ResponseEntity.ok(customerService.update(id, dto));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('CUSTOMER_DELETE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         customerService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id:\\d+}/restore")
+    @PreAuthorize("hasAuthority('CUSTOMER_RESTORE')")
+    public ResponseEntity<CustomerDTO> restore(@PathVariable Long id) {
+        return ResponseEntity.ok(customerService.restore(id));
     }
 }

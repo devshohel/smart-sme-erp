@@ -15,6 +15,7 @@ import java.util.List;
 
 public interface SupplierService {
     List<SupplierDTO> getAll(String keyword, Status status);
+    List<SupplierDTO> getDeleted();
     SupplierPageDTO searchPage(String keyword, Status status, int page, int size, String sort, String direction);
     List<SupplierOptionDTO> autocomplete(String keyword);
     SupplierDTO getById(Long id);
@@ -26,4 +27,5 @@ public interface SupplierService {
     SupplierDTO create(SupplierDTO dto);
     SupplierDTO update(Long id, SupplierDTO dto);
     void delete(Long id);
+    SupplierDTO restore(Long id);
 }

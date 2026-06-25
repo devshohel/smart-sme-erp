@@ -126,4 +126,6 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
             """)
     List<Expense> findUnpostedByStatusAndPaymentMethodForBook(@Param("status") ExpenseStatus status,
                                                                @Param("paymentMethod") AccountingPaymentMethod paymentMethod);
+
+    long countByCategoryId(Long categoryId);
 }

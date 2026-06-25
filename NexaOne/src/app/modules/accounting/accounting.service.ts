@@ -17,6 +17,11 @@ export class AccountingService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
+  getDeletedCategories(): Observable<ExpenseCategory[]> {
+    return this.http.get<ExpenseCategory[] | ApiResponse<ExpenseCategory[]>>(`${this.baseUrl}/expense-categories/deleted`)
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
   saveCategory(category: ExpenseCategory): Observable<ExpenseCategory> {
     const request$ = category.id
       ? this.http.put<ExpenseCategory | ApiResponse<ExpenseCategory>>(`${this.baseUrl}/expense-categories/${category.id}`, category)
@@ -26,6 +31,11 @@ export class AccountingService {
 
   deactivateCategory(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/expense-categories/${id}`);
+  }
+
+  restoreCategory(id: number): Observable<ExpenseCategory> {
+    return this.http.put<ExpenseCategory | ApiResponse<ExpenseCategory>>(`${this.baseUrl}/expense-categories/${id}/restore`, {})
+      .pipe(map(response => unwrapApiResponse(response)));
   }
 
   getExpenses(filters: { fromDate?: string; toDate?: string; categoryId?: number | ''; paymentMethod?: PaymentMethod | '' }): Observable<Expense[]> {

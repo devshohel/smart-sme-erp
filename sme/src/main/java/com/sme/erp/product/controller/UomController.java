@@ -23,13 +23,13 @@ public class UomController {
 
     // Create UOM
     @PostMapping
-    @PreAuthorize("hasAuthority('PRODUCT_CREATE')")
+    @PreAuthorize("hasAuthority('UOM_CREATE')")
     public ResponseEntity<UomDTO> create(@Valid @RequestBody UomDTO dto) {
         return ResponseEntity.ok(service.save(dto));
     }
 
-    @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('PRODUCT_EDIT')")
+    @PutMapping("/{id:\\d+}")
+    @PreAuthorize("hasAuthority('UOM_EDIT')")
     public ResponseEntity<UomDTO> update(@PathVariable Long id, @Valid @RequestBody UomDTO dto) {
         dto.setId(id);
         return ResponseEntity.ok(service.save(dto));
@@ -37,22 +37,34 @@ public class UomController {
 
     // Get All UOMs
     @GetMapping
-    @PreAuthorize("hasAuthority('PRODUCT_VIEW')")
+    @PreAuthorize("hasAuthority('UOM_VIEW')")
     public ResponseEntity<List<UomDTO>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
+
+    @GetMapping("/deleted")
+    @PreAuthorize("hasAuthority('UOM_VIEW')")
+    public ResponseEntity<List<UomDTO>> getDeleted() {
+        return ResponseEntity.ok(service.getDeleted());
+    }
     
-    @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('PRODUCT_VIEW')")
+    @GetMapping("/{id:\\d+}")
+    @PreAuthorize("hasAuthority('UOM_VIEW')")
     public ResponseEntity<UomDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
 
     // Delete UOM
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('PRODUCT_DELETE')")
+    @DeleteMapping("/{id:\\d+}")
+    @PreAuthorize("hasAuthority('UOM_DELETE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id:\\d+}/restore")
+    @PreAuthorize("hasAuthority('UOM_RESTORE')")
+    public ResponseEntity<UomDTO> restore(@PathVariable Long id) {
+        return ResponseEntity.ok(service.restore(id));
     }
 }

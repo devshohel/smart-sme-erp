@@ -11,6 +11,7 @@ import { AuthService } from '../../auth/auth.service';
 })
 export class UsersListComponent implements OnInit {
   users: User[] = [];
+  showDeleted = false;
   loading = false;
   errorMessage = '';
   filters = { keyword: '', status: '' as Status | '' };
@@ -25,7 +26,10 @@ export class UsersListComponent implements OnInit {
   loadUsers(): void {
     this.loading = true;
     this.errorMessage = '';
-    this.authService.getUsers(this.filters.keyword, this.filters.status).subscribe({
+    const request$ = this.showDeleted
+      ? this.authService.getDeletedUsers()
+      : this.authService.getUsers(this.filters.keyword, this.filters.status);
+    request$.subscribe({
       next: users => {
         this.users = users;
         this.loading = false;
@@ -44,12 +48,17 @@ export class UsersListComponent implements OnInit {
     this.loadUsers();
   }
 
+  toggleDeletedView(): void {
+    this.showDeleted = !this.showDeleted;
+    this.loadUsers();
+  }
+
   createUser(): void {
     this.router.navigate(['/settings/users/create']);
   }
 
   editUser(user: User): void {
-    if (user.id) {
+    if (user.id && !this.showDeleted) {
       this.router.navigate(['/settings/users/edit', user.id]);
     }
   }
@@ -61,6 +70,16 @@ export class UsersListComponent implements OnInit {
     this.authService.deactivateUser(user.id).subscribe({
       next: () => this.loadUsers(),
       error: error => this.errorMessage = extractApiErrorMessage(error, 'Deactivate request failed.')
+    });
+  }
+
+  restoreUser(user: User): void {
+    if (!user.id || !confirm(`Restore user "${user.username}"?`)) {
+      return;
+    }
+    this.authService.restoreUser(user.id).subscribe({
+      next: () => this.loadUsers(),
+      error: error => this.errorMessage = extractApiErrorMessage(error, 'Restore request failed.')
     });
   }
 

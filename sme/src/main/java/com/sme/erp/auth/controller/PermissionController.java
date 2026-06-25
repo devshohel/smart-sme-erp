@@ -22,7 +22,7 @@ public class PermissionController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('ROLE_VIEW')")
+    @PreAuthorize("hasAnyAuthority('ROLE_VIEW','ROLE_EDIT')")
     public ResponseEntity<List<PermissionDTO>> getAll() {
         return ResponseEntity.ok(permissionService.getAll());
     }

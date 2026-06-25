@@ -25,13 +25,13 @@ public class StockTransferController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('TRANSFER_VIEW')")
+    @PreAuthorize("hasAnyAuthority('TRANSFER_VIEW','TRANSFER_EDIT')")
     public ResponseEntity<List<StockTransferDTO>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
 
     @GetMapping("/page")
-    @PreAuthorize("hasAuthority('TRANSFER_VIEW')")
+    @PreAuthorize("hasAnyAuthority('TRANSFER_VIEW','TRANSFER_EDIT')")
     public ResponseEntity<StockTransferPageDTO> getPage(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long fromWarehouseId,
@@ -48,7 +48,7 @@ public class StockTransferController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('TRANSFER_VIEW')")
+    @PreAuthorize("hasAnyAuthority('TRANSFER_VIEW','TRANSFER_EDIT')")
     public ResponseEntity<StockTransferDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }

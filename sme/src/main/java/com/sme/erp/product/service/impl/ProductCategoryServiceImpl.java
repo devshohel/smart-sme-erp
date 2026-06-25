@@ -60,11 +60,30 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductCategoryDTO> getDeleted() {
+        return repository.findDeletedCategories()
+                .stream()
+                .map(mapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
     // ✅ DELETE
     @Override
     @Transactional
     public void delete(Long id) {
         repository.delete(findCategoryById(id, "Category"));
+    }
+
+    @Override
+    @Transactional
+    public ProductCategoryDTO restore(Long id) {
+        int updated = repository.restoreById(id);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("Category not found with id: " + id);
+        }
+        return mapper.toDTO(findCategoryById(id, "Category"));
     }
 
     private void validateCodeUnique(String code, Long currentId) {

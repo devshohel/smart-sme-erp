@@ -46,6 +46,7 @@ export class AccountingComponent implements OnInit {
   yearEnds: YearEndClosing[]=[]; yearEndYear=new Date().getFullYear();
 
   categoryForm: ExpenseCategory = this.emptyCategory();
+  categoryShowDeleted = false;
   expenseForm: Expense = this.emptyExpense();
   accountForm: Account = this.emptyAccount();
   journalForm: JournalEntry = this.emptyJournal();
@@ -134,12 +135,20 @@ export class AccountingComponent implements OnInit {
   }
 
   editCategory(category: ExpenseCategory): void {
+    if (this.categoryShowDeleted) {
+      return;
+    }
     this.categoryForm = { ...category };
   }
 
   deactivateCategory(category: ExpenseCategory): void {
     if (!category.id || !confirm(`Deactivate category "${category.name}"?`)) return;
     this.save(this.accountingService.deactivateCategory(category.id), 'Category deactivated.', () => this.loadCategories());
+  }
+
+  restoreCategory(category: ExpenseCategory): void {
+    if (!category.id || !confirm(`Restore category "${category.name}"?`)) return;
+    this.save(this.accountingService.restoreCategory(category.id), 'Category restored.', () => this.loadCategories());
   }
 
   saveExpense(): void {
@@ -320,7 +329,13 @@ export class AccountingComponent implements OnInit {
   }
 
   private loadCategories(showLoading = true, suppressError = false): void {
-    this.fetch(showLoading, this.accountingService.getCategories(), categories => this.categories = categories || [], 'Categories could not be loaded.', suppressError);
+    const request = this.categoryShowDeleted ? this.accountingService.getDeletedCategories() : this.accountingService.getCategories();
+    this.fetch(showLoading, request, categories => this.categories = categories || [], 'Categories could not be loaded.', suppressError);
+  }
+
+  toggleDeletedCategories(): void {
+    this.categoryShowDeleted = !this.categoryShowDeleted;
+    this.loadCategories();
   }
 
   private loadExpenses(): void {

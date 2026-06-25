@@ -16,5 +16,7 @@ public interface ProductService {
     ProductStatsDTO getStats();
     int updateStatusBulk(List<Long> productIds, Status status);
     ProductDTO getById(Long id);
+    List<ProductDTO> getDeletedProducts();
     void delete(Long id);
+    ProductDTO restore(Long id);
 }

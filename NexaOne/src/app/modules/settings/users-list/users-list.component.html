@@ -1,9 +1,14 @@
 <div class="container-fluid p-4">
   <app-page-header title="Users" subtitle="Manage ERP user accounts and access roles.">
-    <button *ngIf="hasPermission('USER_CREATE')" class="btn btn-success" (click)="createUser()">
-      <i class="bi bi-person-plus me-1"></i>
-      New User
-    </button>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary" (click)="toggleDeletedView()">
+        <i class="bi bi-trash3 me-1"></i> {{ showDeleted ? 'Show Active' : 'Show Deleted' }}
+      </button>
+      <button *ngIf="hasPermission('USER_CREATE') && !showDeleted" class="btn btn-success" (click)="createUser()">
+        <i class="bi bi-person-plus me-1"></i>
+        New User
+      </button>
+    </div>
   </app-page-header>
 
   <app-card title="User Filters" subtitle="Search users by name, username, email, phone, and status.">
@@ -32,6 +37,7 @@
 
   <app-card title="User List" subtitle="Active and inactive ERP login accounts.">
     <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+    <div *ngIf="showDeleted" class="alert alert-secondary">Showing deleted users only.</div>
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0">
         <thead class="table-light">
@@ -45,9 +51,10 @@
             <td>{{ user.lastLogin ? (user.lastLogin | date:'medium') : 'Never' }}</td>
             <td><span class="badge px-3 py-2" [ngClass]="statusClass(user.status)">{{ user.status }}</span></td>
             <td class="text-center">
-              <button *ngIf="hasPermission('USER_EDIT')" class="btn btn-sm btn-outline-primary me-1" type="button" (click)="editUser(user)"><i class="bi bi-pencil"></i></button>
-              <button *ngIf="hasPermission('USER_EDIT')" class="btn btn-sm btn-outline-warning me-1" type="button" (click)="deactivateUser(user)"><i class="bi bi-person-dash"></i></button>
-              <button *ngIf="hasPermission('USER_DELETE')" class="btn btn-sm btn-outline-danger" type="button" (click)="deleteUser(user)"><i class="bi bi-trash"></i></button>
+              <button *ngIf="showDeleted && hasPermission('USER_RESTORE')" class="btn btn-sm btn-outline-success me-1" type="button" (click)="restoreUser(user)"><i class="bi bi-arrow-counterclockwise"></i></button>
+              <button *ngIf="!showDeleted && hasPermission('USER_EDIT')" class="btn btn-sm btn-outline-primary me-1" type="button" (click)="editUser(user)"><i class="bi bi-pencil"></i></button>
+              <button *ngIf="!showDeleted && hasPermission('USER_EDIT')" class="btn btn-sm btn-outline-warning me-1" type="button" (click)="deactivateUser(user)"><i class="bi bi-person-dash"></i></button>
+              <button *ngIf="!showDeleted && hasPermission('USER_DELETE')" class="btn btn-sm btn-outline-danger" type="button" (click)="deleteUser(user)"><i class="bi bi-trash"></i></button>
             </td>
           </tr>
           <tr *ngIf="!loading && users.length === 0"><td colspan="6" class="text-center text-muted py-5">No users found.</td></tr>

@@ -40,15 +40,21 @@ public class SupplierController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('SUPPLIER_VIEW')")
+    @PreAuthorize("hasAnyAuthority('SUPPLIER_VIEW','SUPPLIER_LEDGER_VIEW','SUPPLIER_EDIT')")
     public ResponseEntity<List<SupplierDTO>> getAll(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Status status) {
         return ResponseEntity.ok(supplierService.getAll(keyword, status));
     }
 
+    @GetMapping("/deleted")
+    @PreAuthorize("hasAnyAuthority('SUPPLIER_VIEW','SUPPLIER_LEDGER_VIEW','SUPPLIER_EDIT')")
+    public ResponseEntity<List<SupplierDTO>> getDeleted() {
+        return ResponseEntity.ok(supplierService.getDeleted());
+    }
+
     @GetMapping("/page")
-    @PreAuthorize("hasAuthority('SUPPLIER_VIEW')")
+    @PreAuthorize("hasAnyAuthority('SUPPLIER_VIEW','SUPPLIER_LEDGER_VIEW','SUPPLIER_EDIT')")
     public ResponseEntity<SupplierPageDTO> getPage(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Status status,
@@ -59,14 +65,14 @@ public class SupplierController {
         return ResponseEntity.ok(supplierService.searchPage(keyword, status, page, size, sort, direction));
     }
 
-    @GetMapping("/{id}/detail")
-    @PreAuthorize("hasAuthority('SUPPLIER_VIEW')")
+    @GetMapping("/{id:\\d+}/detail")
+    @PreAuthorize("hasAnyAuthority('SUPPLIER_VIEW','SUPPLIER_LEDGER_VIEW','SUPPLIER_EDIT')")
     public ResponseEntity<SupplierDetailDTO> getDetail(@PathVariable Long id) {
         return ResponseEntity.ok(supplierService.getDetail(id));
     }
 
-    @GetMapping("/{id}/ledger")
-    @PreAuthorize("hasAnyAuthority('SUPPLIER_LEDGER_VIEW','SUPPLIER_VIEW')")
+    @GetMapping("/{id:\\d+}/ledger")
+    @PreAuthorize("hasAnyAuthority('SUPPLIER_LEDGER_VIEW','SUPPLIER_VIEW','SUPPLIER_EDIT')")
     public ResponseEntity<SupplierLedgerDTO> getLedger(
             @PathVariable Long id,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
@@ -74,8 +80,8 @@ public class SupplierController {
         return ResponseEntity.ok(supplierService.getLedger(id, fromDate, toDate));
     }
 
-    @GetMapping("/{id}/statement")
-    @PreAuthorize("hasAuthority('SUPPLIER_LEDGER_VIEW')")
+    @GetMapping("/{id:\\d+}/statement")
+    @PreAuthorize("hasAnyAuthority('SUPPLIER_LEDGER_VIEW','SUPPLIER_VIEW','SUPPLIER_EDIT')")
     public ResponseEntity<SupplierStatementDTO> getStatement(
             @PathVariable Long id,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
@@ -84,7 +90,7 @@ public class SupplierController {
     }
 
     @GetMapping("/aging")
-    @PreAuthorize("hasAnyAuthority('SUPPLIER_LEDGER_VIEW','SUPPLIER_VIEW')")
+    @PreAuthorize("hasAnyAuthority('SUPPLIER_LEDGER_VIEW','SUPPLIER_VIEW','SUPPLIER_EDIT')")
     public ResponseEntity<SupplierAgingReportDTO> getAging(
             @RequestParam(required = false) Long supplierId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
@@ -93,7 +99,7 @@ public class SupplierController {
     }
 
     @GetMapping("/ap-reconciliation")
-    @PreAuthorize("hasAuthority('SUPPLIER_LEDGER_VIEW')")
+    @PreAuthorize("hasAnyAuthority('SUPPLIER_LEDGER_VIEW','SUPPLIER_VIEW','SUPPLIER_EDIT')")
     public ResponseEntity<ApReconciliationDTO> getApReconciliation(
             @RequestParam(required = false) Long supplierId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
@@ -102,19 +108,19 @@ public class SupplierController {
     }
 
     @GetMapping("/options")
-    @PreAuthorize("hasAuthority('SUPPLIER_VIEW')")
+    @PreAuthorize("hasAnyAuthority('SUPPLIER_VIEW','SUPPLIER_LEDGER_VIEW','SUPPLIER_EDIT')")
     public ResponseEntity<List<SupplierOptionDTO>> options(@RequestParam(required = false) String keyword) {
         return ResponseEntity.ok(supplierService.autocomplete(keyword));
     }
 
-    @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('SUPPLIER_VIEW')")
+    @GetMapping("/{id:\\d+}")
+    @PreAuthorize("hasAnyAuthority('SUPPLIER_VIEW','SUPPLIER_LEDGER_VIEW','SUPPLIER_EDIT')")
     public ResponseEntity<SupplierDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(supplierService.getById(id));
     }
 
     @GetMapping("/search")
-    @PreAuthorize("hasAuthority('SUPPLIER_VIEW')")
+    @PreAuthorize("hasAnyAuthority('SUPPLIER_VIEW','SUPPLIER_LEDGER_VIEW','SUPPLIER_EDIT')")
     public ResponseEntity<List<SupplierDTO>> search(@RequestParam(required = false) String keyword) {
         return ResponseEntity.ok(supplierService.getAll(keyword, null));
     }
@@ -125,16 +131,22 @@ public class SupplierController {
         return ResponseEntity.ok(supplierService.create(dto));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('SUPPLIER_EDIT')")
     public ResponseEntity<SupplierDTO> update(@PathVariable Long id, @Valid @RequestBody SupplierDTO dto) {
         return ResponseEntity.ok(supplierService.update(id, dto));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('SUPPLIER_DELETE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         supplierService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id:\\d+}/restore")
+    @PreAuthorize("hasAuthority('SUPPLIER_RESTORE')")
+    public ResponseEntity<SupplierDTO> restore(@PathVariable Long id) {
+        return ResponseEntity.ok(supplierService.restore(id));
     }
 }

@@ -27,7 +27,7 @@ public class RolePermissionController {
     }
 
     @GetMapping("/{roleId}/permissions")
-    @PreAuthorize("hasAuthority('ROLE_VIEW')")
+    @PreAuthorize("hasAnyAuthority('ROLE_VIEW','ROLE_EDIT')")
     public ResponseEntity<List<PermissionDTO>> getRolePermissions(@PathVariable Long roleId) {
         return ResponseEntity.ok(rolePermissionService.getRolePermissions(roleId));
     }

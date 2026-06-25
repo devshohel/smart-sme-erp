@@ -3,6 +3,7 @@ package com.sme.erp.product.service;
 import com.sme.erp.product.dto.UomDTO;
 import com.sme.erp.product.entity.Uom;
 import com.sme.erp.product.mapper.UomMapper;
+import com.sme.erp.product.repository.ProductRepository;
 import com.sme.erp.product.repository.UomRepository;
 import com.sme.erp.product.service.impl.UomServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,11 +25,14 @@ class UomServiceImplTest {
     @Mock
     private UomRepository repository;
 
+    @Mock
+    private ProductRepository productRepository;
+
     private UomServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new UomServiceImpl(repository, new UomMapper());
+        service = new UomServiceImpl(repository, new UomMapper(), productRepository);
     }
 
     @Test

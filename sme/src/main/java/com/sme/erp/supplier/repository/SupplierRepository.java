@@ -6,6 +6,7 @@ import com.sme.erp.supplier.entity.Supplier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -89,4 +90,11 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
             ORDER BY s.name ASC, s.id ASC
             """)
     List<SupplierOptionDTO> autocomplete(@Param("keyword") String keyword, Pageable pageable);
+
+    @Modifying
+    @Query(value = "UPDATE suppliers SET is_deleted = false, updated_at = CURRENT_TIMESTAMP WHERE id = :id", nativeQuery = true)
+    int restoreById(@Param("id") Long id);
+
+    @Query(value = "SELECT * FROM suppliers WHERE is_deleted = true ORDER BY id DESC", nativeQuery = true)
+    List<Supplier> findDeletedSuppliers();
 }

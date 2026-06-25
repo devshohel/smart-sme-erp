@@ -4,6 +4,7 @@ import { Status } from '../../../models/product.model';
 import { Uom } from '../../../models/uom.model';
 import { UomService } from '../../../services/uom.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
+import { AuthService } from '../../auth/auth.service';
 
 declare var bootstrap: any;
 
@@ -14,6 +15,7 @@ declare var bootstrap: any;
 })
 export class UomSettingComponent implements OnInit {
   uoms: Uom[] = [];
+  showDeleted = false;
   uomForm: FormGroup;
   loading = false;
   isEditMode = false;
@@ -23,7 +25,8 @@ export class UomSettingComponent implements OnInit {
 
   constructor(
     private uomService: UomService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private authService: AuthService
   ) {
     this.uomForm = this.fb.group({
       id: [null],
@@ -41,7 +44,8 @@ export class UomSettingComponent implements OnInit {
 
   loadUoms(): void {
     this.loading = true;
-    this.uomService.getAllUoms().subscribe({
+    const request$ = this.showDeleted ? this.uomService.getDeletedUoms() : this.uomService.getAllUoms();
+    request$.subscribe({
       next: (data) => {
         this.uoms = data;
         this.loading = false;
@@ -52,6 +56,11 @@ export class UomSettingComponent implements OnInit {
         debugApiError('UomSettingComponent.loadUoms', error);
       }
     });
+  }
+
+  toggleDeletedView(): void {
+    this.showDeleted = !this.showDeleted;
+    this.loadUoms();
   }
 
   addUom(): void {
@@ -69,6 +78,9 @@ export class UomSettingComponent implements OnInit {
   }
 
   editUom(uom: Uom): void {
+    if (this.showDeleted) {
+      return;
+    }
     this.isEditMode = true;
     this.submitError = '';
     this.uomForm.reset({
@@ -115,6 +127,13 @@ export class UomSettingComponent implements OnInit {
     }
   }
 
+  restoreUom(id?: number): void {
+    if (!id || !confirm('Restore this UOM?')) {
+      return;
+    }
+    this.uomService.restoreUom(id).subscribe(() => this.loadUoms());
+  }
+
   openModal(): void {
     const modal = new bootstrap.Modal(document.getElementById('uomModal'));
     modal.show();
@@ -131,5 +150,9 @@ export class UomSettingComponent implements OnInit {
   hasError(controlName: string, errorName: string): boolean {
     const control = this.uomForm.get(controlName);
     return !!control && control.touched && control.hasError(errorName);
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
   }
 }

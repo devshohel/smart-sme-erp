@@ -230,6 +230,17 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<CustomerDTO> getDeleted() {
+        List<CustomerDTO> deletedCustomers = customerRepository.findDeletedCustomers()
+                .stream()
+                .map(customerMapper::toDTO)
+                .collect(Collectors.toList());
+        applyDueBalances(deletedCustomers);
+        return deletedCustomers;
+    }
+
+    @Override
     @Transactional
     public CustomerDTO create(CustomerDTO dto) {
         normalizeDto(dto);
@@ -297,6 +308,19 @@ public class CustomerServiceImpl implements CustomerService {
         CustomerDTO oldData = customerMapper.toDTO(customer);
         customerRepository.delete(customer);
         auditLogService.log("customers", id, auditLogService.toJson(oldData), null, "DELETE");
+    }
+
+    @Override
+    @Transactional
+    public CustomerDTO restore(Long id) {
+        int updated = customerRepository.restoreById(id);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("Customer not found with id: " + id);
+        }
+        CustomerDTO restored = customerMapper.toDTO(findCustomerById(id));
+        activityLogService.log("CUSTOMER_RESTORE", "CUSTOMER", "customers", id, "Restored customer " + restored.getName());
+        auditLogService.log("customers", id, null, auditLogService.toJson(restored), "RESTORE");
+        return restored;
     }
 
     private void normalizeDto(CustomerDTO dto) {

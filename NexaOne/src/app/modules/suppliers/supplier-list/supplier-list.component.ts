@@ -13,6 +13,7 @@ import { AuthService } from '../../auth/auth.service';
 })
 export class SupplierListComponent implements OnInit {
   suppliers: Supplier[] = [];
+  showDeleted = false;
   loading = false;
   errorMessage = '';
 
@@ -43,6 +44,24 @@ export class SupplierListComponent implements OnInit {
   loadSuppliers(): void {
     this.loading = true;
     this.errorMessage = '';
+    if (this.showDeleted) {
+      this.supplierService.getDeletedSuppliers().subscribe({
+        next: suppliers => {
+          this.suppliers = suppliers;
+          this.totalElements = suppliers.length;
+          this.totalPages = 1;
+          this.page = 0;
+          this.loading = false;
+        },
+        error: error => {
+          this.suppliers = [];
+          this.loading = false;
+          this.errorMessage = extractApiErrorMessage(error, 'Suppliers could not be loaded.');
+          debugApiError('SupplierListComponent.loadSuppliers', error);
+        }
+      });
+      return;
+    }
 
     this.supplierService.getSupplierPage({
       keyword: this.filters.keyword,
@@ -52,15 +71,15 @@ export class SupplierListComponent implements OnInit {
       sort: this.sort,
       direction: this.direction
     }).subscribe({
-      next: (data) => {
-        this.suppliers = data.content;
-        this.totalElements = data.totalElements;
-        this.totalPages = data.totalPages;
-        this.page = data.page;
-        this.size = data.size;
+      next: pageData => {
+        this.suppliers = pageData.content;
+        this.totalElements = pageData.totalElements;
+        this.totalPages = pageData.totalPages;
+        this.page = pageData.page;
+        this.size = pageData.size;
         this.loading = false;
       },
-      error: (error) => {
+      error: error => {
         this.suppliers = [];
         this.loading = false;
         this.errorMessage = extractApiErrorMessage(error, 'Suppliers could not be loaded.');
@@ -82,6 +101,12 @@ export class SupplierListComponent implements OnInit {
     this.page = 0;
     this.sort = 'createdAt';
     this.direction = 'desc';
+    this.loadSuppliers();
+  }
+
+  toggleDeletedView(): void {
+    this.showDeleted = !this.showDeleted;
+    this.page = 0;
     this.loadSuppliers();
   }
 
@@ -120,7 +145,7 @@ export class SupplierListComponent implements OnInit {
   }
 
   editSupplier(supplier: Supplier): void {
-    if (supplier.id) {
+    if (supplier.id && !this.showDeleted) {
       this.router.navigate(['/suppliers/edit', supplier.id]);
     }
   }
@@ -171,6 +196,19 @@ export class SupplierListComponent implements OnInit {
         }
       });
     }
+  }
+
+  restoreSupplier(supplier: Supplier): void {
+    if (!supplier.id || !confirm(`Restore supplier "${supplier.name}"?`)) {
+      return;
+    }
+    this.supplierService.restoreSupplier(supplier.id).subscribe({
+      next: () => this.loadSuppliers(),
+      error: (error) => {
+        this.errorMessage = extractApiErrorMessage(error, 'Restore request failed.');
+        debugApiError('SupplierListComponent.restoreSupplier', error);
+      }
+    });
   }
 
   statusClass(status?: Status): string {

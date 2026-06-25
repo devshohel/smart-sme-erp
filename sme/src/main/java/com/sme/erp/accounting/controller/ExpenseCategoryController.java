@@ -26,7 +26,13 @@ public class ExpenseCategoryController {
         return ResponseEntity.ok(service.getAll(status));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/deleted")
+    @PreAuthorize("hasAnyAuthority('ACCOUNTING_VIEW','EXPENSE_VIEW','EXPENSE_CREATE','EXPENSE_EDIT')")
+    public ResponseEntity<List<ExpenseCategoryDTO>> getDeleted() {
+        return ResponseEntity.ok(service.getDeleted());
+    }
+
+    @GetMapping("/{id:\\d+}")
     @PreAuthorize("hasAnyAuthority('ACCOUNTING_VIEW','EXPENSE_VIEW')")
     public ResponseEntity<ExpenseCategoryDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
@@ -38,16 +44,22 @@ public class ExpenseCategoryController {
         return ResponseEntity.ok(service.create(dto));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('ACCOUNTING_EDIT')")
     public ResponseEntity<ExpenseCategoryDTO> update(@PathVariable Long id, @Valid @RequestBody ExpenseCategoryDTO dto) {
         return ResponseEntity.ok(service.update(id, dto));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('ACCOUNTING_DELETE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id:\\d+}/restore")
+    @PreAuthorize("hasAuthority('EXPENSE_CATEGORY_RESTORE')")
+    public ResponseEntity<ExpenseCategoryDTO> restore(@PathVariable Long id) {
+        return ResponseEntity.ok(service.restore(id));
     }
 }

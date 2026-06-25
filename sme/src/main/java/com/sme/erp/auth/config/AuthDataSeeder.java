@@ -23,7 +23,7 @@ import java.util.Set;
 public class AuthDataSeeder implements CommandLineRunner {
     private static final List<String> BASE_ADMIN_PERMISSIONS = List.of(
             "PRODUCT_VIEW", "PRODUCT_CREATE", "PRODUCT_EDIT", "PRODUCT_DELETE",
-            "INVENTORY_VIEW", "INVENTORY_CREATE", "INVENTORY_EDIT", "INVENTORY_DELETE",
+            "INVENTORY_VIEW", "INVENTORY_CREATE", "INVENTORY_DELETE",
             "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_EDIT", "CUSTOMER_DELETE",
             "SUPPLIER_VIEW", "SUPPLIER_CREATE", "SUPPLIER_EDIT", "SUPPLIER_DELETE",
             "PURCHASE_VIEW", "PURCHASE_CREATE", "PURCHASE_EDIT", "PURCHASE_DELETE",
@@ -38,7 +38,7 @@ public class AuthDataSeeder implements CommandLineRunner {
     private static final List<String> BASE_MANAGER_PERMISSIONS = List.of(
             "DASHBOARD_VIEW",
             "PRODUCT_VIEW", "PRODUCT_CREATE", "PRODUCT_EDIT",
-            "INVENTORY_VIEW", "INVENTORY_CREATE", "INVENTORY_EDIT",
+            "INVENTORY_VIEW", "INVENTORY_CREATE",
             "CUSTOMER_VIEW", "CUSTOMER_CREATE", "CUSTOMER_EDIT",
             "SUPPLIER_VIEW", "SUPPLIER_CREATE", "SUPPLIER_EDIT",
             "PURCHASE_VIEW", "PURCHASE_CREATE", "PURCHASE_EDIT",
@@ -94,6 +94,17 @@ public class AuthDataSeeder implements CommandLineRunner {
             "YEAR_END_VIEW", "YEAR_END_PREPARE", "YEAR_END_COMPLETE", "FINANCIAL_DASHBOARD_VIEW",
             "REPORT_EXPORT", "REPORT_PRINT", "REPORT_EXPORT_PDF", "REPORT_EXPORT_EXCEL", "REPORT_EXPORT_CSV",
             "AUDIT_EXPORT", "LOGIN_HISTORY_VIEW");
+
+    private static final List<String> RESTORE_PERMISSIONS = List.of(
+            "PRODUCT_RESTORE",
+            "CATEGORY_RESTORE",
+            "BRAND_RESTORE",
+            "UOM_RESTORE",
+            "EXPENSE_CATEGORY_RESTORE",
+            "CUSTOMER_RESTORE",
+            "SUPPLIER_RESTORE",
+            "WAREHOUSE_RESTORE",
+            "USER_RESTORE");
 
     private static final List<String> ADMIN_ACTION_PERMISSIONS = List.of(
             "PRODUCT_PRINT", "PRODUCT_EXPORT", "PRODUCT_BARCODE",
@@ -193,8 +204,8 @@ public class AuthDataSeeder implements CommandLineRunner {
             "REPORT_EXPORT", "REPORT_PRINT", "REPORT_EXPORT_PDF", "REPORT_EXPORT_EXCEL", "REPORT_EXPORT_CSV",
             "LOGIN_HISTORY_VIEW");
 
-    private static final List<String> ALL_PERMISSIONS = merge(BASE_ADMIN_PERMISSIONS, ENTERPRISE_PERMISSIONS);
-    private static final List<String> ADMIN_PERMISSIONS = merge(BASE_ADMIN_PERMISSIONS, ADMIN_ACTION_PERMISSIONS);
+    private static final List<String> ALL_PERMISSIONS = merge(BASE_ADMIN_PERMISSIONS, ENTERPRISE_PERMISSIONS, RESTORE_PERMISSIONS);
+    private static final List<String> ADMIN_PERMISSIONS = merge(BASE_ADMIN_PERMISSIONS, ADMIN_ACTION_PERMISSIONS, RESTORE_PERMISSIONS);
     private static final List<String> MANAGER_PERMISSIONS = merge(BASE_MANAGER_PERMISSIONS, MANAGER_ACTION_PERMISSIONS);
     private static final List<String> STAFF_PERMISSIONS = merge(BASE_STAFF_PERMISSIONS, STAFF_ACTION_PERMISSIONS);
 

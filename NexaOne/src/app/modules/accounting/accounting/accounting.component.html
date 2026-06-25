@@ -9,6 +9,11 @@
 
   <ng-container *ngIf="section === 'categories'">
     <app-card title="Category Form" subtitle="Create or update operating expense categories.">
+      <div class="mb-3">
+        <button class="btn btn-outline-secondary btn-sm" type="button" (click)="toggleDeletedCategories()">
+          <i class="bi bi-trash3 me-1"></i> {{ categoryShowDeleted ? 'Show Active' : 'Show Deleted' }}
+        </button>
+      </div>
       <form (ngSubmit)="saveCategory()" class="row g-3">
         <div class="col-md-4">
           <label class="form-label">Name</label>
@@ -33,7 +38,7 @@
           </select>
         </div>
         <div class="col-md-1 d-flex align-items-end">
-          <button *ngIf="hasPermission(categoryForm.id ? 'ACCOUNTING_EDIT' : 'ACCOUNTING_CREATE')" class="btn btn-success w-100" [disabled]="saving" type="submit">
+          <button *ngIf="!categoryShowDeleted && hasPermission(categoryForm.id ? 'ACCOUNTING_EDIT' : 'ACCOUNTING_CREATE')" class="btn btn-success w-100" [disabled]="saving" type="submit">
             <i class="bi bi-save"></i>
           </button>
         </div>
@@ -49,10 +54,11 @@
               <td class="fw-semibold">{{ category.name }}</td>
               <td>{{ category.description || 'N/A' }}</td>
               <td>{{ category.accountCode ? (category.accountCode + ' - ' + category.accountName) : 'Not mapped' }}</td>
-              <td><span class="badge px-3 py-2" [ngClass]="badgeClass(category.status)">{{ category.status }}</span></td>
+              <td><span class="badge px-3 py-2" [ngClass]="categoryShowDeleted ? 'bg-secondary-subtle text-secondary' : badgeClass(category.status)">{{ categoryShowDeleted ? 'DELETED' : category.status }}</span></td>
               <td class="text-center">
-                <button *ngIf="hasPermission('ACCOUNTING_EDIT')" class="btn btn-sm btn-outline-primary me-1" (click)="editCategory(category)"><i class="bi bi-pencil"></i></button>
-                <button *ngIf="hasPermission('ACCOUNTING_DELETE')" class="btn btn-sm btn-outline-danger" (click)="deactivateCategory(category)"><i class="bi bi-slash-circle"></i></button>
+                <button *ngIf="categoryShowDeleted && hasPermission('EXPENSE_CATEGORY_RESTORE')" class="btn btn-sm btn-outline-success me-1" (click)="restoreCategory(category)"><i class="bi bi-arrow-counterclockwise"></i></button>
+                <button *ngIf="!categoryShowDeleted && hasPermission('ACCOUNTING_EDIT')" class="btn btn-sm btn-outline-primary me-1" (click)="editCategory(category)"><i class="bi bi-pencil"></i></button>
+                <button *ngIf="!categoryShowDeleted && hasPermission('ACCOUNTING_DELETE')" class="btn btn-sm btn-outline-danger" (click)="deactivateCategory(category)"><i class="bi bi-slash-circle"></i></button>
               </td>
             </tr>
             <tr *ngIf="!loading && categories.length === 0"><td colspan="5" class="text-center text-muted py-5">No categories found.</td></tr>

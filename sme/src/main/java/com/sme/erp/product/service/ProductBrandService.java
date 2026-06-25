@@ -8,8 +8,10 @@ public interface ProductBrandService {
     ProductBrandDTO save(ProductBrandDTO dto);
 
     List<ProductBrandDTO> getAll();
+    List<ProductBrandDTO> getDeleted();
 
     ProductBrandDTO getById(Long id);
 
     void delete(Long id);
+    ProductBrandDTO restore(Long id);
 }

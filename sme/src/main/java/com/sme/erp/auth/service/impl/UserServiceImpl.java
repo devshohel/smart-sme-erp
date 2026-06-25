@@ -53,6 +53,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<UserDTO> getDeleted() {
+        return userRepository.findDeletedUsers()
+                .stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public UserDTO getById(Long id) {
         return toDto(findUser(id));
     }
@@ -113,6 +122,19 @@ public class UserServiceImpl implements UserService {
         userRepository.delete(user);
         activityLogService.log("USER_DELETE", "USER", "users", id, "Deleted user " + oldData.getUsername());
         auditLogService.log("users", id, auditLogService.toJson(oldData), null, "DELETE");
+    }
+
+    @Override
+    @Transactional
+    public UserDTO restore(Long id) {
+        int updated = userRepository.restoreById(id);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("User not found with id: " + id);
+        }
+        UserDTO restored = toDto(findUser(id));
+        activityLogService.log("USER_RESTORE", "USER", "users", id, "Restored user " + restored.getUsername());
+        auditLogService.log("users", id, null, auditLogService.toJson(restored), "RESTORE");
+        return restored;
     }
 
     @Override

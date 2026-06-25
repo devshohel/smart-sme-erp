@@ -31,15 +31,21 @@ public class UserController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('USER_VIEW')")
+    @PreAuthorize("hasAnyAuthority('USER_VIEW','USER_CREATE','USER_EDIT')")
     public ResponseEntity<List<UserDTO>> getAll(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Status status) {
         return ResponseEntity.ok(userService.getAll(keyword, status));
     }
 
-    @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('USER_VIEW')")
+    @GetMapping("/deleted")
+    @PreAuthorize("hasAnyAuthority('USER_VIEW','USER_CREATE','USER_EDIT')")
+    public ResponseEntity<List<UserDTO>> getDeleted() {
+        return ResponseEntity.ok(userService.getDeleted());
+    }
+
+    @GetMapping("/{id:\\d+}")
+    @PreAuthorize("hasAnyAuthority('USER_VIEW','USER_CREATE','USER_EDIT')")
     public ResponseEntity<UserDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(userService.getById(id));
     }
@@ -50,27 +56,33 @@ public class UserController {
         return ResponseEntity.ok(userService.create(dto));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('USER_EDIT')")
     public ResponseEntity<UserDTO> update(@PathVariable Long id, @Valid @RequestBody UserDTO dto) {
         return ResponseEntity.ok(userService.update(id, dto));
     }
 
-    @PutMapping("/{id}/deactivate")
+    @PutMapping("/{id:\\d+}/deactivate")
     @PreAuthorize("hasAuthority('USER_EDIT')")
     public ResponseEntity<UserDTO> deactivate(@PathVariable Long id) {
         return ResponseEntity.ok(userService.deactivate(id));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('USER_DELETE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         userService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/{id:\\d+}/restore")
+    @PreAuthorize("hasAuthority('USER_RESTORE')")
+    public ResponseEntity<UserDTO> restore(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.restore(id));
+    }
+
     @GetMapping("/roles")
-    @PreAuthorize("hasAuthority('ROLE_VIEW') or hasAuthority('USER_VIEW')")
+    @PreAuthorize("hasAnyAuthority('ROLE_VIEW','USER_VIEW','USER_CREATE','USER_EDIT')")
     public ResponseEntity<List<RoleDTO>> getRoles() {
         return ResponseEntity.ok(userService.getRoles());
     }

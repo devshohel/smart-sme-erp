@@ -95,6 +95,12 @@ export class AuthService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
+  getDeletedUsers(): Observable<User[]> {
+    return this.http
+      .get<User[] | ApiResponse<User[]>>(`${this.usersUrl}/deleted`)
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
   getUser(id: number): Observable<User> {
     return this.http
       .get<User | ApiResponse<User>>(`${this.usersUrl}/${id}`)
@@ -116,6 +122,12 @@ export class AuthService {
 
   deleteUser(id: number): Observable<void> {
     return this.http.delete<void>(`${this.usersUrl}/${id}`);
+  }
+
+  restoreUser(id: number): Observable<User> {
+    return this.http
+      .put<User | ApiResponse<User>>(`${this.usersUrl}/${id}/restore`, {})
+      .pipe(map(response => unwrapApiResponse(response)));
   }
 
   getRoles(): Observable<Role[]> {

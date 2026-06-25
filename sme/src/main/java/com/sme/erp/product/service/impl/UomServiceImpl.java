@@ -9,6 +9,7 @@ import com.sme.erp.product.entity.Uom;
 import com.sme.erp.product.mapper.UomMapper;
 import com.sme.erp.product.repository.UomRepository;
 import com.sme.erp.product.service.UomService;
+import com.sme.erp.product.repository.ProductRepository;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,10 +22,12 @@ public class UomServiceImpl implements UomService {
 
     private final UomRepository repository;
     private final UomMapper mapper;
+    private final ProductRepository productRepository;
 
-    public UomServiceImpl(UomRepository repository, UomMapper mapper) {
+    public UomServiceImpl(UomRepository repository, UomMapper mapper, ProductRepository productRepository) {
         this.repository = repository;
         this.mapper = mapper;
+        this.productRepository = productRepository;
     }
 
     @Override
@@ -50,6 +53,15 @@ public class UomServiceImpl implements UomService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<UomDTO> getDeleted() {
+        return repository.findDeletedUoms()
+                .stream()
+                .map(mapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public UomDTO getById(Long id) {
         return mapper.toDTO(findUomById(id));
     }
@@ -57,7 +69,20 @@ public class UomServiceImpl implements UomService {
     @Override
     @Transactional
     public void delete(Long id) {
+        if (productRepository.countByUomId(id) > 0) {
+            throw new BadRequestException("UOM is used by active products and cannot be deleted.");
+        }
         repository.delete(findUomById(id));
+    }
+
+    @Override
+    @Transactional
+    public UomDTO restore(Long id) {
+        int updated = repository.restoreById(id);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("UOM not found with id: " + id);
+        }
+        return mapper.toDTO(findUomById(id));
     }
 
     private void validateCodeUnique(String code, Long currentId) {

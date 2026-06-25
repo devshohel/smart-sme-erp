@@ -4,6 +4,7 @@ import { Brand } from '../../../models/brand.model';
 import { Status } from '../../../models/product.model';
 import { ProductBrandService } from '../../../services/product-brand.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
+import { AuthService } from '../../auth/auth.service';
 
 declare var bootstrap: any;
 
@@ -14,6 +15,7 @@ declare var bootstrap: any;
 })
 export class BrandListComponent implements OnInit {
   brands: Brand[] = [];
+  showDeleted = false;
   brandForm: FormGroup;
   loading = false;
   isEditMode = false;
@@ -23,7 +25,8 @@ export class BrandListComponent implements OnInit {
 
   constructor(
     private brandService: ProductBrandService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private authService: AuthService
   ) {
     this.brandForm = this.fb.group({
       id: [null],
@@ -39,7 +42,8 @@ export class BrandListComponent implements OnInit {
 
   loadBrands(): void {
     this.loading = true;
-    this.brandService.getAllBrands().subscribe({
+    const request$ = this.showDeleted ? this.brandService.getDeletedBrands() : this.brandService.getAllBrands();
+    request$.subscribe({
       next: (data) => {
         this.brands = data;
         this.loading = false;
@@ -50,6 +54,11 @@ export class BrandListComponent implements OnInit {
         debugApiError('BrandListComponent.loadBrands', error);
       }
     });
+  }
+
+  toggleDeletedView(): void {
+    this.showDeleted = !this.showDeleted;
+    this.loadBrands();
   }
 
   addBrand(): void {
@@ -65,6 +74,9 @@ export class BrandListComponent implements OnInit {
   }
 
   editBrand(brand: Brand): void {
+    if (this.showDeleted) {
+      return;
+    }
     this.isEditMode = true;
     this.submitError = '';
     this.brandForm.reset({
@@ -109,6 +121,13 @@ export class BrandListComponent implements OnInit {
     }
   }
 
+  restoreBrand(id?: number): void {
+    if (!id || !confirm('Restore this brand?')) {
+      return;
+    }
+    this.brandService.restoreBrand(id).subscribe(() => this.loadBrands());
+  }
+
   openModal(): void {
     const modal = new bootstrap.Modal(document.getElementById('brandModal'));
     modal.show();
@@ -125,5 +144,9 @@ export class BrandListComponent implements OnInit {
   hasError(controlName: string, errorName: string): boolean {
     const control = this.brandForm.get(controlName);
     return !!control && control.touched && control.hasError(errorName);
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
   }
 }

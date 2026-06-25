@@ -25,6 +25,7 @@ interface ProductFilters {
 })
 export class ProductListComponent implements OnInit {
   products: Product[] = [];
+  showDeleted = false;
   categories: ProductCategory[] = [];
   brands: Brand[] = [];
   stats: ProductStats = { totalProducts: 0, activeProducts: 0, inactiveProducts: 0, productsWithoutImage: 0 };
@@ -60,6 +61,26 @@ export class ProductListComponent implements OnInit {
   loadProducts(): void {
     this.loading = true;
     this.submitError = '';
+    if (this.showDeleted) {
+      this.productService.getDeletedProducts().subscribe({
+        next: products => {
+          this.products = products;
+          this.totalElements = products.length;
+          this.totalPages = 1;
+          this.page = 0;
+          this.syncSelectionWithPage();
+          this.loading = false;
+        },
+        error: error => {
+          this.products = [];
+          this.loading = false;
+          this.submitError = extractApiErrorMessage(error, 'Products could not be loaded.');
+          debugApiError('ProductListComponent.loadProducts', error);
+        }
+      });
+      return;
+    }
+
     this.productService.getProductPage({
       keyword: this.filters.keyword,
       categoryId: this.filters.categoryId,
@@ -70,16 +91,16 @@ export class ProductListComponent implements OnInit {
       sort: this.sort,
       direction: this.direction
     }).subscribe({
-      next: (data) => {
-        this.products = data.content;
-        this.totalElements = data.totalElements;
-        this.totalPages = data.totalPages;
-        this.page = data.page;
-        this.size = data.size;
+      next: pageData => {
+        this.products = pageData.content;
+        this.totalElements = pageData.totalElements;
+        this.totalPages = pageData.totalPages;
+        this.page = pageData.page;
+        this.size = pageData.size;
         this.syncSelectionWithPage();
         this.loading = false;
       },
-      error: (error) => {
+      error: error => {
         this.products = [];
         this.loading = false;
         this.submitError = extractApiErrorMessage(error, 'Products could not be loaded.');
@@ -114,6 +135,13 @@ export class ProductListComponent implements OnInit {
 
   resetFilters(): void {
     this.filters = { keyword: '', categoryId: null, brandId: null, status: '' };
+    this.page = 0;
+    this.selectedIds.clear();
+    this.loadProducts();
+  }
+
+  toggleDeletedView(): void {
+    this.showDeleted = !this.showDeleted;
     this.page = 0;
     this.selectedIds.clear();
     this.loadProducts();
@@ -156,7 +184,7 @@ export class ProductListComponent implements OnInit {
   }
 
   editProduct(product: Product): void {
-    if (product.id) {
+    if (product.id && !this.showDeleted) {
       this.router.navigate(['/products/edit-product', product.id]);
     }
   }
@@ -176,6 +204,21 @@ export class ProductListComponent implements OnInit {
         error: (error) => {
           this.submitError = extractApiErrorMessage(error, 'Delete request failed.');
           debugApiError('ProductListComponent.deleteProduct', error);
+        }
+      });
+    }
+  }
+
+  restoreProduct(id?: number): void {
+    if (!id) {
+      return;
+    }
+    if (confirm('Restore this product?')) {
+      this.productService.restoreProduct(id).subscribe({
+        next: () => this.loadProducts(),
+        error: (error) => {
+          this.submitError = extractApiErrorMessage(error, 'Restore request failed.');
+          debugApiError('ProductListComponent.restoreProduct', error);
         }
       });
     }

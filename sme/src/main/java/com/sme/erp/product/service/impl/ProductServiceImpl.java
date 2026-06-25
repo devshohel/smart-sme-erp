@@ -134,6 +134,15 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<ProductDTO> getDeletedProducts() {
+        return repository.findDeletedProducts()
+                .stream()
+                .map(mapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public ProductPageDTO searchProducts(String keyword, Long categoryId, Long brandId, Status status, int page, int size, String sort, String direction) {
         int safePage = Math.max(page, 0);
         int safeSize = List.of(10, 25, 50, 100).contains(size) ? size : 10;
@@ -187,6 +196,20 @@ public class ProductServiceImpl implements ProductService {
         repository.delete(product);
         activityLogService.log("PRODUCT_DELETE", "PRODUCT", "products", id, "Deleted product " + oldData.getProductName());
         auditLogService.log("products", id, auditLogService.toJson(oldData), null, "DELETE");
+    }
+
+    @Override
+    @Transactional
+    public ProductDTO restore(Long id) {
+        int updated = repository.restoreById(id);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("Product not found with id: " + id);
+        }
+        Product restored = findProductById(id);
+        ProductDTO restoredDto = mapper.toDTO(restored);
+        activityLogService.log("PRODUCT_RESTORE", "PRODUCT", "products", id, "Restored product " + restoredDto.getProductName());
+        auditLogService.log("products", id, null, auditLogService.toJson(restoredDto), "RESTORE");
+        return restoredDto;
     }
 
     private String resolveProductCodeForCreate(String requestedCode) {

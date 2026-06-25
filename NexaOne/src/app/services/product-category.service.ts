@@ -21,13 +21,26 @@ export class ProductCategoryService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
-  saveCategory(category: ProductCategory): Observable<ProductCategory> {
+  getDeletedCategories(): Observable<ProductCategory[]> {
     return this.http
-      .post<ProductCategory | ApiResponse<ProductCategory>>(this.baseUrl, category)
+      .get<ProductCategory[] | ApiResponse<ProductCategory[]>>(`${this.baseUrl}/deleted`)
       .pipe(map(response => unwrapApiResponse(response)));
+  }
+
+  saveCategory(category: ProductCategory): Observable<ProductCategory> {
+    const request$ = category.id
+      ? this.http.put<ProductCategory | ApiResponse<ProductCategory>>(`${this.baseUrl}/${category.id}`, category)
+      : this.http.post<ProductCategory | ApiResponse<ProductCategory>>(this.baseUrl, category);
+    return request$.pipe(map(response => unwrapApiResponse(response)));
   }
 
   deleteCategory(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  restoreCategory(id: number): Observable<ProductCategory> {
+    return this.http
+      .put<ProductCategory | ApiResponse<ProductCategory>>(`${this.baseUrl}/${id}/restore`, {})
+      .pipe(map(response => unwrapApiResponse(response)));
   }
 }

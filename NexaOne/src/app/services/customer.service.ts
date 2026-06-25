@@ -58,6 +58,12 @@ export class CustomerService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
+  getDeletedCustomers(): Observable<Customer[]> {
+    return this.http
+      .get<Customer[] | ApiResponse<Customer[]>>(`${this.baseUrl}/deleted`)
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
   searchCustomers(keyword: string): Observable<CustomerOption[]> {
     const params = keyword.trim()
       ? new HttpParams().set('keyword', keyword.trim())
@@ -125,5 +131,11 @@ export class CustomerService {
 
   deleteCustomer(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  restoreCustomer(id: number): Observable<Customer> {
+    return this.http
+      .put<Customer | ApiResponse<Customer>>(`${this.baseUrl}/${id}/restore`, {})
+      .pipe(map(response => unwrapApiResponse(response)));
   }
 }

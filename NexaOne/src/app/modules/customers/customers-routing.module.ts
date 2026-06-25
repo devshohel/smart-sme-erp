@@ -13,12 +13,12 @@ const routes: Routes = [
   {
     path: '',
     children: [
-      { path: 'list', component: CustomerListComponent, canActivate: [PermissionGuard], data: { permissions: ['CUSTOMER_VIEW'] } },
+      { path: 'list', component: CustomerListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['CUSTOMER_VIEW', 'CUSTOMER_LEDGER_VIEW', 'CUSTOMER_EDIT'] } },
       { path: 'aging', component: CustomerAgingComponent, canActivate: [PermissionGuard], data: { permissions: ['CUSTOMER_AGING_VIEW'] } },
       { path: 'create', component: CustomerFormComponent, canActivate: [PermissionGuard], data: { permissions: ['CUSTOMER_CREATE'] } },
       { path: 'edit/:id', component: CustomerFormComponent, canActivate: [PermissionGuard], data: { permissions: ['CUSTOMER_EDIT'] } },
       { path: 'details/:id', component: CustomerDetailsComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['CUSTOMER_VIEW', 'CUSTOMER_LEDGER_VIEW'] } },
-      { path: 'receipts', component: CustomerReceiptListComponent, canActivate: [PermissionGuard], data: { permissions: ['CUSTOMER_RECEIPT_VIEW'] } },
+      { path: 'receipts', component: CustomerReceiptListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['CUSTOMER_RECEIPT_VIEW', 'CUSTOMER_RECEIPT_CREATE', 'CUSTOMER_RECEIPT_EDIT'] } },
       { path: 'receipts/create', component: CustomerReceiptFormComponent, canActivate: [PermissionGuard], data: { permissions: ['CUSTOMER_RECEIPT_CREATE'] } },
       { path: 'receipts/edit/:id', component: CustomerReceiptFormComponent, canActivate: [PermissionGuard], data: { permissions: ['CUSTOMER_RECEIPT_EDIT'] } },
       { path: 'receipts/details/:id', component: CustomerReceiptDetailsComponent, canActivate: [PermissionGuard], data: { permissions: ['CUSTOMER_RECEIPT_VIEW'] } },

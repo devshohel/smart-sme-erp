@@ -18,6 +18,10 @@ export class RolePermissionsComponent implements OnInit {
 
   constructor(private authService: AuthService) {}
 
+  get canEdit(): boolean {
+    return this.authService.hasPermission('ROLE_EDIT');
+  }
+
   ngOnInit(): void {
     this.loading = true;
     this.authService.getRoles().subscribe({
@@ -47,6 +51,9 @@ export class RolePermissionsComponent implements OnInit {
   }
 
   save(): void {
+    if (!this.canEdit) {
+      return;
+    }
     if (!this.selectedRoleId) {
       return;
     }

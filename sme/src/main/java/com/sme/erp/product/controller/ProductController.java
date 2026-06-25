@@ -41,14 +41,14 @@ public class ProductController {
         return ResponseEntity.ok(service.saveProduct(dto, image));
     }
 
-    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping(value = "/{id:\\d+}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("hasAuthority('PRODUCT_EDIT')")
     public ResponseEntity<ProductDTO> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductDTO dto) {
         dto.setId(id);
         return ResponseEntity.ok(service.saveProduct(dto));
     }
 
-    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/{id:\\d+}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('PRODUCT_EDIT')")
     public ResponseEntity<ProductDTO> updateProductWithImage(
             @PathVariable Long id,
@@ -62,6 +62,12 @@ public class ProductController {
     @PreAuthorize("hasAuthority('PRODUCT_VIEW')")
     public ResponseEntity<List<ProductDTO>> getAll() {
         return ResponseEntity.ok(service.getAllProducts());
+    }
+
+    @GetMapping("/deleted")
+    @PreAuthorize("hasAuthority('PRODUCT_VIEW')")
+    public ResponseEntity<List<ProductDTO>> getDeleted() {
+        return ResponseEntity.ok(service.getDeletedProducts());
     }
 
     @GetMapping("/page")
@@ -90,16 +96,22 @@ public class ProductController {
         return ResponseEntity.ok(service.updateStatusBulk(dto.getProductIds(), dto.getStatus()));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('PRODUCT_VIEW')")
     public ResponseEntity<ProductDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('PRODUCT_DELETE')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id:\\d+}/restore")
+    @PreAuthorize("hasAuthority('PRODUCT_RESTORE')")
+    public ResponseEntity<ProductDTO> restore(@PathVariable Long id) {
+        return ResponseEntity.ok(service.restore(id));
     }
 }

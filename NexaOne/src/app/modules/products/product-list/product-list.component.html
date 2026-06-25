@@ -5,13 +5,16 @@
       <p class="text-muted mb-0">Manage product records, pricing, status, and references.</p>
     </div>
     <div class="toolbar-actions">
+      <button class="btn btn-outline-secondary btn-sm" type="button" (click)="toggleDeletedView()">
+        <i class="bi bi-trash3 me-1"></i> {{ showDeleted ? 'Show Active' : 'Show Deleted' }}
+      </button>
       <button *ngIf="hasPermission('PRODUCT_EXPORT') || hasPermission('PRODUCT_VIEW')" class="btn btn-outline-secondary btn-sm" (click)="exportCsv()">
         <i class="bi bi-filetype-csv me-1"></i> CSV
       </button>
       <button *ngIf="hasPermission('PRODUCT_EXPORT') || hasPermission('PRODUCT_VIEW')" class="btn btn-outline-secondary btn-sm" (click)="exportExcel()">
         <i class="bi bi-file-earmark-spreadsheet me-1"></i> Excel
       </button>
-      <button *ngIf="hasPermission('PRODUCT_CREATE')" class="btn btn-success btn-sm px-3" routerLink="/products/add-product">
+      <button *ngIf="hasPermission('PRODUCT_CREATE') && !showDeleted" class="btn btn-success btn-sm px-3" routerLink="/products/add-product">
         <i class="bi bi-plus me-1"></i> New Product
       </button>
     </div>
@@ -64,13 +67,14 @@
     <div class="list-toolbar">
       <div class="record-summary">
         <strong>{{ totalElements }}</strong> records
+        <span *ngIf="showDeleted" class="ms-2 badge bg-secondary">Deleted records</span>
         <span *ngIf="selectedIds.size">| {{ selectedIds.size }} selected</span>
       </div>
       <div class="bulk-actions">
-        <button class="btn btn-sm btn-outline-success" *ngIf="hasPermission('PRODUCT_EDIT')" [disabled]="!selectedIds.size" (click)="bulkActivate()">
+        <button class="btn btn-sm btn-outline-success" *ngIf="hasPermission('PRODUCT_EDIT') && !showDeleted" [disabled]="!selectedIds.size" (click)="bulkActivate()">
           <i class="bi bi-check-circle me-1"></i> Activate
         </button>
-        <button class="btn btn-sm btn-outline-warning" *ngIf="hasPermission('PRODUCT_EDIT')" [disabled]="!selectedIds.size" (click)="bulkDeactivate()">
+        <button class="btn btn-sm btn-outline-warning" *ngIf="hasPermission('PRODUCT_EDIT') && !showDeleted" [disabled]="!selectedIds.size" (click)="bulkDeactivate()">
           <i class="bi bi-slash-circle me-1"></i> Deactivate
         </button>
         <button *ngIf="hasPermission('PRODUCT_PRINT') || hasPermission('PRODUCT_BARCODE')" class="btn btn-sm btn-outline-dark" [disabled]="!selectedIds.size" (click)="printSelected()">
@@ -149,8 +153,9 @@
               <div class="d-flex justify-content-center gap-2">
                 <button *ngIf="hasPermission('PRODUCT_PRINT') || hasPermission('PRODUCT_BARCODE')" class="btn-action btn-print" title="Print barcode" (click)="printProduct(product)"><i class="bi bi-upc-scan"></i></button>
                 <button class="btn-action btn-view" title="View" (click)="viewProduct(product)"><i class="bi bi-eye"></i></button>
-                <button *ngIf="hasPermission('PRODUCT_EDIT')" class="btn-action btn-edit" title="Edit" (click)="editProduct(product)"><i class="bi bi-pencil-square"></i></button>
-                <button *ngIf="hasPermission('PRODUCT_DELETE')" class="btn-action btn-delete" title="Delete" (click)="deleteProduct(product.id)"><i class="bi bi-trash"></i></button>
+                <button *ngIf="showDeleted && hasPermission('PRODUCT_RESTORE')" class="btn-action btn-edit" title="Restore" (click)="restoreProduct(product.id)"><i class="bi bi-arrow-counterclockwise"></i></button>
+                <button *ngIf="!showDeleted && hasPermission('PRODUCT_EDIT')" class="btn-action btn-edit" title="Edit" (click)="editProduct(product)"><i class="bi bi-pencil-square"></i></button>
+                <button *ngIf="!showDeleted && hasPermission('PRODUCT_DELETE')" class="btn-action btn-delete" title="Delete" (click)="deleteProduct(product.id)"><i class="bi bi-trash"></i></button>
               </div>
             </td>
           </tr>

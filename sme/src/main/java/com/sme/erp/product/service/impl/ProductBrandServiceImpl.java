@@ -50,6 +50,15 @@ public class ProductBrandServiceImpl implements ProductBrandService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<ProductBrandDTO> getDeleted() {
+        return repository.findDeletedBrands()
+                .stream()
+                .map(mapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public ProductBrandDTO getById(Long id) {
         return mapper.toDTO(findBrandById(id));
     }
@@ -58,6 +67,16 @@ public class ProductBrandServiceImpl implements ProductBrandService {
     @Transactional
     public void delete(Long id) {
         repository.delete(findBrandById(id));
+    }
+
+    @Override
+    @Transactional
+    public ProductBrandDTO restore(Long id) {
+        int updated = repository.restoreById(id);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("Brand not found with id: " + id);
+        }
+        return mapper.toDTO(findBrandById(id));
     }
 
     private void validateCodeUnique(String code, Long currentId) {

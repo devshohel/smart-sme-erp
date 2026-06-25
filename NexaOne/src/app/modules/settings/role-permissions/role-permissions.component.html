@@ -12,7 +12,7 @@
         </select>
       </div>
       <div class="col-md-7 d-flex align-items-end justify-content-md-end">
-        <button class="btn btn-success" type="button" (click)="save()" [disabled]="saving || loading || !selectedRoleId">
+        <button *ngIf="canEdit" class="btn btn-success" type="button" (click)="save()" [disabled]="saving || loading || !selectedRoleId">
           {{ saving ? 'Saving...' : 'Save Permissions' }}
         </button>
       </div>

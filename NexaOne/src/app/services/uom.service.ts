@@ -21,6 +21,12 @@ export class UomService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
+  getDeletedUoms(): Observable<Uom[]> {
+    return this.http
+      .get<Uom[] | ApiResponse<Uom[]>>(`${this.baseUrl}/deleted`)
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
   getUomById(id: number): Observable<Uom> {
     return this.http
       .get<Uom | ApiResponse<Uom>>(`${this.baseUrl}/${id}`)
@@ -28,12 +34,19 @@ export class UomService {
   }
 
   saveUom(uom: Uom): Observable<Uom> {
-    return this.http
-      .post<Uom | ApiResponse<Uom>>(this.baseUrl, uom)
-      .pipe(map(response => unwrapApiResponse(response)));
+    const request$ = uom.id
+      ? this.http.put<Uom | ApiResponse<Uom>>(`${this.baseUrl}/${uom.id}`, uom)
+      : this.http.post<Uom | ApiResponse<Uom>>(this.baseUrl, uom);
+    return request$.pipe(map(response => unwrapApiResponse(response)));
   }
 
   deleteUom(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  restoreUom(id: number): Observable<Uom> {
+    return this.http
+      .put<Uom | ApiResponse<Uom>>(`${this.baseUrl}/${id}/restore`, {})
+      .pipe(map(response => unwrapApiResponse(response)));
   }
 }

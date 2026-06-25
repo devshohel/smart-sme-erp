@@ -24,10 +24,10 @@ const routes: Routes = [
       { path: 'warehouses', component: WarehouseComponent, canActivate: [PermissionGuard], data: { permissions: ['INVENTORY_VIEW'] } },
       { path: 'stocks', component: StockLevelComponent, canActivate: [PermissionGuard], data: { permissions: ['INVENTORY_VIEW'] } },
       { path: 'stock-card', component: StockCardComponent, canActivate: [PermissionGuard], data: { permissions: ['INVENTORY_VIEW'] } },
-      { path: 'transfers', component: StockTransferListComponent, canActivate: [PermissionGuard], data: { permissions: ['TRANSFER_VIEW'] } },
+      { path: 'transfers', component: StockTransferListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['TRANSFER_VIEW', 'TRANSFER_EDIT'] } },
       { path: 'transfers/create', component: StockTransferFormComponent, canActivate: [PermissionGuard], data: { permissions: ['TRANSFER_CREATE'] } },
       { path: 'transfers/edit/:id', component: StockTransferFormComponent, canActivate: [PermissionGuard], data: { permissions: ['TRANSFER_EDIT'] } },
-      { path: 'transfers/details/:id', component: StockTransferDetailsComponent, canActivate: [PermissionGuard], data: { permissions: ['TRANSFER_VIEW'] } },
+      { path: 'transfers/details/:id', component: StockTransferDetailsComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['TRANSFER_VIEW', 'TRANSFER_EDIT'] } },
       { path: 'adjustments', component: StockAdjustmentComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['STOCK_ADJUSTMENT_CREATE', 'STOCK_ADJUSTMENT_VIEW'] } },
       { path: 'movements', component: StockMovementComponent, canActivate: [PermissionGuard], data: { permissions: ['INVENTORY_VIEW'] } },
       { path: '', redirectTo: 'stocks', pathMatch: 'full' }

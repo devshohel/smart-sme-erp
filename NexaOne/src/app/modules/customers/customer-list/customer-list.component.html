@@ -5,6 +5,9 @@
       <p class="text-muted mb-0">Browse customer accounts, contact details, credit limits, and balances.</p>
     </div>
     <div class="toolbar-actions">
+      <button class="btn btn-outline-secondary btn-sm" type="button" (click)="toggleDeletedView()">
+        <i class="bi bi-trash3 me-1"></i> {{ showDeleted ? 'Show Active' : 'Show Deleted' }}
+      </button>
       <button *ngIf="hasPermission('CUSTOMER_EXPORT') || hasPermission('CUSTOMER_VIEW')" class="btn btn-outline-secondary btn-sm" [disabled]="!customers.length" (click)="exportCsv()">
         <i class="bi bi-filetype-csv me-1"></i> CSV
       </button>
@@ -14,7 +17,7 @@
       <button *ngIf="hasPermission('CUSTOMER_AGING_VIEW')" class="btn btn-outline-secondary btn-sm" routerLink="/customers/aging">
         <i class="bi bi-hourglass-split me-1"></i> Aging
       </button>
-      <button *ngIf="hasPermission('CUSTOMER_CREATE')" class="btn btn-success btn-sm px-3" (click)="createCustomer()">
+      <button *ngIf="hasPermission('CUSTOMER_CREATE') && !showDeleted" class="btn btn-success btn-sm px-3" (click)="createCustomer()">
         <i class="bi bi-person-plus me-1"></i> New Customer
       </button>
     </div>
@@ -53,6 +56,7 @@
     <div class="list-toolbar">
       <div class="record-summary">
         <strong>{{ totalElements }}</strong> records
+        <span *ngIf="showDeleted" class="ms-2 badge bg-secondary">Deleted records</span>
       </div>
       <div class="bulk-actions">
         <select class="form-select form-select-sm page-size" [(ngModel)]="size" (change)="changePageSize()">
@@ -144,10 +148,13 @@
                 <button type="button" class="btn-action btn-view" title="View" (click)="viewCustomer(customer)">
                   <i class="bi bi-eye"></i>
                 </button>
-                <button *ngIf="hasPermission('CUSTOMER_EDIT')" type="button" class="btn-action btn-edit" title="Edit" (click)="editCustomer(customer)">
+                <button *ngIf="showDeleted && hasPermission('CUSTOMER_RESTORE')" type="button" class="btn-action btn-edit" title="Restore" (click)="restoreCustomer(customer)">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+                <button *ngIf="!showDeleted && hasPermission('CUSTOMER_EDIT')" type="button" class="btn-action btn-edit" title="Edit" (click)="editCustomer(customer)">
                   <i class="bi bi-pencil-square"></i>
                 </button>
-                <button *ngIf="hasPermission('CUSTOMER_DELETE')" type="button" class="btn-action btn-delete" title="Delete" (click)="deleteCustomer(customer)">
+                <button *ngIf="!showDeleted && hasPermission('CUSTOMER_DELETE')" type="button" class="btn-action btn-delete" title="Delete" (click)="deleteCustomer(customer)">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>

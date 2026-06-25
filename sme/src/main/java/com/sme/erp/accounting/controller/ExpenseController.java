@@ -31,7 +31,7 @@ public class ExpenseController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('EXPENSE_VIEW')")
+    @PreAuthorize("hasAnyAuthority('EXPENSE_VIEW','EXPENSE_CREATE','EXPENSE_EDIT','EXPENSE_SUBMIT','EXPENSE_APPROVE','EXPENSE_REJECT','EXPENSE_POST','EXPENSE_CANCEL','EXPENSE_REVERSE','EXPENSE_REPORT_VIEW')")
     public ResponseEntity<List<ExpenseDTO>> getAll(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
@@ -53,7 +53,7 @@ public class ExpenseController {
     }
 
     @GetMapping("/page")
-    @PreAuthorize("hasAuthority('EXPENSE_VIEW')")
+    @PreAuthorize("hasAnyAuthority('EXPENSE_VIEW','EXPENSE_CREATE','EXPENSE_EDIT','EXPENSE_SUBMIT','EXPENSE_APPROVE','EXPENSE_REJECT','EXPENSE_POST','EXPENSE_CANCEL','EXPENSE_REVERSE','EXPENSE_REPORT_VIEW')")
     public ResponseEntity<ExpensePageDTO> getPage(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
@@ -70,7 +70,7 @@ public class ExpenseController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('EXPENSE_VIEW')")
+    @PreAuthorize("hasAnyAuthority('EXPENSE_VIEW','EXPENSE_CREATE','EXPENSE_EDIT','EXPENSE_SUBMIT','EXPENSE_APPROVE','EXPENSE_REJECT','EXPENSE_POST','EXPENSE_CANCEL','EXPENSE_REVERSE','EXPENSE_REPORT_VIEW')")
     public ResponseEntity<ExpenseDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }

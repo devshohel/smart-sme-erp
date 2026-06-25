@@ -13,13 +13,10 @@ export class PermissionGuard implements CanActivate {
 
     const permissions = route.data?.['permissions'] as string[] | undefined;
     const anyPermissions = route.data?.['anyPermissions'] as string[] | undefined;
-    const required = anyPermissions?.length ? anyPermissions : permissions;
+    const requiresAll = permissions?.length ? this.authService.hasAllPermissions(permissions) : true;
+    const requiresAny = anyPermissions?.length ? this.authService.hasAnyPermission(anyPermissions) : true;
 
-    if (!required?.length) {
-      return true;
-    }
-
-    return this.authService.hasAnyPermission(required)
+    return requiresAll && requiresAny
       ? true
       : this.router.createUrlTree(['/unauthorized']);
   }

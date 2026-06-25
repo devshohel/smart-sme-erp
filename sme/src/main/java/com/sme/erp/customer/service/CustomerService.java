@@ -19,7 +19,9 @@ public interface CustomerService {
     CustomerLedgerDTO getLedger(Long id, LocalDate fromDate, LocalDate toDate);
     CustomerAgingReportDTO getAging(Long customerId, LocalDate fromDate, LocalDate toDate);
     CustomerDTO getById(Long id);
+    List<CustomerDTO> getDeleted();
     CustomerDTO create(CustomerDTO dto);
     CustomerDTO update(Long id, CustomerDTO dto);
     void delete(Long id);
+    CustomerDTO restore(Long id);
 }

@@ -22,6 +22,12 @@ export class ProductService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
+  getDeletedProducts(): Observable<Product[]> {
+    return this.http
+      .get<Product[] | ApiResponse<Product[]>>(`${this.baseUrl}/deleted`)
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
   getProductPage(params: ProductSearchParams): Observable<ProductPage> {
     let httpParams = new HttpParams()
       .set('page', String(params.page))
@@ -91,6 +97,12 @@ export class ProductService {
   // Delete (Soft Delete)
   deleteProduct(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  restoreProduct(id: number): Observable<Product> {
+    return this.http
+      .put<Product | ApiResponse<Product>>(`${this.baseUrl}/${id}/restore`, {})
+      .pipe(map(response => unwrapApiResponse(response)));
   }
 
   resolveImageUrl(imageUrl?: string): string {

@@ -9,8 +9,10 @@ public interface UomService {
     UomDTO save(UomDTO dto);
 
     List<UomDTO> getAll();
+    List<UomDTO> getDeleted();
 
     UomDTO getById(Long id);
 
     void delete(Long id);
+    UomDTO restore(Long id);
 }

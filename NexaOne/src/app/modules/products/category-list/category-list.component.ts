@@ -4,6 +4,7 @@ import { ProductCategory } from '../../../models/category.model';
 import { Status } from '../../../models/product.model';
 import { ProductCategoryService } from '../../../services/product-category.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
+import { AuthService } from '../../auth/auth.service';
 
 declare var bootstrap: any;
 
@@ -14,6 +15,7 @@ declare var bootstrap: any;
 })
 export class CategoryListComponent implements OnInit {
   categories: ProductCategory[] = [];
+  showDeleted = false;
   loading = false;
   categoryForm: FormGroup;
   isEditMode = false;
@@ -23,7 +25,8 @@ export class CategoryListComponent implements OnInit {
 
   constructor(
     private categoryService: ProductCategoryService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private authService: AuthService
   ) {
     this.categoryForm = this.fb.group({
       id: [null],
@@ -41,7 +44,8 @@ export class CategoryListComponent implements OnInit {
 
   loadCategories(): void {
     this.loading = true;
-    this.categoryService.getAllCategories().subscribe({
+    const request$ = this.showDeleted ? this.categoryService.getDeletedCategories() : this.categoryService.getAllCategories();
+    request$.subscribe({
       next: (data) => {
         this.categories = data;
         this.loading = false;
@@ -52,6 +56,11 @@ export class CategoryListComponent implements OnInit {
         debugApiError('CategoryListComponent.loadCategories', error);
       }
     });
+  }
+
+  toggleDeletedView(): void {
+    this.showDeleted = !this.showDeleted;
+    this.loadCategories();
   }
 
   get availableParentCategories(): ProductCategory[] {
@@ -74,6 +83,9 @@ export class CategoryListComponent implements OnInit {
   }
 
   editCategory(category: ProductCategory): void {
+    if (this.showDeleted) {
+      return;
+    }
     this.isEditMode = true;
     this.submitError = '';
     this.categoryForm.reset({
@@ -120,6 +132,13 @@ export class CategoryListComponent implements OnInit {
     }
   }
 
+  restoreCategory(id?: number): void {
+    if (!id || !confirm('Restore this category?')) {
+      return;
+    }
+    this.categoryService.restoreCategory(id).subscribe(() => this.loadCategories());
+  }
+
   openModal(): void {
     const modal = new bootstrap.Modal(document.getElementById('categoryModal'));
     modal.show();
@@ -136,5 +155,9 @@ export class CategoryListComponent implements OnInit {
   hasError(controlName: string, errorName: string): boolean {
     const control = this.categoryForm.get(controlName);
     return !!control && control.touched && control.hasError(errorName);
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
   }
 }

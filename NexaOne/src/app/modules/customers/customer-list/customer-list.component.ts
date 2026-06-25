@@ -15,6 +15,7 @@ type SortDirection = 'asc' | 'desc';
 })
 export class CustomerListComponent implements OnInit {
   customers: Customer[] = [];
+  showDeleted = false;
   loading = false;
   errorMessage = '';
 
@@ -57,6 +58,24 @@ export class CustomerListComponent implements OnInit {
   loadCustomers(): void {
     this.loading = true;
     this.errorMessage = '';
+    if (this.showDeleted) {
+      this.customerService.getDeletedCustomers().subscribe({
+        next: customers => {
+          this.customers = customers;
+          this.totalElements = customers.length;
+          this.totalPages = 1;
+          this.page = 0;
+          this.loading = false;
+        },
+        error: error => {
+          this.customers = [];
+          this.loading = false;
+          this.errorMessage = extractApiErrorMessage(error, 'Customers could not be loaded.');
+          debugApiError('CustomerListComponent.loadCustomers', error);
+        }
+      });
+      return;
+    }
 
     this.customerService.getCustomerPage({
       keyword: this.filters.keyword,
@@ -66,15 +85,15 @@ export class CustomerListComponent implements OnInit {
       sort: this.sort,
       direction: this.direction
     }).subscribe({
-      next: (data) => {
-        this.customers = data.content;
-        this.totalElements = data.totalElements;
-        this.totalPages = data.totalPages;
-        this.page = data.page;
-        this.size = data.size;
+      next: pageData => {
+        this.customers = pageData.content;
+        this.totalElements = pageData.totalElements;
+        this.totalPages = pageData.totalPages;
+        this.page = pageData.page;
+        this.size = pageData.size;
         this.loading = false;
       },
-      error: (error) => {
+      error: error => {
         this.customers = [];
         this.loading = false;
         this.errorMessage = extractApiErrorMessage(error, 'Customers could not be loaded.');
@@ -96,6 +115,12 @@ export class CustomerListComponent implements OnInit {
     this.page = 0;
     this.sort = 'createdAt';
     this.direction = 'desc';
+    this.loadCustomers();
+  }
+
+  toggleDeletedView(): void {
+    this.showDeleted = !this.showDeleted;
+    this.page = 0;
     this.loadCustomers();
   }
 
@@ -140,7 +165,7 @@ export class CustomerListComponent implements OnInit {
   }
 
   editCustomer(customer: Customer): void {
-    if (customer.id) {
+    if (customer.id && !this.showDeleted) {
       this.router.navigate(['/customers/edit', customer.id]);
     }
   }
@@ -159,6 +184,19 @@ export class CustomerListComponent implements OnInit {
         }
       });
     }
+  }
+
+  restoreCustomer(customer: Customer): void {
+    if (!customer.id || !confirm(`Restore customer "${customer.name}"?`)) {
+      return;
+    }
+    this.customerService.restoreCustomer(customer.id).subscribe({
+      next: () => this.loadCustomers(),
+      error: (error) => {
+        this.errorMessage = extractApiErrorMessage(error, 'Restore request failed.');
+        debugApiError('CustomerListComponent.restoreCustomer', error);
+      }
+    });
   }
 
   exportCsv(): void {

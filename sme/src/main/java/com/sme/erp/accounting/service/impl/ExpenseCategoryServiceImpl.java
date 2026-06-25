@@ -6,6 +6,7 @@ import com.sme.erp.accounting.entity.ExpenseCategory;
 import com.sme.erp.accounting.mapper.AccountingMapper;
 import com.sme.erp.accounting.repository.AccountRepository;
 import com.sme.erp.accounting.repository.ExpenseCategoryRepository;
+import com.sme.erp.accounting.repository.ExpenseRepository;
 import com.sme.erp.accounting.service.ExpenseCategoryService;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
@@ -21,17 +22,25 @@ public class ExpenseCategoryServiceImpl implements ExpenseCategoryService {
     private final ExpenseCategoryRepository repository;
     private final AccountRepository accountRepository;
     private final AccountingMapper mapper;
+    private final ExpenseRepository expenseRepository;
 
-    public ExpenseCategoryServiceImpl(ExpenseCategoryRepository repository, AccountRepository accountRepository, AccountingMapper mapper) {
+    public ExpenseCategoryServiceImpl(ExpenseCategoryRepository repository, AccountRepository accountRepository, AccountingMapper mapper, ExpenseRepository expenseRepository) {
         this.repository = repository;
         this.accountRepository = accountRepository;
         this.mapper = mapper;
+        this.expenseRepository = expenseRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ExpenseCategoryDTO> getAll(Status status) {
         return repository.search(status).stream().map(mapper::toDTO).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ExpenseCategoryDTO> getDeleted() {
+        return repository.findDeletedCategories().stream().map(mapper::toDTO).toList();
     }
 
     @Override
@@ -74,8 +83,20 @@ public class ExpenseCategoryServiceImpl implements ExpenseCategoryService {
     @Transactional
     public void delete(Long id) {
         ExpenseCategory category = find(id);
-        category.setStatus(Status.INACTIVE);
-        repository.save(category);
+        if (expenseRepository.countByCategoryId(id) > 0) {
+            throw new com.sme.erp.common.exception.BadRequestException("Expense category is used by existing expenses and cannot be deleted.");
+        }
+        repository.delete(category);
+    }
+
+    @Override
+    @Transactional
+    public ExpenseCategoryDTO restore(Long id) {
+        int updated = repository.restoreById(id);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("Expense category not found with id: " + id);
+        }
+        return mapper.toDTO(find(id));
     }
 
     private ExpenseCategory find(Long id) {

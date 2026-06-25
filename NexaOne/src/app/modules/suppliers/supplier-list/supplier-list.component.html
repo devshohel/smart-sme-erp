@@ -5,6 +5,9 @@
       <p class="text-muted mb-0">Browse supplier master records, payment terms, and payable snapshot.</p>
     </div>
     <div class="toolbar-actions">
+      <button class="btn btn-outline-secondary btn-sm" type="button" (click)="toggleDeletedView()">
+        <i class="bi bi-trash3 me-1"></i> {{ showDeleted ? 'Show Active' : 'Show Deleted' }}
+      </button>
       <button *ngIf="hasPermission('SUPPLIER_EXPORT') || hasPermission('SUPPLIER_VIEW')" class="btn btn-outline-secondary btn-sm" [disabled]="!suppliers.length" (click)="exportCsv()">
         <i class="bi bi-filetype-csv me-1"></i> CSV
       </button>
@@ -14,7 +17,7 @@
       <button *ngIf="hasPermission('SUPPLIER_LEDGER_VIEW')" class="btn btn-outline-secondary btn-sm" (click)="viewApReconciliation()">
         <i class="bi bi-clipboard-data me-1"></i> AP Reconciliation
       </button>
-      <button *ngIf="hasPermission('SUPPLIER_CREATE')" class="btn btn-success btn-sm px-3" (click)="createSupplier()">
+      <button *ngIf="hasPermission('SUPPLIER_CREATE') && !showDeleted" class="btn btn-success btn-sm px-3" (click)="createSupplier()">
         <i class="bi bi-person-plus me-1"></i> New Supplier
       </button>
     </div>
@@ -134,10 +137,13 @@
                 <button *ngIf="hasPermission('SUPPLIER_VIEW')" type="button" class="btn-action btn-aging" title="Aging" (click)="viewAging(supplier)">
                   <i class="bi bi-hourglass-split"></i>
                 </button>
-                <button *ngIf="hasPermission('SUPPLIER_EDIT')" type="button" class="btn-action btn-edit" title="Edit" (click)="editSupplier(supplier)">
+                <button *ngIf="showDeleted && hasPermission('SUPPLIER_RESTORE')" type="button" class="btn-action btn-edit" title="Restore" (click)="restoreSupplier(supplier)">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+                <button *ngIf="!showDeleted && hasPermission('SUPPLIER_EDIT')" type="button" class="btn-action btn-edit" title="Edit" (click)="editSupplier(supplier)">
                   <i class="bi bi-pencil-square"></i>
                 </button>
-                <button *ngIf="hasPermission('SUPPLIER_DELETE')" type="button" class="btn-action btn-delete" title="Delete" (click)="deleteSupplier(supplier)">
+                <button *ngIf="!showDeleted && hasPermission('SUPPLIER_DELETE')" type="button" class="btn-action btn-delete" title="Delete" (click)="deleteSupplier(supplier)">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>

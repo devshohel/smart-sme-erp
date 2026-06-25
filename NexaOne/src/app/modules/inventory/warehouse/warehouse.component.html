@@ -2,10 +2,15 @@
   <app-page-header
     title="Warehouses"
     subtitle="Manage warehouse master data for inventory operations.">
-    <button class="btn btn-success" (click)="addWarehouse()">
-      <i class="bi bi-house-add me-1"></i>
-      Add Warehouse
-    </button>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary" (click)="toggleDeletedView()">
+        <i class="bi bi-trash3 me-1"></i> {{ showDeleted ? 'Show Active' : 'Show Deleted' }}
+      </button>
+      <button *ngIf="!showDeleted" class="btn btn-success" (click)="addWarehouse()">
+        <i class="bi bi-house-add me-1"></i>
+        Add Warehouse
+      </button>
+    </div>
   </app-page-header>
 
   <app-card title="Warehouse List" subtitle="Create, edit, and delete warehouse records.">
@@ -33,10 +38,13 @@
             </td>
             <td>{{ warehouse.description || 'N/A' }}</td>
             <td class="text-center">
-              <button type="button" class="btn btn-sm btn-outline-primary me-1" (click)="editWarehouse(warehouse)">
+              <button *ngIf="showDeleted" type="button" class="btn btn-sm btn-outline-success me-1" (click)="restoreWarehouse(warehouse.id)">
+                <i class="bi bi-arrow-counterclockwise"></i>
+              </button>
+              <button *ngIf="!showDeleted" type="button" class="btn btn-sm btn-outline-primary me-1" (click)="editWarehouse(warehouse)">
                 <i class="bi bi-pencil"></i>
               </button>
-              <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteWarehouse(warehouse.id)">
+              <button *ngIf="!showDeleted" type="button" class="btn btn-sm btn-outline-danger" (click)="deleteWarehouse(warehouse.id)">
                 <i class="bi bi-trash"></i>
               </button>
             </td>

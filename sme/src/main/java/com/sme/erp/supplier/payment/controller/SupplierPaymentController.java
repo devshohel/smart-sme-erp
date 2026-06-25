@@ -33,13 +33,13 @@ public class SupplierPaymentController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('SUPPLIER_PAYMENT_VIEW')")
+    @PreAuthorize("hasAnyAuthority('SUPPLIER_PAYMENT_VIEW','SUPPLIER_PAYMENT_CREATE','SUPPLIER_PAYMENT_EDIT')")
     public ResponseEntity<List<SupplierPaymentDTO>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
 
     @GetMapping("/page")
-    @PreAuthorize("hasAuthority('SUPPLIER_PAYMENT_VIEW')")
+    @PreAuthorize("hasAnyAuthority('SUPPLIER_PAYMENT_VIEW','SUPPLIER_PAYMENT_CREATE','SUPPLIER_PAYMENT_EDIT')")
     public ResponseEntity<SupplierPaymentPageDTO> getPage(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Long supplierId,
@@ -55,7 +55,7 @@ public class SupplierPaymentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('SUPPLIER_PAYMENT_VIEW')")
+    @PreAuthorize("hasAnyAuthority('SUPPLIER_PAYMENT_VIEW','SUPPLIER_PAYMENT_CREATE','SUPPLIER_PAYMENT_EDIT')")
     public ResponseEntity<SupplierPaymentDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }

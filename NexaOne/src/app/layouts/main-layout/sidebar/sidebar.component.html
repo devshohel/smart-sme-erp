@@ -41,7 +41,7 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['INVENTORY_VIEW', 'STOCK_ADJUSTMENT_VIEW', 'STOCK_ADJUSTMENT_CREATE', 'TRANSFER_VIEW', 'TRANSFER_CREATE'])">
+    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['INVENTORY_VIEW', 'STOCK_ADJUSTMENT_VIEW', 'STOCK_ADJUSTMENT_CREATE', 'TRANSFER_VIEW', 'TRANSFER_CREATE', 'TRANSFER_EDIT'])">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          (click)="toggleInventory()"
          role="button"
@@ -60,7 +60,7 @@
         <a *ngIf="hasPermission('INVENTORY_VIEW')" routerLink="/inventory/movements" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-arrow-left-right me-2"></i> Stock Movements
         </a>
-        <a *ngIf="hasPermission('TRANSFER_VIEW')" routerLink="/inventory/transfers" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a *ngIf="hasAnyPermission(['TRANSFER_VIEW', 'TRANSFER_EDIT'])" routerLink="/inventory/transfers" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-arrow-left-right me-2"></i> Stock Transfers
         </a>
         <a *ngIf="hasPermission('INVENTORY_VIEW')" routerLink="/inventory/warehouses" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
@@ -91,7 +91,7 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['CUSTOMER_VIEW', 'CUSTOMER_CREATE', 'CUSTOMER_RECEIPT_VIEW'])">
+    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['CUSTOMER_VIEW', 'CUSTOMER_CREATE', 'CUSTOMER_EDIT', 'CUSTOMER_AGING_VIEW', 'CUSTOMER_LEDGER_VIEW', 'CUSTOMER_RECEIPT_VIEW', 'CUSTOMER_RECEIPT_CREATE', 'CUSTOMER_RECEIPT_EDIT'])">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          (click)="toggleCustomers()"
          role="button"
@@ -101,19 +101,22 @@
       </a>
 
       <div class="submenu" [class.show]="isCustomersOpen">
-        <a *ngIf="hasPermission('CUSTOMER_VIEW')" routerLink="/customers/list" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a *ngIf="hasAnyPermission(['CUSTOMER_VIEW', 'CUSTOMER_LEDGER_VIEW', 'CUSTOMER_EDIT'])" routerLink="/customers/list" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-person-lines-fill me-2"></i> Customer List
         </a>
         <a *ngIf="hasPermission('CUSTOMER_CREATE')" routerLink="/customers/create" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-person-plus me-2"></i> Customer Form
         </a>
-        <a *ngIf="hasPermission('CUSTOMER_RECEIPT_VIEW')" routerLink="/customers/receipts" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a *ngIf="hasPermission('CUSTOMER_AGING_VIEW')" routerLink="/customers/aging" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-hourglass-split me-2"></i> Customer Aging
+        </a>
+        <a *ngIf="hasAnyPermission(['CUSTOMER_RECEIPT_VIEW', 'CUSTOMER_RECEIPT_CREATE', 'CUSTOMER_RECEIPT_EDIT'])" routerLink="/customers/receipts" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-receipt me-2"></i> Customer Receipts
         </a>
       </div>
     </div>
 
-    <div class="menu-dropdown-item" *ngIf="hasPermission('SUPPLIER_VIEW') || hasPermission('SUPPLIER_PAYMENT_VIEW') || hasPermission('SUPPLIER_LEDGER_VIEW')">
+    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['SUPPLIER_VIEW', 'SUPPLIER_CREATE', 'SUPPLIER_EDIT', 'SUPPLIER_LEDGER_VIEW', 'SUPPLIER_PAYMENT_VIEW', 'SUPPLIER_PAYMENT_CREATE', 'SUPPLIER_PAYMENT_EDIT'])">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          (click)="toggleSuppliers()"
          role="button"
@@ -123,13 +126,13 @@
       </a>
 
       <div class="submenu" [class.show]="isSuppliersOpen">
-        <a routerLink="/suppliers/list" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a *ngIf="hasAnyPermission(['SUPPLIER_VIEW', 'SUPPLIER_LEDGER_VIEW', 'SUPPLIER_EDIT'])" routerLink="/suppliers/list" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-truck-flatbed me-2"></i> Supplier List
         </a>
         <a *ngIf="hasPermission('SUPPLIER_CREATE')" routerLink="/suppliers/create" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-plus-square me-2"></i> Supplier Form
         </a>
-        <a *ngIf="hasPermission('SUPPLIER_PAYMENT_VIEW')" routerLink="/suppliers/payments" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a *ngIf="hasAnyPermission(['SUPPLIER_PAYMENT_VIEW', 'SUPPLIER_PAYMENT_CREATE', 'SUPPLIER_PAYMENT_EDIT'])" routerLink="/suppliers/payments" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-cash-coin me-2"></i> Supplier Payments
         </a>
         <a *ngIf="hasPermission('SUPPLIER_VIEW') || hasPermission('SUPPLIER_LEDGER_VIEW')" routerLink="/suppliers/aging" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
@@ -163,7 +166,7 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['ACCOUNTING_VIEW', 'ACCOUNTING_CREATE', 'ACCOUNTING_EDIT', 'REPORT_VIEW', 'COST_CENTER_VIEW', 'COST_CENTER_CREATE', 'COST_CENTER_EDIT', 'BUDGET_VIEW', 'BUDGET_CREATE', 'BUDGET_EDIT', 'FINANCIAL_DASHBOARD_VIEW', 'ACCOUNTING_PERIOD_VIEW', 'YEAR_END_VIEW', 'EXPENSE_VIEW', 'EXPENSE_APPROVE', 'EXPENSE_REPORT_VIEW'])">
+    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['ACCOUNTING_VIEW', 'ACCOUNTING_CREATE', 'ACCOUNTING_EDIT', 'REPORT_VIEW', 'COST_CENTER_VIEW', 'COST_CENTER_CREATE', 'COST_CENTER_EDIT', 'BUDGET_VIEW', 'BUDGET_CREATE', 'BUDGET_EDIT', 'FINANCIAL_DASHBOARD_VIEW', 'ACCOUNTING_PERIOD_VIEW', 'YEAR_END_VIEW', 'EXPENSE_VIEW', 'EXPENSE_CREATE', 'EXPENSE_EDIT', 'EXPENSE_SUBMIT', 'EXPENSE_APPROVE', 'EXPENSE_REJECT', 'EXPENSE_POST', 'EXPENSE_CANCEL', 'EXPENSE_REVERSE', 'EXPENSE_REPORT_VIEW'])">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          (click)="toggleAccounting()"
          role="button"
@@ -173,7 +176,7 @@
       </a>
 
       <div class="submenu" [class.show]="isAccountingOpen">
-        <a *ngIf="hasPermission('EXPENSE_VIEW')" routerLink="/expenses" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a *ngIf="hasAnyPermission(['EXPENSE_VIEW', 'EXPENSE_CREATE', 'EXPENSE_EDIT', 'EXPENSE_SUBMIT', 'EXPENSE_APPROVE', 'EXPENSE_REJECT', 'EXPENSE_POST', 'EXPENSE_CANCEL', 'EXPENSE_REVERSE', 'EXPENSE_REPORT_VIEW'])" routerLink="/expenses" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-cash-stack me-2"></i> Expenses
         </a>
         <a *ngIf="hasPermission('EXPENSE_APPROVE')" routerLink="/expenses/approval-queue" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
@@ -277,10 +280,10 @@
         <a *ngIf="hasPermission('SETTINGS_VIEW')" routerLink="/settings/system" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-sliders me-2"></i> System Settings
         </a>
-        <a *ngIf="hasPermission('USER_VIEW')" routerLink="/settings/users" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a *ngIf="hasAnyPermission(['USER_VIEW', 'USER_CREATE', 'USER_EDIT'])" routerLink="/settings/users" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-people me-2"></i> Users
         </a>
-        <a *ngIf="hasPermission('ROLE_VIEW')" routerLink="/settings/roles-permissions" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a *ngIf="hasAnyPermission(['ROLE_VIEW', 'ROLE_EDIT'])" routerLink="/settings/roles-permissions" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-shield-lock me-2"></i> Roles & Permissions
         </a>
         <a routerLink="/settings/change-password" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">

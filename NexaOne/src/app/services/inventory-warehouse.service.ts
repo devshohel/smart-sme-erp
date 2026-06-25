@@ -20,6 +20,12 @@ export class InventoryWarehouseService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
+  getDeletedWarehouses(): Observable<InventoryWarehouse[]> {
+    return this.http
+      .get<InventoryWarehouse[] | ApiResponse<InventoryWarehouse[]>>(`${this.baseUrl}/deleted`)
+      .pipe(map(response => unwrapApiResponse(response)));
+  }
+
   getWarehouseById(id: number): Observable<InventoryWarehouse> {
     return this.http
       .get<InventoryWarehouse | ApiResponse<InventoryWarehouse>>(`${this.baseUrl}/${id}`)
@@ -27,12 +33,19 @@ export class InventoryWarehouseService {
   }
 
   saveWarehouse(warehouse: InventoryWarehouse): Observable<InventoryWarehouse> {
-    return this.http
-      .post<InventoryWarehouse | ApiResponse<InventoryWarehouse>>(this.baseUrl, warehouse)
-      .pipe(map(response => unwrapApiResponse(response)));
+    const request$ = warehouse.id
+      ? this.http.put<InventoryWarehouse | ApiResponse<InventoryWarehouse>>(`${this.baseUrl}/${warehouse.id}`, warehouse)
+      : this.http.post<InventoryWarehouse | ApiResponse<InventoryWarehouse>>(this.baseUrl, warehouse);
+    return request$.pipe(map(response => unwrapApiResponse(response)));
   }
 
   deleteWarehouse(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  restoreWarehouse(id: number): Observable<InventoryWarehouse> {
+    return this.http
+      .put<InventoryWarehouse | ApiResponse<InventoryWarehouse>>(`${this.baseUrl}/${id}/restore`, {})
+      .pipe(map(response => unwrapApiResponse(response)));
   }
 }

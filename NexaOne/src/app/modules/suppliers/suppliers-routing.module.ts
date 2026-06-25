@@ -14,11 +14,11 @@ const routes: Routes = [
   {
     path: '',
     children: [
-      { path: 'list', component: SupplierListComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_VIEW'] } },
+      { path: 'list', component: SupplierListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['SUPPLIER_VIEW', 'SUPPLIER_LEDGER_VIEW', 'SUPPLIER_EDIT'] } },
       { path: 'details/:id', component: SupplierDetailsComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['SUPPLIER_VIEW', 'SUPPLIER_LEDGER_VIEW'] } },
       { path: 'create', component: SupplierFormComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_CREATE'] } },
       { path: 'edit/:id', component: SupplierFormComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_EDIT'] } },
-      { path: 'payments', component: SupplierPaymentListComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_PAYMENT_VIEW'] } },
+      { path: 'payments', component: SupplierPaymentListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['SUPPLIER_PAYMENT_VIEW', 'SUPPLIER_PAYMENT_CREATE', 'SUPPLIER_PAYMENT_EDIT'] } },
       { path: 'payments/create', component: SupplierPaymentFormComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_PAYMENT_CREATE'] } },
       { path: 'payments/details/:id', component: SupplierPaymentDetailsComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_PAYMENT_VIEW'] } },
       { path: 'payments/edit/:id', component: SupplierPaymentFormComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_PAYMENT_EDIT'] } },

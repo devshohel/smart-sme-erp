@@ -51,6 +51,15 @@ public class WarehouseServiceImpl implements WarehouseService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<WarehouseDTO> getDeleted() {
+        return repository.findDeletedWarehouses()
+                .stream()
+                .map(mapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public WarehouseDTO getById(Long id) {
         return mapper.toDTO(findWarehouseById(id));
     }
@@ -59,6 +68,16 @@ public class WarehouseServiceImpl implements WarehouseService {
     @Transactional
     public void delete(Long id) {
         repository.delete(findWarehouseById(id));
+    }
+
+    @Override
+    @Transactional
+    public WarehouseDTO restore(Long id) {
+        int updated = repository.restoreById(id);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("Warehouse not found with id: " + id);
+        }
+        return mapper.toDTO(findWarehouseById(id));
     }
 
     private void validateCodeUnique(String code, Long currentId) {

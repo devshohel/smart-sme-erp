@@ -13,6 +13,7 @@ declare var bootstrap: any;
 })
 export class WarehouseComponent implements OnInit {
   warehouses: InventoryWarehouse[] = [];
+  showDeleted = false;
   warehouseForm: FormGroup;
   loading = false;
   isEditMode = false;
@@ -38,7 +39,8 @@ export class WarehouseComponent implements OnInit {
 
   loadWarehouses(): void {
     this.loading = true;
-    this.warehouseService.getAllWarehouses().subscribe({
+    const request$ = this.showDeleted ? this.warehouseService.getDeletedWarehouses() : this.warehouseService.getAllWarehouses();
+    request$.subscribe({
       next: (data) => {
         this.warehouses = data;
         this.loading = false;
@@ -49,6 +51,11 @@ export class WarehouseComponent implements OnInit {
         debugApiError('WarehouseComponent.loadWarehouses', error);
       }
     });
+  }
+
+  toggleDeletedView(): void {
+    this.showDeleted = !this.showDeleted;
+    this.loadWarehouses();
   }
 
   addWarehouse(): void {
@@ -66,6 +73,9 @@ export class WarehouseComponent implements OnInit {
   }
 
   editWarehouse(warehouse: InventoryWarehouse): void {
+    if (this.showDeleted) {
+      return;
+    }
     this.isEditMode = true;
     this.submitError = '';
     this.warehouseForm.reset({
@@ -110,6 +120,13 @@ export class WarehouseComponent implements OnInit {
     if (confirm('Are you sure you want to delete this warehouse?')) {
       this.warehouseService.deleteWarehouse(id).subscribe(() => this.loadWarehouses());
     }
+  }
+
+  restoreWarehouse(id?: number): void {
+    if (!id || !confirm('Restore this warehouse?')) {
+      return;
+    }
+    this.warehouseService.restoreWarehouse(id).subscribe(() => this.loadWarehouses());
   }
 
   openModal(): void {

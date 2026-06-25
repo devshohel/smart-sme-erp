@@ -8,6 +8,8 @@ public interface ProductCategoryService {
     ProductCategoryDTO save(ProductCategoryDTO dto);
 
     List<ProductCategoryDTO> getAll();
+    List<ProductCategoryDTO> getDeleted();
 
     void delete(Long id);
+    ProductCategoryDTO restore(Long id);
 }
