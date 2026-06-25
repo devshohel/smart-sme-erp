@@ -165,6 +165,27 @@ public class AccountingPostingServiceImpl implements AccountingPostingService {
 
     @Override
     @Transactional
+    public void reverseSalesReturn(SalesReturn salesReturn, String reversalReason) {
+        if (salesReturn == null || salesReturn.getId() == null || isPosted("SALES_RETURN_REVERSAL", salesReturn.getId())) {
+            return;
+        }
+        JournalEntry original = journalEntryRepository.findBySource("SALES_RETURN", salesReturn.getId())
+                .orElseThrow(() -> new BadRequestException("Original sales return journal not found"));
+        BigDecimal amount = safe(salesReturn.getTotalAmount());
+        if (amount.signum() <= 0) {
+            return;
+        }
+        JournalEntry entry = baseEntry("SALES_RETURN_REVERSAL", salesReturn.getId(), salesReturn.getReturnCode() + "-REV", LocalDate.now(),
+                "Sales return reversal " + salesReturn.getReturnCode() + " against journal " + original.getJournalNo());
+        addLine(entry, account("Accounts Receivable"), amount, BigDecimal.ZERO, "Restore receivable");
+        addLine(entry, account("Sales Income"), BigDecimal.ZERO, amount, "Reverse sales return adjustment");
+        saveIfBalanced(entry);
+        activityLogService.log("ACCOUNTING_REVERSE_SALES_RETURN", "ACCOUNTING", "accounting_journal_entries", entry.getId(),
+                "Reversed sales return " + salesReturn.getReturnCode() + ": " + reversalReason);
+    }
+
+    @Override
+    @Transactional
     public void postPurchaseReturn(PurchaseReturn purchaseReturn) {
         if (purchaseReturn == null || purchaseReturn.getId() == null || isPosted("PURCHASE_RETURN", purchaseReturn.getId())) {
             return;
@@ -178,6 +199,27 @@ public class AccountingPostingServiceImpl implements AccountingPostingService {
         addLine(entry, account("Purchase Cost"), BigDecimal.ZERO, amount, "Purchase return adjustment");
         saveIfBalanced(entry);
         activityLogService.log("ACCOUNTING_POST_PURCHASE", "ACCOUNTING", "accounting_journal_entries", entry.getId(), "Posted purchase return " + purchaseReturn.getReturnCode());
+    }
+
+    @Override
+    @Transactional
+    public void reversePurchaseReturn(PurchaseReturn purchaseReturn, String reversalReason) {
+        if (purchaseReturn == null || purchaseReturn.getId() == null || isPosted("PURCHASE_RETURN_REVERSAL", purchaseReturn.getId())) {
+            return;
+        }
+        JournalEntry original = journalEntryRepository.findBySource("PURCHASE_RETURN", purchaseReturn.getId())
+                .orElseThrow(() -> new BadRequestException("Original purchase return journal not found"));
+        BigDecimal amount = safe(purchaseReturn.getTotalAmount());
+        if (amount.signum() <= 0) {
+            return;
+        }
+        JournalEntry entry = baseEntry("PURCHASE_RETURN_REVERSAL", purchaseReturn.getId(), purchaseReturn.getReturnCode() + "-REV", LocalDate.now(),
+                "Purchase return reversal " + purchaseReturn.getReturnCode() + " against journal " + original.getJournalNo());
+        addLine(entry, account("Purchase Cost"), amount, BigDecimal.ZERO, "Reverse purchase return adjustment");
+        addLine(entry, account("Accounts Payable"), BigDecimal.ZERO, amount, "Restore payable");
+        saveIfBalanced(entry);
+        activityLogService.log("ACCOUNTING_REVERSE_PURCHASE_RETURN", "ACCOUNTING", "accounting_journal_entries", entry.getId(),
+                "Reversed purchase return " + purchaseReturn.getReturnCode() + ": " + reversalReason);
     }
 
     private JournalEntry baseEntry(String sourceType, Long sourceId, String sourceNo, LocalDate date, String description) {

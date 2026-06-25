@@ -13,5 +13,7 @@ public interface AccountingPostingService {
     void reverseSalesInvoice(SalesInvoice invoice, String reversalReason);
     void postPurchase(PurchaseOrder purchaseOrder);
     void postSalesReturn(SalesReturn salesReturn);
+    void reverseSalesReturn(SalesReturn salesReturn, String reversalReason);
     void postPurchaseReturn(PurchaseReturn purchaseReturn);
+    void reversePurchaseReturn(PurchaseReturn purchaseReturn, String reversalReason);
 }

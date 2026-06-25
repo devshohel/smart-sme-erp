@@ -74,6 +74,12 @@ public class SalesReturnController {
         return ResponseEntity.ok(salesReturnService.post(id));
     }
 
+    @PostMapping("/{id}/reverse")
+    @PreAuthorize("hasAuthority('SALES_RETURN_REVERSE')")
+    public ResponseEntity<SalesReturnDTO> reverse(@PathVariable Long id, @Valid @RequestBody SalesActionReasonDTO request) {
+        return ResponseEntity.ok(salesReturnService.reverse(id, request.getReason()));
+    }
+
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasAuthority('SALES_RETURN_CANCEL')")
     public ResponseEntity<SalesReturnDTO> cancel(@PathVariable Long id) {

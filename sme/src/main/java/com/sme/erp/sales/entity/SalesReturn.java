@@ -95,6 +95,15 @@ public class SalesReturn {
     @Column(name = "cancelled_by", length = 120)
     private String cancelledBy;
 
+    @Column(name = "reversed_at")
+    private LocalDateTime reversedAt;
+
+    @Column(name = "reversed_by", length = 120)
+    private String reversedBy;
+
+    @Column(name = "reversal_reason", length = 500)
+    private String reversalReason;
+
     @OneToMany(mappedBy = "returnEntity", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SalesReturnItem> items = new ArrayList<>();
 
@@ -173,6 +182,15 @@ public class SalesReturn {
 
     public String getCancelledBy() { return cancelledBy; }
     public void setCancelledBy(String cancelledBy) { this.cancelledBy = cancelledBy; }
+
+    public LocalDateTime getReversedAt() { return reversedAt; }
+    public void setReversedAt(LocalDateTime reversedAt) { this.reversedAt = reversedAt; }
+
+    public String getReversedBy() { return reversedBy; }
+    public void setReversedBy(String reversedBy) { this.reversedBy = reversedBy; }
+
+    public String getReversalReason() { return reversalReason; }
+    public void setReversalReason(String reversalReason) { this.reversalReason = reversalReason; }
 
     public List<SalesReturnItem> getItems() { return items; }
     public void setItems(List<SalesReturnItem> items) { this.items = items; }

@@ -46,6 +46,9 @@ public class PurchaseReturnDTO {
     private LocalDateTime postedAt;
     private String cancelledBy;
     private LocalDateTime cancelledAt;
+    private String reversedBy;
+    private LocalDateTime reversedAt;
+    private String reversalReason;
     private String notes;
 
     @Valid
@@ -120,6 +123,15 @@ public class PurchaseReturnDTO {
 
     public LocalDateTime getCancelledAt() { return cancelledAt; }
     public void setCancelledAt(LocalDateTime cancelledAt) { this.cancelledAt = cancelledAt; }
+
+    public String getReversedBy() { return reversedBy; }
+    public void setReversedBy(String reversedBy) { this.reversedBy = reversedBy; }
+
+    public LocalDateTime getReversedAt() { return reversedAt; }
+    public void setReversedAt(LocalDateTime reversedAt) { this.reversedAt = reversedAt; }
+
+    public String getReversalReason() { return reversalReason; }
+    public void setReversalReason(String reversalReason) { this.reversalReason = reversalReason; }
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }

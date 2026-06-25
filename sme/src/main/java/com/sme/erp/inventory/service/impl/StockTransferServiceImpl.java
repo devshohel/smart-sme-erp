@@ -20,6 +20,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -117,6 +119,7 @@ public class StockTransferServiceImpl implements StockTransferService {
         requireStatus(transfer, StockTransferStatus.DRAFT, StockTransferStatus.PENDING);
         transfer.setStatus(StockTransferStatus.APPROVED);
         transfer.setApprovedAt(LocalDateTime.now());
+        transfer.setApprovedBy(currentUsername());
         return toDTO(transferRepository.save(transfer));
     }
 
@@ -144,6 +147,33 @@ public class StockTransferServiceImpl implements StockTransferService {
         }
         transfer.setStatus(StockTransferStatus.RECEIVED);
         transfer.setReceivedAt(LocalDateTime.now());
+        transfer.setReceivedBy(currentUsername());
+        return toDTO(transferRepository.save(transfer));
+    }
+
+    @Override
+    @Transactional
+    public StockTransferDTO reverse(Long id, String reversalReason) {
+        StockTransfer transfer = findById(id);
+        if (transfer.getStatus() == StockTransferStatus.REVERSED) {
+            throw new BadRequestException("Stock transfer is already reversed.");
+        }
+        if (transfer.getStatus() != StockTransferStatus.IN_TRANSIT && transfer.getStatus() != StockTransferStatus.RECEIVED) {
+            throw new BadRequestException("Only in-transit or received stock transfers can be reversed.");
+        }
+        String referenceNo = transfer.getTransferNo() + "-REV";
+        if (transfer.getStatus() == StockTransferStatus.RECEIVED) {
+            for (StockTransferItem item : transfer.getItems()) {
+                stockService.transferOut(item.getProduct().getId(), transfer.getToWarehouse().getId(), item.getQuantity(), referenceNo);
+            }
+        }
+        for (StockTransferItem item : transfer.getItems()) {
+            stockService.transferIn(item.getProduct().getId(), transfer.getFromWarehouse().getId(), item.getQuantity(), referenceNo);
+        }
+        transfer.setStatus(StockTransferStatus.REVERSED);
+        transfer.setReversedAt(LocalDateTime.now());
+        transfer.setReversedBy(currentUsername());
+        transfer.setReversalReason(requiredReason(reversalReason));
         return toDTO(transferRepository.save(transfer));
     }
 
@@ -237,6 +267,9 @@ public class StockTransferServiceImpl implements StockTransferService {
         dto.setApprovedAt(transfer.getApprovedAt());
         dto.setReceivedBy(transfer.getReceivedBy());
         dto.setReceivedAt(transfer.getReceivedAt());
+        dto.setReversedBy(transfer.getReversedBy());
+        dto.setReversedAt(transfer.getReversedAt());
+        dto.setReversalReason(transfer.getReversalReason());
         if (transfer.getFromWarehouse() != null) {
             dto.setFromWarehouseId(transfer.getFromWarehouse().getId());
             dto.setFromWarehouseName(transfer.getFromWarehouse().getName());
@@ -312,5 +345,18 @@ public class StockTransferServiceImpl implements StockTransferService {
 
     private String trim(String value) {
         return value == null ? null : value.trim();
+    }
+
+    private String requiredReason(String value) {
+        String normalized = trim(value);
+        if (normalized == null || normalized.isEmpty()) {
+            throw new BadRequestException("Reversal reason is required.");
+        }
+        return normalized;
+    }
+
+    private String currentUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication == null ? null : authentication.getName();
     }
 }

@@ -1,38 +1,20 @@
-package com.sme.erp.inventory.entity;
+package com.sme.erp.inventory.dto;
 
 import com.sme.erp.inventory.enums.StockAdjustmentStatus;
-import com.sme.erp.product.entity.Product;
-import jakarta.persistence.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "stock_adjustments")
-public class StockAdjustment {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class StockAdjustmentDTO {
     private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "warehouse_id", nullable = false)
-    private Warehouse warehouse;
-
-    @Column(precision = 15, scale = 2)
+    private Long productId;
+    private String productName;
+    private Long warehouseId;
+    private String warehouseName;
     private BigDecimal quantity;
-
-    private String reason; // DAMAGE / LOSS / CORRECTION
-
+    private String reason;
     private String note;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private StockAdjustmentStatus status = StockAdjustmentStatus.DRAFT;
-
+    private StockAdjustmentStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime approvedAt;
     private String approvedBy;
@@ -42,69 +24,24 @@ public class StockAdjustment {
     private String cancelledBy;
     private LocalDateTime reversedAt;
     private String reversedBy;
-    @Column(length = 500)
     private String reversalReason;
 
-    @PrePersist
-    public void onCreate() {
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
-        }
-        if (status == null) {
-            status = StockAdjustmentStatus.DRAFT;
-        }
-    }
-
-    // getters setters
     public Long getId() { return id; }
-
-    public Product getProduct() { return product; }
-    public void setProduct(Product product) { this.product = product; }
-
-    public Warehouse getWarehouse() { return warehouse; }
-    public void setWarehouse(Warehouse warehouse) { this.warehouse = warehouse; }
-
-    public Long getProductId() {
-        return product != null ? product.getId() : null;
-    }
-
-    public void setProductId(Long productId) {
-        if (productId == null) {
-            this.product = null;
-            return;
-        }
-
-        if (this.product == null) {
-            this.product = new Product();
-        }
-        this.product.setId(productId);
-    }
-
-    public Long getWarehouseId() {
-        return warehouse != null ? warehouse.getId() : null;
-    }
-
-    public void setWarehouseId(Long warehouseId) {
-        if (warehouseId == null) {
-            this.warehouse = null;
-            return;
-        }
-
-        if (this.warehouse == null) {
-            this.warehouse = new Warehouse();
-        }
-        this.warehouse.setId(warehouseId);
-    }
-
-    public BigDecimal  getQuantity() { return quantity; }
-    public void setQuantity(BigDecimal  quantity) { this.quantity = quantity; }
-
+    public void setId(Long id) { this.id = id; }
+    public Long getProductId() { return productId; }
+    public void setProductId(Long productId) { this.productId = productId; }
+    public String getProductName() { return productName; }
+    public void setProductName(String productName) { this.productName = productName; }
+    public Long getWarehouseId() { return warehouseId; }
+    public void setWarehouseId(Long warehouseId) { this.warehouseId = warehouseId; }
+    public String getWarehouseName() { return warehouseName; }
+    public void setWarehouseName(String warehouseName) { this.warehouseName = warehouseName; }
+    public BigDecimal getQuantity() { return quantity; }
+    public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }
-
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }
-
     public StockAdjustmentStatus getStatus() { return status; }
     public void setStatus(StockAdjustmentStatus status) { this.status = status; }
     public LocalDateTime getCreatedAt() { return createdAt; }

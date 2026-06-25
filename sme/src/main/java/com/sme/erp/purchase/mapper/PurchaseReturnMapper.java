@@ -48,6 +48,9 @@ public class PurchaseReturnMapper {
         dto.setPostedAt(entity.getPostedAt());
         dto.setCancelledBy(entity.getCancelledBy());
         dto.setCancelledAt(entity.getCancelledAt());
+        dto.setReversedBy(entity.getReversedBy());
+        dto.setReversedAt(entity.getReversedAt());
+        dto.setReversalReason(entity.getReversalReason());
         dto.setNotes(entity.getNotes());
         dto.setItems(entity.getItems().stream().map(purchaseReturnItemMapper::toDTO).collect(Collectors.toList()));
         return dto;

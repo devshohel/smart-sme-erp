@@ -38,6 +38,9 @@ public class StockTransferDTO {
     private LocalDateTime approvedAt;
     private String receivedBy;
     private LocalDateTime receivedAt;
+    private String reversedBy;
+    private LocalDateTime reversedAt;
+    private String reversalReason;
 
     @Valid
     @NotEmpty
@@ -77,6 +80,12 @@ public class StockTransferDTO {
     public void setReceivedBy(String receivedBy) { this.receivedBy = receivedBy; }
     public LocalDateTime getReceivedAt() { return receivedAt; }
     public void setReceivedAt(LocalDateTime receivedAt) { this.receivedAt = receivedAt; }
+    public String getReversedBy() { return reversedBy; }
+    public void setReversedBy(String reversedBy) { this.reversedBy = reversedBy; }
+    public LocalDateTime getReversedAt() { return reversedAt; }
+    public void setReversedAt(LocalDateTime reversedAt) { this.reversedAt = reversedAt; }
+    public String getReversalReason() { return reversalReason; }
+    public void setReversalReason(String reversalReason) { this.reversalReason = reversalReason; }
     public List<StockTransferItemDTO> getItems() { return items; }
     public void setItems(List<StockTransferItemDTO> items) { this.items = items; }
 }

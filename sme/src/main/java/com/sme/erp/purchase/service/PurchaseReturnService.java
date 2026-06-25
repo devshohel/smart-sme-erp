@@ -13,5 +13,6 @@ public interface PurchaseReturnService {
     PurchaseReturnDTO approve(Long id);
     PurchaseReturnDTO reject(Long id, String reason);
     PurchaseReturnDTO post(Long id);
+    PurchaseReturnDTO reverse(Long id, String reversalReason);
     PurchaseReturnDTO cancel(Long id);
 }

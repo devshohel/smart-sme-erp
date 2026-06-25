@@ -17,5 +17,6 @@ public interface StockTransferService {
     StockTransferDTO approve(Long id);
     StockTransferDTO send(Long id);
     StockTransferDTO receive(Long id);
+    StockTransferDTO reverse(Long id, String reversalReason);
     StockTransferDTO cancel(Long id);
 }

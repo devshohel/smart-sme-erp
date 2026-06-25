@@ -74,6 +74,12 @@ public class PurchaseReturnController {
         return ResponseEntity.ok(purchaseReturnService.post(id));
     }
 
+    @PostMapping("/{id}/reverse")
+    @PreAuthorize("hasAuthority('PURCHASE_RETURN_REVERSE')")
+    public ResponseEntity<PurchaseReturnDTO> reverse(@PathVariable Long id, @Valid @RequestBody PurchaseActionReasonDTO request) {
+        return ResponseEntity.ok(purchaseReturnService.reverse(id, request.getReason()));
+    }
+
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasAuthority('PURCHASE_RETURN_CANCEL')")
     public ResponseEntity<PurchaseReturnDTO> cancel(@PathVariable Long id) {

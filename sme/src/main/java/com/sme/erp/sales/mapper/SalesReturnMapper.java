@@ -49,6 +49,9 @@ public class SalesReturnMapper {
         dto.setPostedBy(entity.getPostedBy());
         dto.setCancelledAt(entity.getCancelledAt());
         dto.setCancelledBy(entity.getCancelledBy());
+        dto.setReversedAt(entity.getReversedAt());
+        dto.setReversedBy(entity.getReversedBy());
+        dto.setReversalReason(entity.getReversalReason());
         dto.setItems(entity.getItems().stream().map(salesReturnItemMapper::toDTO).collect(Collectors.toList()));
         return dto;
     }

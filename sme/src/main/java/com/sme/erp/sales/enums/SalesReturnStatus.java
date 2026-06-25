@@ -6,5 +6,6 @@ public enum SalesReturnStatus {
     APPROVED,
     REJECTED,
     POSTED,
+    REVERSED,
     CANCELLED
 }

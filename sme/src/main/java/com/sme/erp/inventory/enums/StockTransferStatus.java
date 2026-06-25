@@ -6,5 +6,6 @@ public enum StockTransferStatus {
     APPROVED,
     IN_TRANSIT,
     RECEIVED,
+    REVERSED,
     CANCELLED
 }

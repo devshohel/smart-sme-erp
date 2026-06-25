@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Collectors;
 
 @Service
 public class SalesReturnServiceImpl implements SalesReturnService {
@@ -190,14 +189,40 @@ public class SalesReturnServiceImpl implements SalesReturnService {
 
     @Override
     @Transactional
+    public SalesReturnDTO reverse(Long id, String reversalReason) {
+        SalesReturn entity = findReturnById(id);
+        SalesReturnStatus normalizedStatus = normalizeStatus(entity.getStatus());
+        if (normalizedStatus == SalesReturnStatus.REVERSED) {
+            throw new BadRequestException("Sales return is already reversed");
+        }
+        if (normalizedStatus != SalesReturnStatus.POSTED) {
+            throw new BadRequestException("Only posted sales returns can be reversed");
+        }
+        String normalizedReason = RequestValueUtils.normalizeRequired(reversalReason, "Reversal reason");
+        SalesReturnDTO oldData = salesReturnMapper.toDTO(entity);
+        reverseReturnedStock(entity);
+        accountingPostingService.reverseSalesReturn(entity, normalizedReason);
+        restoreInvoiceAfterReturnReversal(entity.getInvoice(), entity.getTotalAmount());
+        entity.setStatus(SalesReturnStatus.REVERSED);
+        entity.setReversedAt(LocalDateTime.now());
+        entity.setReversedBy(currentUsername());
+        entity.setReversalReason(normalizedReason);
+        SalesReturnDTO saved = salesReturnMapper.toDTO(salesReturnRepository.save(entity));
+        activityLogService.log("SALES_RETURN_REVERSE", "SALES", "sales_returns", saved.getId(), "Reversed sales return " + saved.getReturnCode());
+        auditLogService.log("sales_returns", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "REVERSE");
+        return saved;
+    }
+
+    @Override
+    @Transactional
     public SalesReturnDTO cancel(Long id) {
         SalesReturn entity = findReturnById(id);
         SalesReturnStatus normalizedStatus = normalizeStatus(entity.getStatus());
         if (normalizedStatus == SalesReturnStatus.POSTED) {
             throw new BadRequestException("Posted sales return cannot be cancelled");
         }
-        if (normalizedStatus == SalesReturnStatus.CANCELLED) {
-            throw new BadRequestException("Sales return is already cancelled");
+        if (normalizedStatus == SalesReturnStatus.CANCELLED || normalizedStatus == SalesReturnStatus.REVERSED) {
+            throw new BadRequestException("Sales return cannot be cancelled in its current status");
         }
         SalesReturnDTO oldData = salesReturnMapper.toDTO(entity);
         entity.setStatus(SalesReturnStatus.CANCELLED);
@@ -246,8 +271,29 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         }
     }
 
+    private void reverseReturnedStock(SalesReturn salesReturn) {
+        Long warehouseId = salesReturn.getInvoice().getWarehouse().getId();
+        String referenceNo = salesReturn.getReturnCode() + "-REV";
+        for (SalesReturnItem item : salesReturn.getItems()) {
+            stockService.stockOut(
+                    item.getProduct().getId(),
+                    warehouseId,
+                    item.getQuantity(),
+                    "SALES_RETURN_REVERSAL",
+                    referenceNo);
+        }
+    }
+
     private void applyReturnToInvoice(SalesInvoice invoice, BigDecimal returnAmount) {
         BigDecimal newDue = safe(invoice.getDueAmount()).subtract(safe(returnAmount)).max(BigDecimal.ZERO);
+        invoice.setDueAmount(newDue);
+        invoice.setPaymentStatus(resolvePaymentStatus(invoice.getPaidAmount(), newDue));
+        invoice.setStatus(resolveInvoiceStatus(invoice));
+        salesInvoiceRepository.save(invoice);
+    }
+
+    private void restoreInvoiceAfterReturnReversal(SalesInvoice invoice, BigDecimal returnAmount) {
+        BigDecimal newDue = safe(invoice.getDueAmount()).add(safe(returnAmount));
         invoice.setDueAmount(newDue);
         invoice.setPaymentStatus(resolvePaymentStatus(invoice.getPaidAmount(), newDue));
         invoice.setStatus(resolveInvoiceStatus(invoice));

@@ -13,5 +13,6 @@ public interface SalesReturnService {
     SalesReturnDTO approve(Long id);
     SalesReturnDTO reject(Long id, String reason);
     SalesReturnDTO post(Long id);
+    SalesReturnDTO reverse(Long id, String reversalReason);
     SalesReturnDTO cancel(Long id);
 }

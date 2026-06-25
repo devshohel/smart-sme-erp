@@ -51,6 +51,10 @@ public class StockTransfer {
     private LocalDateTime approvedAt;
     private String receivedBy;
     private LocalDateTime receivedAt;
+    private String reversedBy;
+    private LocalDateTime reversedAt;
+    @Column(length = 500)
+    private String reversalReason;
 
     @OneToMany(mappedBy = "transfer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StockTransferItem> items = new ArrayList<>();
@@ -97,6 +101,12 @@ public class StockTransfer {
     public void setReceivedBy(String receivedBy) { this.receivedBy = receivedBy; }
     public LocalDateTime getReceivedAt() { return receivedAt; }
     public void setReceivedAt(LocalDateTime receivedAt) { this.receivedAt = receivedAt; }
+    public String getReversedBy() { return reversedBy; }
+    public void setReversedBy(String reversedBy) { this.reversedBy = reversedBy; }
+    public LocalDateTime getReversedAt() { return reversedAt; }
+    public void setReversedAt(LocalDateTime reversedAt) { this.reversedAt = reversedAt; }
+    public String getReversalReason() { return reversalReason; }
+    public void setReversalReason(String reversalReason) { this.reversalReason = reversalReason; }
     public List<StockTransferItem> getItems() { return items; }
     public void setItems(List<StockTransferItem> items) { this.items = items; }
 }

@@ -108,7 +108,7 @@ export class InventoryStockService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
-  adjustStock(productId: number, warehouseId: number, qty: number, reason: string): Observable<Stock> {
+  adjustStock(productId: number, warehouseId: number, qty: number, reason: string): Observable<unknown> {
     const params = new HttpParams()
       .set('productId', productId.toString())
       .set('warehouseId', warehouseId.toString())
@@ -116,7 +116,7 @@ export class InventoryStockService {
       .set('reason', reason);
 
     return this.http
-      .post<Stock | ApiResponse<Stock>>(this.adjustmentsUrl, null, { params })
+      .post<unknown | ApiResponse<unknown>>(this.adjustmentsUrl, null, { params })
       .pipe(map(response => unwrapApiResponse(response)));
   }
 }

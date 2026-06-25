@@ -187,14 +187,40 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
 
     @Override
     @Transactional
+    public PurchaseReturnDTO reverse(Long id, String reversalReason) {
+        PurchaseReturn entity = findReturnById(id);
+        PurchaseStatus status = normalizeStatus(entity.getStatus());
+        if (status == PurchaseStatus.REVERSED) {
+            throw new BadRequestException("Purchase return is already reversed");
+        }
+        if (status != PurchaseStatus.POSTED) {
+            throw new BadRequestException("Only posted purchase returns can be reversed");
+        }
+        String normalizedReason = RequestValueUtils.normalizeRequired(reversalReason, "Reversal reason");
+        PurchaseReturnDTO oldData = purchaseReturnMapper.toDTO(entity);
+        restoreReturnedStock(entity);
+        restorePurchaseAfterReturnReversal(entity);
+        accountingPostingService.reversePurchaseReturn(entity, normalizedReason);
+        entity.setStatus(PurchaseStatus.REVERSED);
+        entity.setReversedAt(LocalDateTime.now());
+        entity.setReversedBy(currentUsername());
+        entity.setReversalReason(normalizedReason);
+        PurchaseReturnDTO saved = purchaseReturnMapper.toDTO(purchaseReturnRepository.save(entity));
+        activityLogService.log("PURCHASE_RETURN_REVERSE", "PURCHASE", "purchase_returns", saved.getId(), "Reversed purchase return " + saved.getReturnCode());
+        auditLogService.log("purchase_returns", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "REVERSE");
+        return saved;
+    }
+
+    @Override
+    @Transactional
     public PurchaseReturnDTO cancel(Long id) {
         PurchaseReturn entity = findReturnById(id);
         PurchaseStatus status = normalizeStatus(entity.getStatus());
         if (status == PurchaseStatus.POSTED) {
             throw new BadRequestException("Posted purchase return cannot be cancelled");
         }
-        if (status == PurchaseStatus.CANCELLED) {
-            throw new BadRequestException("Purchase return is already cancelled");
+        if (status == PurchaseStatus.CANCELLED || status == PurchaseStatus.REVERSED) {
+            throw new BadRequestException("Purchase return cannot be cancelled in its current status");
         }
         PurchaseReturnDTO oldData = purchaseReturnMapper.toDTO(entity);
         entity.setStatus(PurchaseStatus.CANCELLED);
@@ -243,6 +269,20 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
         }
     }
 
+    private void restoreReturnedStock(PurchaseReturn purchaseReturn) {
+        Long warehouseId = purchaseReturn.getPurchase().getWarehouse().getId();
+        String referenceNo = purchaseReturn.getReturnCode() + "-REV";
+        for (PurchaseReturnItem item : purchaseReturn.getItems()) {
+            stockService.stockIn(
+                    item.getProduct().getId(),
+                    warehouseId,
+                    item.getQuantity(),
+                    item.getUnitPrice(),
+                    "PURCHASE_RETURN_REVERSAL",
+                    referenceNo);
+        }
+    }
+
     private void applyReturnToPurchase(PurchaseReturn purchaseReturn) {
         PurchaseOrder purchaseOrder = purchaseReturn.getPurchase();
         for (PurchaseReturnItem returnItem : purchaseReturn.getItems()) {
@@ -255,6 +295,24 @@ public class PurchaseReturnServiceImpl implements PurchaseReturnService {
             matchedItem.setReturnedQuantity(safe(matchedItem.getReturnedQuantity()).add(safe(returnItem.getQuantity())));
         }
         BigDecimal newDue = safe(purchaseOrder.getDueAmount()).subtract(safe(purchaseReturn.getTotalAmount())).max(BigDecimal.ZERO);
+        purchaseOrder.setDueAmount(newDue);
+        purchaseOrder.setStatus(resolvePurchaseStatusAfterReturn(purchaseOrder));
+        purchaseOrderRepository.save(purchaseOrder);
+    }
+
+    private void restorePurchaseAfterReturnReversal(PurchaseReturn purchaseReturn) {
+        PurchaseOrder purchaseOrder = purchaseReturn.getPurchase();
+        for (PurchaseReturnItem returnItem : purchaseReturn.getItems()) {
+            PurchaseItem matchedItem = purchaseOrder.getItems().stream()
+                    .filter(item -> item.getProduct() != null
+                            && returnItem.getProduct() != null
+                            && item.getProduct().getId().equals(returnItem.getProduct().getId()))
+                    .findFirst()
+                    .orElseThrow(() -> new BadRequestException("Returned product does not belong to the purchase order"));
+            BigDecimal restoredReturnedQty = safe(matchedItem.getReturnedQuantity()).subtract(safe(returnItem.getQuantity())).max(BigDecimal.ZERO);
+            matchedItem.setReturnedQuantity(restoredReturnedQty);
+        }
+        BigDecimal newDue = safe(purchaseOrder.getDueAmount()).add(safe(purchaseReturn.getTotalAmount()));
         purchaseOrder.setDueAmount(newDue);
         purchaseOrder.setStatus(resolvePurchaseStatusAfterReturn(purchaseOrder));
         purchaseOrderRepository.save(purchaseOrder);

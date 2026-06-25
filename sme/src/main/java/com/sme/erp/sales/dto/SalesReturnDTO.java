@@ -47,6 +47,9 @@ public class SalesReturnDTO {
     private String postedBy;
     private LocalDateTime cancelledAt;
     private String cancelledBy;
+    private LocalDateTime reversedAt;
+    private String reversedBy;
+    private String reversalReason;
 
     @Valid
     @NotNull(message = "Return items are required")
@@ -123,6 +126,15 @@ public class SalesReturnDTO {
 
     public String getCancelledBy() { return cancelledBy; }
     public void setCancelledBy(String cancelledBy) { this.cancelledBy = cancelledBy; }
+
+    public LocalDateTime getReversedAt() { return reversedAt; }
+    public void setReversedAt(LocalDateTime reversedAt) { this.reversedAt = reversedAt; }
+
+    public String getReversedBy() { return reversedBy; }
+    public void setReversedBy(String reversedBy) { this.reversedBy = reversedBy; }
+
+    public String getReversalReason() { return reversalReason; }
+    public void setReversalReason(String reversalReason) { this.reversalReason = reversalReason; }
 
     public List<SalesReturnItemDTO> getItems() { return items; }
     public void setItems(List<SalesReturnItemDTO> items) { this.items = items; }
