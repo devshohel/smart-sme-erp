@@ -6,7 +6,6 @@ import com.sme.erp.sales.service.SalesInvoiceService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,7 +19,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/sales/invoices")
-@CrossOrigin(origins = "*")
 public class SalesInvoiceController {
 
     private final SalesInvoiceService salesInvoiceService;

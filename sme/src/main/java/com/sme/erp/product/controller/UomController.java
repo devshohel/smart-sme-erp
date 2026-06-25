@@ -12,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/uoms")
-@CrossOrigin(origins = "*")
 public class UomController {
 
     private final UomService service;

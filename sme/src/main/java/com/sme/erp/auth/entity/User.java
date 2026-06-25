@@ -53,6 +53,15 @@ public class User {
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
 
+    @Column(name = "failed_login_attempts", nullable = false)
+    private Integer failedLoginAttempts = 0;
+
+    @Column(name = "locked_until")
+    private LocalDateTime lockedUntil;
+
+    @Column(name = "token_version", nullable = false)
+    private Integer tokenVersion = 0;
+
     @Column(name = "is_deleted")
     private Boolean deleted = false;
 
@@ -72,6 +81,12 @@ public class User {
         }
         if (deleted == null) {
             deleted = false;
+        }
+        if (failedLoginAttempts == null) {
+            failedLoginAttempts = 0;
+        }
+        if (tokenVersion == null) {
+            tokenVersion = 0;
         }
     }
 
@@ -98,6 +113,12 @@ public class User {
     public void setStatus(Status status) { this.status = status; }
     public LocalDateTime getLastLogin() { return lastLogin; }
     public void setLastLogin(LocalDateTime lastLogin) { this.lastLogin = lastLogin; }
+    public Integer getFailedLoginAttempts() { return failedLoginAttempts; }
+    public void setFailedLoginAttempts(Integer failedLoginAttempts) { this.failedLoginAttempts = failedLoginAttempts; }
+    public LocalDateTime getLockedUntil() { return lockedUntil; }
+    public void setLockedUntil(LocalDateTime lockedUntil) { this.lockedUntil = lockedUntil; }
+    public Integer getTokenVersion() { return tokenVersion; }
+    public void setTokenVersion(Integer tokenVersion) { this.tokenVersion = tokenVersion; }
     public Boolean getDeleted() { return deleted; }
     public void setDeleted(Boolean deleted) { this.deleted = deleted; }
     public LocalDateTime getCreatedAt() { return createdAt; }

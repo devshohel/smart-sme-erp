@@ -12,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/accounting/expense-categories")
-@CrossOrigin("*")
 public class ExpenseCategoryController {
     private final ExpenseCategoryService service;
 

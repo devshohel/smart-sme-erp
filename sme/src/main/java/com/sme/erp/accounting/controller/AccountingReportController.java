@@ -14,7 +14,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/accounting")
-@CrossOrigin("*")
 public class AccountingReportController {
     private final AccountingReportService service;
 

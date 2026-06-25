@@ -6,7 +6,6 @@ import com.sme.erp.auth.service.RolePermissionService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -18,7 +17,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/roles")
-@CrossOrigin(origins = "*")
 public class RolePermissionController {
     private final RolePermissionService rolePermissionService;
 

@@ -15,7 +15,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/inventory/transfers")
-@CrossOrigin(origins = "*")
 public class StockTransferController {
 
     private final StockTransferService service;

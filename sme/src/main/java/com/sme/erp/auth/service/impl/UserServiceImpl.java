@@ -6,6 +6,7 @@ import com.sme.erp.auth.entity.Role;
 import com.sme.erp.auth.entity.User;
 import com.sme.erp.auth.repository.RoleRepository;
 import com.sme.erp.auth.repository.UserRepository;
+import com.sme.erp.auth.service.RefreshTokenService;
 import com.sme.erp.auth.service.UserService;
 import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.audit.service.AuditLogService;
@@ -26,6 +27,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenService refreshTokenService;
     private final ActivityLogService activityLogService;
     private final AuditLogService auditLogService;
 
@@ -33,11 +35,13 @@ public class UserServiceImpl implements UserService {
             UserRepository userRepository,
             RoleRepository roleRepository,
             PasswordEncoder passwordEncoder,
+            RefreshTokenService refreshTokenService,
             ActivityLogService activityLogService,
             AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.refreshTokenService = refreshTokenService;
         this.activityLogService = activityLogService;
         this.auditLogService = auditLogService;
     }
@@ -95,6 +99,7 @@ public class UserServiceImpl implements UserService {
         apply(dto, user);
         if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(dto.getPassword()));
+            invalidateUserSessions(user);
         }
         UserDTO saved = toDto(userRepository.save(user));
         activityLogService.log("USER_UPDATE", "USER", "users", saved.getId(), "Updated user " + saved.getUsername());
@@ -108,6 +113,7 @@ public class UserServiceImpl implements UserService {
         User user = findUser(id);
         UserDTO oldData = toDto(user);
         user.setStatus(Status.INACTIVE);
+        invalidateUserSessions(user);
         UserDTO saved = toDto(userRepository.save(user));
         activityLogService.log("USER_UPDATE", "USER", "users", saved.getId(), "Deactivated user " + saved.getUsername());
         auditLogService.log("users", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "UPDATE");
@@ -119,6 +125,7 @@ public class UserServiceImpl implements UserService {
     public void delete(Long id) {
         User user = findUser(id);
         UserDTO oldData = toDto(user);
+        invalidateUserSessions(user);
         userRepository.delete(user);
         activityLogService.log("USER_DELETE", "USER", "users", id, "Deleted user " + oldData.getUsername());
         auditLogService.log("users", id, auditLogService.toJson(oldData), null, "DELETE");
@@ -186,6 +193,13 @@ public class UserServiceImpl implements UserService {
     private User findUser(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+    }
+
+    private void invalidateUserSessions(User user) {
+        user.setTokenVersion((user.getTokenVersion() == null ? 0 : user.getTokenVersion()) + 1);
+        if (user.getId() != null) {
+            refreshTokenService.revokeAllForUser(user.getId());
+        }
     }
 
     private UserDTO toDto(User user) {

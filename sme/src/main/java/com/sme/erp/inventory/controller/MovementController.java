@@ -14,7 +14,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/movements")
-@CrossOrigin(origins = "*")
 public class MovementController {
 
     private final StockService service;

@@ -21,6 +21,7 @@ Production deployments must not rely on Hibernate to mutate schema.
 | 2 | `V2__safe_legacy_schema_compatibility.sql` | Converts safe manual customer, supplier, warehouse, and sales item compatibility fixes into conditional Flyway DDL/backfills. |
 | 3 | `V3__enum_contract_alignment.sql` | Aligns known MySQL enum columns with Java and Angular enum values. |
 | 4 | `V4__stock_movement_legacy_column_alignment.sql` | Adds authoritative stock movement columns and backfills from legacy columns where present. |
+| 5 | `V5__security_refresh_tokens_and_lockout.sql` | Adds persisted refresh-token storage, access-token blacklist storage, and user lockout columns. |
 
 ## Migration Order
 
@@ -214,7 +215,22 @@ Required follow-up:
 ## Deployment Notes
 
 - Never run production with `spring.jpa.hibernate.ddl-auto=update`.
+- Set `JWT_SECRET` to a high-entropy value of at least 32 bytes before starting production.
+- Set `DB_USERNAME`, `DB_PASSWORD`, and `CORS_ALLOWED_ORIGINS` in production.
+- Set `ADMIN_PASSWORD` only for first-run admin creation, then remove it from the runtime environment after the user exists.
 - Keep manual scripts under `src/main/resources/db/manual` as audit references
   only; future executable changes should be Flyway migrations.
 - Do not edit applied Flyway migration files. Add a new version instead.
 - Run migrations first in staging against a copy of production data.
+
+## Security Migration Notes
+
+Phase 4 adds:
+
+- `auth_refresh_tokens` for persistent refresh-token rotation and revocation.
+- `auth_blacklisted_access_tokens` for logout invalidation of the current access token.
+- `users.failed_login_attempts` and `users.locked_until` for brute-force protection.
+- `users.token_version` for invalidating existing access tokens after password changes.
+
+Refresh tokens are stored as SHA-256 hashes. Raw refresh tokens are only returned
+to the client at login or refresh time.

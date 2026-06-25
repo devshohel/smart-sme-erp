@@ -7,6 +7,7 @@ import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.audit.service.AuditRequestContext;
 import com.sme.erp.auth.entity.User;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -28,7 +29,7 @@ public class ActivityLogServiceImpl implements ActivityLogService {
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void log(String action, String module, String tableName, Long recordId, String details) {
         ActivityLog log = new ActivityLog();
         log.setUser(currentAuditUser.currentUserOrNull());

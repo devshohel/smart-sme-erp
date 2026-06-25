@@ -4,7 +4,6 @@ import com.sme.erp.purchase.dto.PurchaseReceiveDTO;
 import com.sme.erp.purchase.service.PurchaseReceiveService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,7 +13,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/purchases/receives")
-@CrossOrigin(origins = "*")
 public class PurchaseReceiveController {
 
     private final PurchaseReceiveService purchaseReceiveService;

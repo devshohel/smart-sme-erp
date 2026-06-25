@@ -14,7 +14,6 @@ import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/v1/adjustments")
-@CrossOrigin(origins = "*")
 @Validated
 public class AdjustmentController {
 

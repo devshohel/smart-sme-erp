@@ -12,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/accounting/journal-entries")
-@CrossOrigin("*")
 public class JournalEntryController {
     private final JournalEntryService service;
 

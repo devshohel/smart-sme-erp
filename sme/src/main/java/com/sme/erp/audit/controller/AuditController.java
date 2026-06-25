@@ -8,7 +8,6 @@ import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.audit.service.LoginHistoryService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -19,7 +18,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/audit")
-@CrossOrigin(origins = "*")
 public class AuditController {
     private final ActivityLogService activityLogService;
     private final AuditLogService auditLogService;

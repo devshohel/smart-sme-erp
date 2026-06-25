@@ -10,9 +10,12 @@ import com.sme.erp.auth.repository.RolePermissionRepository;
 import com.sme.erp.auth.repository.UserRepository;
 import com.sme.erp.enums.Status;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -21,6 +24,7 @@ import java.util.Set;
 
 @Component
 public class AuthDataSeeder implements CommandLineRunner {
+    private static final Logger log = LoggerFactory.getLogger(AuthDataSeeder.class);
     private static final List<String> BASE_ADMIN_PERMISSIONS = List.of(
             "PRODUCT_VIEW", "PRODUCT_CREATE", "PRODUCT_EDIT", "PRODUCT_DELETE",
             "INVENTORY_VIEW", "INVENTORY_CREATE", "INVENTORY_DELETE",
@@ -214,18 +218,30 @@ public class AuthDataSeeder implements CommandLineRunner {
     private final PermissionRepository permissionRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final PasswordEncoder passwordEncoder;
+    private final String adminUsername;
+    private final String adminEmail;
+    private final String adminPassword;
+    private final String adminName;
 
     public AuthDataSeeder(
             RoleRepository roleRepository,
             UserRepository userRepository,
             PermissionRepository permissionRepository,
             RolePermissionRepository rolePermissionRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            @Value("${app.initial-admin.username:${ADMIN_USERNAME:admin}}") String adminUsername,
+            @Value("${app.initial-admin.email:${ADMIN_EMAIL:admin@nexaone.local}}") String adminEmail,
+            @Value("${app.initial-admin.password:${ADMIN_PASSWORD:}}") String adminPassword,
+            @Value("${app.initial-admin.name:${ADMIN_NAME:System Administrator}}") String adminName) {
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
         this.permissionRepository = permissionRepository;
         this.rolePermissionRepository = rolePermissionRepository;
         this.passwordEncoder = passwordEncoder;
+        this.adminUsername = adminUsername;
+        this.adminEmail = adminEmail;
+        this.adminPassword = adminPassword;
+        this.adminName = adminName;
     }
 
     @Override
@@ -243,17 +259,22 @@ public class AuthDataSeeder implements CommandLineRunner {
         seedRolePermissions(staffRole, STAFF_PERMISSIONS);
         seedRolePermissions(auditorRole, AUDITOR_PERMISSIONS);
 
-        if (!userRepository.existsByUsername("admin")) {
+        if (!userRepository.existsByUsername(adminUsername)) {
+            if (adminPassword == null || adminPassword.isBlank()) {
+                log.warn("Initial admin user '{}' was not created because ADMIN_PASSWORD is not set.", adminUsername);
+                return;
+            }
             User admin = new User();
-            admin.setName("System Administrator");
-            admin.setUsername("admin");
-            admin.setEmail("admin@nexaone.local");
+            admin.setName(adminName);
+            admin.setUsername(adminUsername);
+            admin.setEmail(adminEmail);
             admin.setPhone(null);
-            admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.setPassword(passwordEncoder.encode(adminPassword));
             admin.setRole(adminRole);
             admin.setStatus(Status.ACTIVE);
             admin.setDeleted(false);
             userRepository.save(admin);
+            log.info("Initial admin user '{}' created from environment configuration.", adminUsername);
         }
     }
 

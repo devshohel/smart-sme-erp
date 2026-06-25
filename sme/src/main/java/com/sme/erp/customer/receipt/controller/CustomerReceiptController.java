@@ -16,7 +16,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/customer-receipts")
-@CrossOrigin(origins = "*")
 public class CustomerReceiptController {
     private final CustomerReceiptService service;
 
