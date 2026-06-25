@@ -6,7 +6,7 @@ import { map, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Status } from '../../models/product.model';
 import { ApiResponse, unwrapApiResponse } from '../../shared/utils/api-response.util';
-import { ActivityLog, AuditFilter, AuditLog, ChangePasswordRequest, LoginHistory, LoginRequest, LoginResponse, Permission, Role, User } from './auth.model';
+import { ActivityLog, AuditFilter, AuditLog, ChangePasswordRequest, LoginHistory, LoginRequest, LoginResponse, PageResponse, Permission, Role, User } from './auth.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -154,10 +154,19 @@ export class AuthService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
-  getActivityLogs(filter: AuditFilter): Observable<ActivityLog[]> {
+  getActivityLogs(filter: AuditFilter, page = 0, size = 25): Observable<PageResponse<ActivityLog>> {
     return this.http
-      .get<ActivityLog[] | ApiResponse<ActivityLog[]>>(`${this.auditUrl}/activity-logs`, { params: this.buildAuditParams(filter) })
-      .pipe(map(response => unwrapApiResponse(response)));
+      .get<PageResponse<ActivityLog> | ActivityLog[] | ApiResponse<PageResponse<ActivityLog> | ActivityLog[]>>(`${this.auditUrl}/activity-logs`, {
+        params: this.buildAuditParams(filter).set('page', String(page)).set('size', String(size))
+      })
+      .pipe(map(response => this.toPage(unwrapApiResponse(response), page, size)));
+  }
+
+  exportActivityLogs(filter: AuditFilter): Observable<Blob> {
+    return this.http.get(`${this.auditUrl}/activity-logs/export`, {
+      params: this.buildAuditParams(filter),
+      responseType: 'blob'
+    });
   }
 
   getAuditLogs(filter: AuditFilter): Observable<AuditLog[]> {
@@ -200,7 +209,23 @@ export class AuthService {
     if (filter.module?.trim()) {
       params = params.set('module', filter.module.trim());
     }
+    if (filter.search?.trim()) {
+      params = params.set('search', filter.search.trim());
+    }
     return params;
+  }
+
+  private toPage<T>(response: PageResponse<T> | T[], page: number, size: number): PageResponse<T> {
+    if (Array.isArray(response)) {
+      return {
+        content: response,
+        totalElements: response.length,
+        totalPages: 1,
+        number: page,
+        size
+      };
+    }
+    return response;
   }
 
   private normalizeRole(role?: string): string {

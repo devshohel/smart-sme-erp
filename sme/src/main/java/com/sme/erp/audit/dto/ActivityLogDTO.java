@@ -10,7 +10,11 @@ public record ActivityLogDTO(
         String module,
         String tableName,
         Long recordId,
+        Long entityId,
         String ipAddress,
+        String userAgent,
         String details,
+        String oldValue,
+        String newValue,
         LocalDateTime createdAt) {
 }

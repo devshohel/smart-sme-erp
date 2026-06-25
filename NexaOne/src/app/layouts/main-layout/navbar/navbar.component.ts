@@ -78,7 +78,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     { label: 'Users', route: '/settings/users', keywords: ['users'], permissions: ['USER_VIEW'] },
     { label: 'Roles & Permissions', route: '/settings/roles-permissions', keywords: ['roles', 'permissions', 'role permissions'], permissions: ['ROLE_VIEW'] },
     { label: 'Change Password', route: '/settings/change-password', keywords: ['change password'], permissions: [] },
-    { label: 'Activity Logs', route: '/settings/activity-logs', keywords: ['activity logs'], permissions: ['ACTIVITY_VIEW'] },
+    { label: 'Activity Logs', route: '/settings/activity-logs', keywords: ['activity logs'], anyPermissions: ['ACTIVITY_LOG_VIEW', 'ACTIVITY_VIEW'] },
     { label: 'Audit Logs', route: '/settings/audit-logs', keywords: ['audit logs'], permissions: ['AUDIT_VIEW'] },
     { label: 'Login History', route: '/settings/login-history', keywords: ['login history'], anyPermissions: ['LOGIN_HISTORY_VIEW', 'AUDIT_VIEW'] }
   ];

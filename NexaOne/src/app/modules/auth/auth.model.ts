@@ -40,6 +40,7 @@ export interface AuditFilter {
   username: string;
   action: string;
   module: string;
+  search?: string;
 }
 
 export interface ActivityLog {
@@ -50,9 +51,21 @@ export interface ActivityLog {
   module: string;
   tableName?: string | null;
   recordId?: number | null;
+  entityId?: number | null;
   ipAddress?: string | null;
+  userAgent?: string | null;
   details?: string | null;
+  oldValue?: string | null;
+  newValue?: string | null;
   createdAt: string;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
 }
 
 export interface AuditLog {

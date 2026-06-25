@@ -25,7 +25,7 @@ const routes: Routes = [
       { path: 'accounting', canActivate: [PermissionGuard], data: { anyPermissions: ['ACCOUNTING_VIEW', 'ACCOUNTING_CREATE', 'ACCOUNTING_EDIT', 'REPORT_VIEW', 'COST_CENTER_VIEW', 'COST_CENTER_CREATE', 'COST_CENTER_EDIT', 'BUDGET_VIEW', 'BUDGET_CREATE', 'BUDGET_EDIT', 'FINANCIAL_DASHBOARD_VIEW', 'ACCOUNTING_PERIOD_VIEW', 'YEAR_END_VIEW'] }, loadChildren: () => import('./modules/accounting/accounting.module').then(m => m.AccountingModule) },
       { path: 'reports', canActivate: [PermissionGuard], data: { permissions: ['REPORT_VIEW'] }, loadChildren: () => import('./modules/reports/reports.module').then(m => m.ReportsModule) },
       { path: 'settings', redirectTo: 'settings/company', pathMatch: 'full' },
-      { path: 'settings', canActivate: [PermissionGuard], data: { anyPermissions: ['SETTINGS_VIEW', 'SETTINGS_EDIT', 'USER_VIEW', 'USER_CREATE', 'USER_EDIT', 'ROLE_VIEW', 'ACTIVITY_VIEW', 'AUDIT_VIEW', 'LOGIN_HISTORY_VIEW'] }, loadChildren: () => import('./modules/settings/settings.module').then(m => m.SettingsModule) },
+      { path: 'settings', canActivate: [PermissionGuard], data: { anyPermissions: ['SETTINGS_VIEW', 'SETTINGS_EDIT', 'USER_VIEW', 'USER_CREATE', 'USER_EDIT', 'ROLE_VIEW', 'ACTIVITY_LOG_VIEW', 'ACTIVITY_VIEW', 'AUDIT_VIEW', 'LOGIN_HISTORY_VIEW'] }, loadChildren: () => import('./modules/settings/settings.module').then(m => m.SettingsModule) },
     ]
   }
 

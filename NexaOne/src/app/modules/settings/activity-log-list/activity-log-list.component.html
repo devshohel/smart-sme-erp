@@ -23,14 +23,24 @@
         <label class="form-label">Action</label>
         <input class="form-control" [(ngModel)]="filter.action" name="activityAction">
       </div>
+      <div class="col-md-2">
+        <label class="form-label">Search</label>
+        <input class="form-control" [(ngModel)]="filter.search" name="activitySearch">
+      </div>
       <div class="col-md-2 d-flex gap-2">
-        <button class="btn btn-success flex-fill" type="button" (click)="load()">Filter</button>
+        <button class="btn btn-success flex-fill" type="button" (click)="applyFilter()">Filter</button>
         <button class="btn btn-outline-secondary" type="button" (click)="reset()">Reset</button>
       </div>
     </div>
   </app-card>
 
   <app-card title="Activity Log List">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="text-muted small">Total: {{ totalElements }}</div>
+      <button class="btn btn-outline-success btn-sm" type="button" (click)="exportCsv()" [disabled]="exporting" *ngIf="canExport()">
+        {{ exporting ? 'Exporting...' : 'Export CSV' }}
+      </button>
+    </div>
     <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
     <div class="text-muted py-4" *ngIf="loading">Loading activity logs...</div>
     <div class="text-muted py-4" *ngIf="!loading && !logs.length">No activity logs found.</div>
@@ -46,6 +56,7 @@
             <th>Table</th>
             <th>Record</th>
             <th>IP</th>
+            <th>Device</th>
             <th>Details</th>
           </tr>
         </thead>
@@ -56,12 +67,18 @@
             <td>{{ log.module }}</td>
             <td><span class="badge bg-success">{{ log.action }}</span></td>
             <td>{{ log.tableName || '-' }}</td>
-            <td>{{ log.recordId || '-' }}</td>
+            <td>{{ log.entityId || log.recordId || '-' }}</td>
             <td>{{ log.ipAddress || '-' }}</td>
+            <td class="text-truncate" style="max-width: 220px;" [title]="log.userAgent || '-'">{{ log.userAgent || '-' }}</td>
             <td>{{ log.details || '-' }}</td>
           </tr>
         </tbody>
       </table>
+    </div>
+    <div class="d-flex justify-content-end align-items-center gap-2 mt-3" *ngIf="!loading && totalPages > 1">
+      <button class="btn btn-outline-secondary btn-sm" type="button" (click)="previousPage()" [disabled]="page === 0">Previous</button>
+      <span class="text-muted small">Page {{ page + 1 }} of {{ totalPages }}</span>
+      <button class="btn btn-outline-secondary btn-sm" type="button" (click)="nextPage()" [disabled]="page + 1 >= totalPages">Next</button>
     </div>
   </app-card>
 </div>
