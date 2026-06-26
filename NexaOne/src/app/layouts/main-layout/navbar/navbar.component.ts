@@ -1,9 +1,9 @@
 import { Component, ElementRef, EventEmitter, HostListener, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { NotificationItem } from '../../../models/notification-center.model';
 import { AuthService } from '../../../modules/auth/auth.service';
-import { DashboardService } from '../../../modules/dashboard/dashboard.service';
-import { DueAlert, LowStockAlert, RecentTransaction } from '../../../modules/dashboard/dashboard.model';
+import { NotificationCenterService } from '../../../services/notification-center.service';
 
 @Component({
   selector: 'app-navbar',
@@ -18,19 +18,21 @@ export class NavbarComponent implements OnInit, OnDestroy {
   sidebarToggle = new EventEmitter<void>();
   @Input() isSidebarCollapsed = false;
 
-  lowStockAlerts: LowStockAlert[] = [];
-  dueAlerts: DueAlert[] = [];
-  recentTransactions: RecentTransaction[] = [];
+  notifications: NotificationItem[] = [];
+  unreadCount = 0;
+  notificationLoading = false;
   isNotificationOpen = false;
   isSearchOpen = false;
   searchMessage = '';
   searchTerm = '';
   filteredSuggestions: SearchItem[] = [];
   private searchMessageTimer: ReturnType<typeof setTimeout> | null = null;
-  private summarySubscription?: Subscription;
+  private unreadSubscription?: Subscription;
+  private pollingTimer: ReturnType<typeof setInterval> | null = null;
 
   private readonly searchItems: SearchItem[] = [
     { label: 'Dashboard', route: '/dashboard', keywords: ['dashboard', 'dashbord', 'deshboard'], permissions: ['DASHBOARD_VIEW'] },
+    { label: 'Notifications', route: '/notifications', keywords: ['notification', 'notifications', 'alert', 'alerts'], permissions: ['NOTIFICATION_VIEW'] },
     { label: 'All Products', route: '/products/products', keywords: ['product', 'products', 'all products'], permissions: ['PRODUCT_VIEW'] },
     { label: 'Add Product', route: '/products/add-product', keywords: ['add product'], permissions: ['PRODUCT_CREATE'] },
     { label: 'Categories', route: '/products/categories', keywords: ['category', 'categories'], anyPermissions: ['CATEGORY_VIEW', 'PRODUCT_VIEW'] },
@@ -85,21 +87,21 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   constructor(
     private authService: AuthService,
-    private dashboardService: DashboardService,
+    private notificationCenterService: NotificationCenterService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
-    this.summarySubscription = this.dashboardService.latestSummary$.subscribe(summary => {
-      if (summary) {
-        this.applyNotificationSummary(summary);
-      }
-    });
+    this.unreadSubscription = this.notificationCenterService.unreadCount$.subscribe(count => this.unreadCount = count);
     this.loadNotifications();
+    this.pollingTimer = setInterval(() => this.notificationCenterService.refreshUnreadCount(), 60000);
   }
 
   ngOnDestroy(): void {
-    this.summarySubscription?.unsubscribe();
+    this.unreadSubscription?.unsubscribe();
+    if (this.pollingTimer) {
+      clearInterval(this.pollingTimer);
+    }
   }
 
   @HostListener('document:click')
@@ -178,33 +180,42 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.router.navigate([route]);
   }
 
-  recentTransactionRoute(item: RecentTransaction): string {
-    const type = (item.type || '').toLowerCase();
-    if (type.includes('sales invoice')) {
-      return '/sales/invoices';
+  openNotification(item: NotificationItem): void {
+    this.isNotificationOpen = false;
+    const navigate = () => {
+      if (item.actionUrl) {
+        this.router.navigateByUrl(item.actionUrl);
+      } else {
+        this.router.navigate(['/notifications', item.id], { state: { notification: item } });
+      }
+    };
+
+    if (!item.read) {
+      item.read = true;
+      this.notificationCenterService.markAsRead(item.id).subscribe({
+        next: updated => {
+          Object.assign(item, updated);
+          navigate();
+        },
+        error: () => navigate()
+      });
+      return;
     }
-    if (type.includes('purchase')) {
-      return '/purchases/invoices';
-    }
-    if (type.includes('expense')) {
-      return '/expenses';
-    }
-    if (type.includes('customer due')) {
-      return '/reports/customer-dues';
-    }
-    if (type.includes('supplier due')) {
-      return '/reports/supplier-dues';
-    }
-    if (type.includes('low stock')) {
-      return '/inventory/stocks';
-    }
-    return '/dashboard';
+    navigate();
   }
 
-  dueAlertRoute(alert: DueAlert): string {
-    return (alert.type || '').toLowerCase().includes('supplier')
-      ? '/reports/supplier-dues'
-      : '/reports/customer-dues';
+  markAllNotificationsRead(event: MouseEvent): void {
+    event.stopPropagation();
+    this.notificationCenterService.markAllAsRead().subscribe({
+      next: () => this.notifications = this.notifications.map(item => ({ ...item, read: true })),
+      error: () => undefined
+    });
+  }
+
+  openNotificationHistory(event: MouseEvent): void {
+    event.stopPropagation();
+    this.isNotificationOpen = false;
+    this.router.navigate(['/notifications']);
   }
 
   logout(): void {
@@ -222,28 +233,26 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   get notificationCount(): number {
-    return this.lowStockAlerts.length + this.dueAlerts.length;
+    return this.unreadCount;
   }
 
   get hasNotifications(): boolean {
-    return this.notificationCount > 0 || this.recentTransactions.length > 0;
+    return this.notifications.length > 0;
   }
 
   private loadNotifications(): void {
-    this.dashboardService.getSummary().subscribe({
-      next: summary => this.applyNotificationSummary(summary),
+    this.notificationLoading = true;
+    this.notificationCenterService.getUnreadCount().subscribe({ error: () => undefined });
+    this.notificationCenterService.getPreview().subscribe({
+      next: notifications => {
+        this.notifications = notifications;
+        this.notificationLoading = false;
+      },
       error: () => {
-        this.lowStockAlerts = [];
-        this.dueAlerts = [];
-        this.recentTransactions = [];
+        this.notifications = [];
+        this.notificationLoading = false;
       }
     });
-  }
-
-  private applyNotificationSummary(summary: { lowStockAlerts?: LowStockAlert[]; dueAlerts?: DueAlert[]; recentTransactions?: RecentTransaction[] }): void {
-    this.lowStockAlerts = summary.lowStockAlerts || [];
-    this.dueAlerts = summary.dueAlerts || [];
-    this.recentTransactions = (summary.recentTransactions || []).slice(0, 4);
   }
 
   private showSearchMessage(message: string): void {

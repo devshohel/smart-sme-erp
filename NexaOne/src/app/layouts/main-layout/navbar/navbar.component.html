@@ -41,41 +41,30 @@
       <div class="notification-menu" *ngIf="isNotificationOpen">
         <div class="notification-header">
           <strong>Notifications</strong>
-          <span>{{ notificationCount }} alerts</span>
+          <span>{{ notificationCount }} unread</span>
         </div>
 
-        <div class="notification-empty" *ngIf="!hasNotifications">No notifications</div>
+        <div class="notification-actions">
+          <button type="button" (click)="markAllNotificationsRead($event)" [disabled]="notificationCount === 0">Mark all read</button>
+          <button type="button" (click)="openNotificationHistory($event)">View all</button>
+        </div>
 
-        <ng-container *ngIf="hasNotifications">
-          <div class="notification-group" *ngIf="lowStockAlerts.length">
-            <h4>Low Stock Alerts</h4>
-            <button type="button" class="notification-item" *ngFor="let item of lowStockAlerts | slice:0:4" (click)="navigateFromNotification('/inventory/stocks')">
-              <i class="bi bi-exclamation-triangle"></i>
-              <span>
-                <strong>{{ item.productName }}</strong>
-                <small>{{ item.warehouseName }} - Qty {{ item.quantity | number:'1.0-2' }}</small>
-              </span>
-            </button>
-          </div>
+        <div class="notification-empty" *ngIf="notificationLoading">Loading notifications...</div>
+        <div class="notification-empty" *ngIf="!notificationLoading && !hasNotifications">No notifications</div>
 
-          <div class="notification-group" *ngIf="dueAlerts.length">
-            <h4>Due Alerts</h4>
-            <button type="button" class="notification-item" *ngFor="let item of dueAlerts | slice:0:4" (click)="navigateFromNotification(dueAlertRoute(item))">
-              <i class="bi bi-cash-coin"></i>
+        <ng-container *ngIf="!notificationLoading && hasNotifications">
+          <div class="notification-group">
+            <button type="button" class="notification-item" *ngFor="let item of notifications" [class.unread]="!item.read" (click)="openNotification(item)">
+              <i class="bi" [ngClass]="{
+                'bi-info-circle': item.type === 'INFO',
+                'bi-check-circle': item.type === 'SUCCESS',
+                'bi-exclamation-triangle': item.type === 'WARNING',
+                'bi-x-octagon': item.type === 'ERROR'
+              }"></i>
               <span>
-                <strong>{{ item.partyName }}</strong>
-                <small>{{ item.type }} - BDT {{ item.dueAmount | number:'1.2-2' }}</small>
-              </span>
-            </button>
-          </div>
-
-          <div class="notification-group" *ngIf="recentTransactions.length">
-            <h4>Recent Activity</h4>
-            <button type="button" class="notification-item" *ngFor="let item of recentTransactions" (click)="navigateFromNotification(recentTransactionRoute(item))">
-              <i class="bi bi-clock-history"></i>
-              <span>
-                <strong>{{ item.referenceNo }}</strong>
-                <small>{{ item.type }} - {{ item.partyName }}</small>
+                <strong>{{ item.title }}</strong>
+                <small>{{ item.message }}</small>
+                <em>{{ item.createdAt | date:'short' }}</em>
               </span>
             </button>
           </div>

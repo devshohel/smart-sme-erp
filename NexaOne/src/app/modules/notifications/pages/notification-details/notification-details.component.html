@@ -1,0 +1,50 @@
+<app-page-header
+  title="Notification Details"
+  subtitle="Review the selected in-app ERP notification.">
+</app-page-header>
+
+<app-card>
+  <div *ngIf="loading" class="text-center py-4">Loading notification...</div>
+
+  <ng-container *ngIf="!loading && notification">
+    <div class="details-header">
+      <div>
+        <h2>{{ notification.title }}</h2>
+        <p>{{ notification.createdAt | date:'medium' }}</p>
+      </div>
+      <span class="status-pill" [class.unread]="!notification.read">{{ notification.read ? 'READ' : 'UNREAD' }}</span>
+    </div>
+
+    <p class="notification-message">{{ notification.message }}</p>
+
+    <dl class="details-grid">
+      <div>
+        <dt>Type</dt>
+        <dd>{{ notification.type }}</dd>
+      </div>
+      <div>
+        <dt>Severity</dt>
+        <dd>{{ notification.severity }}</dd>
+      </div>
+      <div>
+        <dt>Entity</dt>
+        <dd>{{ notification.entityType || '-' }}</dd>
+      </div>
+      <div>
+        <dt>Created by</dt>
+        <dd>{{ notification.createdBy || 'System' }}</dd>
+      </div>
+    </dl>
+
+    <div class="details-actions">
+      <button class="btn btn-outline-secondary" type="button" (click)="back()">Back</button>
+      <button class="btn btn-success" type="button" (click)="openAction()" [disabled]="!notification.actionUrl">Open action</button>
+    </div>
+  </ng-container>
+
+  <app-empty-state
+    *ngIf="!loading && !notification"
+    title="Notification not found"
+    message="The selected notification is not available in your current notification history.">
+  </app-empty-state>
+</app-card>

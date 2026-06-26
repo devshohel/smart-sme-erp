@@ -13,6 +13,9 @@ import com.sme.erp.inventory.mapper.StockMapper;
 import com.sme.erp.inventory.mapper.StockMovementMapper;
 import com.sme.erp.inventory.repository.*;
 import com.sme.erp.inventory.service.StockService;
+import com.sme.erp.notification.enums.NotificationSeverity;
+import com.sme.erp.notification.enums.NotificationType;
+import com.sme.erp.notification.service.NotificationService;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.repository.ProductRepository;
 
@@ -41,6 +44,7 @@ public class StockServiceImpl implements StockService {
     private final StockAdjustmentRepository adjustmentRepository;
     private final StockMapper stockMapper;
     private final StockMovementMapper stockMovementMapper;
+    private final NotificationService notificationService;
 
     public StockServiceImpl(
             StockRepository stockRepository,
@@ -49,7 +53,8 @@ public class StockServiceImpl implements StockService {
             StockMovementRepository movementRepository,
             StockAdjustmentRepository adjustmentRepository,
             StockMapper stockMapper,
-            StockMovementMapper stockMovementMapper) {
+            StockMovementMapper stockMovementMapper,
+            NotificationService notificationService) {
 
         this.stockRepository = stockRepository;
         this.productRepository = productRepository;
@@ -58,6 +63,7 @@ public class StockServiceImpl implements StockService {
         this.adjustmentRepository = adjustmentRepository;
         this.stockMapper = stockMapper;
         this.stockMovementMapper = stockMovementMapper;
+        this.notificationService = notificationService;
     }
 
     // STOCK IN
@@ -111,6 +117,7 @@ public class StockServiceImpl implements StockService {
         Stock stock = getStockEntityForUpdate(productId, warehouseId);
 
         if (stock.getQuantity().compareTo(qty) < 0) {
+            notifyNegativeStockAttempt(stock, qty, referenceNo);
             throw new BadRequestException("Insufficient stock");
         }
 
@@ -122,6 +129,7 @@ public class StockServiceImpl implements StockService {
 
         saveMovement(stock, qty, change, before, after, MovementType.OUT,
                 normalizeReferenceType(referenceType, "SALE"), referenceNo, null);
+        notifyLowStock(stock, after);
 
         return stockMapper.toDTO(stock);
     }
@@ -135,6 +143,7 @@ public class StockServiceImpl implements StockService {
 
         Stock stock = getStockEntityForUpdate(productId, warehouseId);
         if (stock.getQuantity().compareTo(qty) < 0) {
+            notifyNegativeStockAttempt(stock, qty, referenceNo);
             throw new BadRequestException("Insufficient stock");
         }
 
@@ -146,6 +155,7 @@ public class StockServiceImpl implements StockService {
 
         saveMovement(stock, qty, change, before, after, MovementType.TRANSFER,
                 "STOCK_TRANSFER_OUT", referenceNo, null);
+        notifyLowStock(stock, after);
 
         return stockMapper.toDTO(stock);
     }
@@ -182,6 +192,7 @@ public class StockServiceImpl implements StockService {
         BigDecimal before = safe(stock.getQuantity());
         BigDecimal after = before.add(qty);
         if (after.signum() < 0) {
+            notifyNegativeStockAttempt(stock, qty.abs(), reason);
             throw new BadRequestException("Adjustment cannot make stock negative.");
         }
 
@@ -197,6 +208,7 @@ public class StockServiceImpl implements StockService {
         adjustmentRepository.save(adj);
 
         saveMovement(stock, qty.abs(), qty, before, after, MovementType.ADJUSTMENT, "ADJUSTMENT", reason, null);
+        notifyLowStock(stock, after);
 
         return stockMapper.toDTO(stock);
     }
@@ -305,6 +317,41 @@ public class StockServiceImpl implements StockService {
         movement.setUnitCost(cost);
 
         movementRepository.save(movement);
+    }
+
+    private void notifyLowStock(Stock stock, BigDecimal quantityAfter) {
+        Product product = stock.getProduct();
+        Integer reorderLevel = product != null ? product.getReorderLevel() : null;
+        if (product == null || reorderLevel == null || reorderLevel <= 0
+                || quantityAfter.compareTo(BigDecimal.valueOf(reorderLevel)) > 0) {
+            return;
+        }
+
+        String warehouseName = stock.getWarehouse() != null ? stock.getWarehouse().getName() : "selected warehouse";
+        notificationService.notifyGlobalOnce(
+                "Low stock warning",
+                product.getProductName() + " is at or below reorder level in " + warehouseName
+                        + ". Current quantity: " + quantityAfter + ".",
+                NotificationType.WARNING,
+                NotificationSeverity.HIGH,
+                "STOCK",
+                stock.getId(),
+                "/inventory/stocks");
+    }
+
+    private void notifyNegativeStockAttempt(Stock stock, BigDecimal requestedQty, String referenceNo) {
+        Product product = stock.getProduct();
+        String productName = product != null ? product.getProductName() : "Selected product";
+        String warehouseName = stock.getWarehouse() != null ? stock.getWarehouse().getName() : "selected warehouse";
+        notificationService.notifyGlobal(
+                "Negative stock prevented",
+                productName + " in " + warehouseName + " could not be reduced by " + requestedQty
+                        + " because available stock is " + safe(stock.getQuantity()) + ".",
+                NotificationType.ERROR,
+                NotificationSeverity.CRITICAL,
+                "STOCK",
+                stock.getId(),
+                referenceNo != null && !referenceNo.isBlank() ? "/inventory/movements" : "/inventory/stocks");
     }
 
     private synchronized String nextMovementCode() {

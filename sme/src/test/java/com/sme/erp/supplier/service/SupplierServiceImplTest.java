@@ -12,6 +12,7 @@ import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.enums.Status;
+import com.sme.erp.notification.service.NotificationService;
 import com.sme.erp.purchase.entity.PurchaseOrder;
 import com.sme.erp.purchase.entity.PurchaseReturn;
 import com.sme.erp.purchase.enums.PurchaseStatus;
@@ -70,6 +71,8 @@ class SupplierServiceImplTest {
     private ActivityLogService activityLogService;
     @Mock
     private AuditLogService auditLogService;
+    @Mock
+    private NotificationService notificationService;
 
     private SupplierServiceImpl service;
 
@@ -77,7 +80,7 @@ class SupplierServiceImplTest {
     void setUp() {
         service = new SupplierServiceImpl(supplierRepository, new SupplierMapper(), purchaseOrderRepository, purchaseReturnRepository,
                 supplierPaymentRepository, new SupplierPaymentMapper(new SupplierPaymentAllocationMapper()),
-                accountRepository, journalEntryLineRepository, activityLogService, auditLogService);
+                accountRepository, journalEntryLineRepository, activityLogService, auditLogService, notificationService);
     }
 
     @Test

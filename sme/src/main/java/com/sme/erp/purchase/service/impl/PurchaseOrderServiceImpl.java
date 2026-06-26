@@ -10,6 +10,9 @@ import com.sme.erp.common.util.RequestValueUtils;
 import com.sme.erp.inventory.entity.Warehouse;
 import com.sme.erp.inventory.repository.WarehouseRepository;
 import com.sme.erp.inventory.service.StockService;
+import com.sme.erp.notification.enums.NotificationSeverity;
+import com.sme.erp.notification.enums.NotificationType;
+import com.sme.erp.notification.service.NotificationService;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.entity.Uom;
 import com.sme.erp.product.repository.ProductRepository;
@@ -55,6 +58,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final ActivityLogService activityLogService;
     private final AuditLogService auditLogService;
     private final AccountingPostingService accountingPostingService;
+    private final NotificationService notificationService;
 
     public PurchaseOrderServiceImpl(
             PurchaseOrderRepository purchaseOrderRepository,
@@ -67,7 +71,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             StockService stockService,
             ActivityLogService activityLogService,
             AuditLogService auditLogService,
-            AccountingPostingService accountingPostingService) {
+            AccountingPostingService accountingPostingService,
+            NotificationService notificationService) {
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.supplierRepository = supplierRepository;
         this.warehouseRepository = warehouseRepository;
@@ -79,6 +84,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         this.activityLogService = activityLogService;
         this.auditLogService = auditLogService;
         this.accountingPostingService = accountingPostingService;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -159,6 +165,14 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         PurchaseOrderDTO saved = purchaseOrderMapper.toDTO(purchaseOrderRepository.save(entity));
         activityLogService.log("PURCHASE_ORDER_APPROVE", "PURCHASE", "purchase_orders", saved.getId(), "Approved purchase order " + saved.getPurchaseCode());
         auditLogService.log("purchase_orders", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "APPROVE");
+        notificationService.notifyGlobal(
+                "Purchase order approved",
+                "Purchase order " + saved.getPurchaseCode() + " was approved.",
+                NotificationType.INFO,
+                NotificationSeverity.MEDIUM,
+                "PURCHASE_ORDER",
+                saved.getId(),
+                "/purchases/orders/details/" + saved.getId());
         return saved;
     }
 

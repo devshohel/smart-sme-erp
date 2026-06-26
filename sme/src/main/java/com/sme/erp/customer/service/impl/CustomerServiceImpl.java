@@ -23,6 +23,9 @@ import com.sme.erp.customer.receipt.dto.CustomerReceiptDTO;
 import com.sme.erp.customer.receipt.mapper.CustomerReceiptMapper;
 import com.sme.erp.customer.receipt.repository.CustomerReceiptRepository;
 import com.sme.erp.enums.Status;
+import com.sme.erp.notification.enums.NotificationSeverity;
+import com.sme.erp.notification.enums.NotificationType;
+import com.sme.erp.notification.service.NotificationService;
 import com.sme.erp.sales.entity.SalesInvoice;
 import com.sme.erp.sales.entity.SalesReturn;
 import com.sme.erp.sales.repository.SalesInvoiceRepository;
@@ -57,6 +60,7 @@ public class CustomerServiceImpl implements CustomerService {
     private final SalesReturnRepository salesReturnRepository;
     private final CustomerReceiptRepository customerReceiptRepository;
     private final CustomerReceiptMapper customerReceiptMapper;
+    private final NotificationService notificationService;
 
     public CustomerServiceImpl(
             CustomerRepository customerRepository,
@@ -66,7 +70,8 @@ public class CustomerServiceImpl implements CustomerService {
             SalesInvoiceRepository salesInvoiceRepository,
             SalesReturnRepository salesReturnRepository,
             CustomerReceiptRepository customerReceiptRepository,
-            CustomerReceiptMapper customerReceiptMapper) {
+            CustomerReceiptMapper customerReceiptMapper,
+            NotificationService notificationService) {
         this.customerRepository = customerRepository;
         this.customerMapper = customerMapper;
         this.activityLogService = activityLogService;
@@ -75,6 +80,7 @@ public class CustomerServiceImpl implements CustomerService {
         this.salesReturnRepository = salesReturnRepository;
         this.customerReceiptRepository = customerReceiptRepository;
         this.customerReceiptMapper = customerReceiptMapper;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -263,6 +269,14 @@ public class CustomerServiceImpl implements CustomerService {
         CustomerDTO saved = customerMapper.toDTO(customerRepository.save(customer));
         activityLogService.log("CUSTOMER_CREATE", "CUSTOMER", "customers", saved.getId(), "Created customer " + saved.getName());
         auditLogService.log("customers", saved.getId(), null, auditLogService.toJson(saved), "CREATE");
+        notificationService.notifyGlobal(
+                "New customer created",
+                "Customer " + saved.getName() + " was created.",
+                NotificationType.SUCCESS,
+                NotificationSeverity.LOW,
+                "CUSTOMER",
+                saved.getId(),
+                "/customers/details/" + saved.getId());
         return saved;
     }
 

@@ -15,6 +15,7 @@ import com.sme.erp.customer.receipt.enums.CustomerReceiptPaymentMethod;
 import com.sme.erp.customer.receipt.enums.CustomerReceiptStatus;
 import com.sme.erp.customer.service.impl.CustomerServiceImpl;
 import com.sme.erp.enums.Status;
+import com.sme.erp.notification.service.NotificationService;
 import com.sme.erp.sales.entity.SalesInvoice;
 import com.sme.erp.sales.entity.SalesReturn;
 import com.sme.erp.sales.repository.SalesInvoiceRepository;
@@ -58,6 +59,8 @@ class CustomerServiceImplTest {
     private CustomerReceiptRepository customerReceiptRepository;
     @Mock
     private CustomerReceiptMapper customerReceiptMapper;
+    @Mock
+    private NotificationService notificationService;
 
     private CustomerServiceImpl service;
 
@@ -71,7 +74,8 @@ class CustomerServiceImplTest {
                 salesInvoiceRepository,
                 salesReturnRepository,
                 customerReceiptRepository,
-                customerReceiptMapper);
+                customerReceiptMapper,
+                notificationService);
     }
 
     @Test

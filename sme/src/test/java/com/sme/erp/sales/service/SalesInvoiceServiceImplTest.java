@@ -8,6 +8,7 @@ import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.inventory.entity.Warehouse;
 import com.sme.erp.inventory.repository.WarehouseRepository;
 import com.sme.erp.inventory.service.StockService;
+import com.sme.erp.notification.service.NotificationService;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.repository.ProductRepository;
 import com.sme.erp.product.repository.UomRepository;
@@ -57,6 +58,7 @@ class SalesInvoiceServiceImplTest {
     @Mock private ActivityLogService activityLogService;
     @Mock private AuditLogService auditLogService;
     @Mock private AccountingPostingService accountingPostingService;
+    @Mock private NotificationService notificationService;
 
     private SalesInvoiceServiceImpl service;
 
@@ -74,7 +76,8 @@ class SalesInvoiceServiceImplTest {
                 stockService,
                 activityLogService,
                 auditLogService,
-                accountingPostingService);
+                accountingPostingService,
+                notificationService);
     }
 
     @Test

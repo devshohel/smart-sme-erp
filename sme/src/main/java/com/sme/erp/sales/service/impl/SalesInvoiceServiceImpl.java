@@ -12,6 +12,9 @@ import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.inventory.entity.Warehouse;
 import com.sme.erp.inventory.repository.WarehouseRepository;
 import com.sme.erp.inventory.service.StockService;
+import com.sme.erp.notification.enums.NotificationSeverity;
+import com.sme.erp.notification.enums.NotificationType;
+import com.sme.erp.notification.service.NotificationService;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.entity.Uom;
 import com.sme.erp.product.repository.ProductRepository;
@@ -56,6 +59,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     private final ActivityLogService activityLogService;
     private final AuditLogService auditLogService;
     private final AccountingPostingService accountingPostingService;
+    private final NotificationService notificationService;
 
     public SalesInvoiceServiceImpl(
             SalesInvoiceRepository salesInvoiceRepository,
@@ -69,7 +73,8 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
             StockService stockService,
             ActivityLogService activityLogService,
             AuditLogService auditLogService,
-            AccountingPostingService accountingPostingService) {
+            AccountingPostingService accountingPostingService,
+            NotificationService notificationService) {
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.salesOrderRepository = salesOrderRepository;
         this.customerRepository = customerRepository;
@@ -82,6 +87,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         this.activityLogService = activityLogService;
         this.auditLogService = auditLogService;
         this.accountingPostingService = accountingPostingService;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -185,6 +191,14 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         SalesInvoiceDTO saved = normalizeReversedPaymentState(salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity)));
         activityLogService.log("SALES_INVOICE_POST", "SALES", "sales_invoices", saved.getId(), "Posted sales invoice " + saved.getInvoiceNo());
         auditLogService.log("sales_invoices", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "POST");
+        notificationService.notifyGlobal(
+                "New sales invoice posted",
+                "Sales invoice " + saved.getInvoiceNo() + " was posted for " + saved.getCustomerName() + ".",
+                NotificationType.SUCCESS,
+                NotificationSeverity.MEDIUM,
+                "SALES_INVOICE",
+                saved.getId(),
+                "/sales/invoices/details/" + saved.getId());
         return saved;
     }
 

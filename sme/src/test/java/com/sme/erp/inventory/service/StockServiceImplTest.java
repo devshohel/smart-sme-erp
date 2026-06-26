@@ -12,6 +12,7 @@ import com.sme.erp.inventory.repository.StockMovementRepository;
 import com.sme.erp.inventory.repository.StockRepository;
 import com.sme.erp.inventory.repository.WarehouseRepository;
 import com.sme.erp.inventory.service.impl.StockServiceImpl;
+import com.sme.erp.notification.service.NotificationService;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,8 @@ class StockServiceImplTest {
     private StockMovementRepository movementRepository;
     @Mock
     private StockAdjustmentRepository adjustmentRepository;
+    @Mock
+    private NotificationService notificationService;
 
     private StockServiceImpl service;
 
@@ -57,7 +60,8 @@ class StockServiceImplTest {
                 movementRepository,
                 adjustmentRepository,
                 new StockMapper(),
-                new StockMovementMapper());
+                new StockMovementMapper(),
+                notificationService);
     }
 
     @Test

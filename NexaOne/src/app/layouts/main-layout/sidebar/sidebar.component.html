@@ -13,6 +13,11 @@
       <span>Dashboard</span>
     </a>
 
+    <a *ngIf="hasPermission('NOTIFICATION_VIEW')" routerLink="/notifications" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: false }" class="side-link d-flex align-items-center px-3 py-2 my-1" (click)="closeSidebar()">
+      <i class="bi bi-bell icon fs-5 me-3"></i>
+      <span>Notifications</span>
+    </a>
+
     <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['PRODUCT_VIEW', 'PRODUCT_CREATE', 'CATEGORY_VIEW', 'BRAND_VIEW', 'UOM_VIEW'])" routerLinkActive #productsNav="routerLinkActive">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          [class.active]="productsNav.isActive"

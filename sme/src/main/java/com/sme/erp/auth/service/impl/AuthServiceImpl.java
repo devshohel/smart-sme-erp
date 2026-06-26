@@ -16,6 +16,9 @@ import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.audit.service.LoginHistoryService;
 import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.enums.Status;
+import com.sme.erp.notification.enums.NotificationSeverity;
+import com.sme.erp.notification.enums.NotificationType;
+import com.sme.erp.notification.service.NotificationService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -35,6 +38,7 @@ public class AuthServiceImpl implements AuthService {
     private final AccessTokenBlacklistService accessTokenBlacklistService;
     private final LoginHistoryService loginHistoryService;
     private final ActivityLogService activityLogService;
+    private final NotificationService notificationService;
     private final int maxFailedAttempts;
     private final long lockDurationMinutes;
 
@@ -47,6 +51,7 @@ public class AuthServiceImpl implements AuthService {
             AccessTokenBlacklistService accessTokenBlacklistService,
             LoginHistoryService loginHistoryService,
             ActivityLogService activityLogService,
+            NotificationService notificationService,
             @Value("${app.security.max-failed-login-attempts:5}") int maxFailedAttempts,
             @Value("${app.security.lock-duration-minutes:15}") long lockDurationMinutes) {
         this.userRepository = userRepository;
@@ -57,6 +62,7 @@ public class AuthServiceImpl implements AuthService {
         this.accessTokenBlacklistService = accessTokenBlacklistService;
         this.loginHistoryService = loginHistoryService;
         this.activityLogService = activityLogService;
+        this.notificationService = notificationService;
         this.maxFailedAttempts = maxFailedAttempts;
         this.lockDurationMinutes = lockDurationMinutes;
     }
@@ -69,6 +75,14 @@ public class AuthServiceImpl implements AuthService {
         if (user == null) {
             loginHistoryService.failed(request.getUsername(), "Invalid username or password");
             activityLogService.log("LOGIN_FAILED", "AUTH", "users", null, "Failed login for unknown username: " + request.getUsername());
+            notificationService.notifyGlobal(
+                    "Failed login attempt",
+                    "Failed login attempt for unknown username: " + request.getUsername(),
+                    NotificationType.WARNING,
+                    NotificationSeverity.MEDIUM,
+                    "AUTH",
+                    null,
+                    "/settings/login-history");
             throw new BadRequestException("Invalid username or password");
         }
         if (isLocked(user)) {
@@ -173,8 +187,24 @@ public class AuthServiceImpl implements AuthService {
         if (attempts >= maxFailedAttempts) {
             user.setLockedUntil(LocalDateTime.now().plusMinutes(lockDurationMinutes));
             activityLogService.log("ACCOUNT_LOCKED", "AUTH", "users", user.getId(), "Account locked after failed login attempts");
+            notificationService.notifyGlobal(
+                    "User account locked",
+                    "User " + user.getUsername() + " was locked after failed login attempts.",
+                    NotificationType.ERROR,
+                    NotificationSeverity.HIGH,
+                    "USER",
+                    user.getId(),
+                    "/settings/users");
         } else {
             activityLogService.log("LOGIN_FAILED", "AUTH", "users", user.getId(), "Failed login attempt " + attempts);
+            notificationService.notifyGlobal(
+                    "Failed login attempt",
+                    "Failed login attempt " + attempts + " for user " + user.getUsername() + ".",
+                    NotificationType.WARNING,
+                    NotificationSeverity.MEDIUM,
+                    "USER",
+                    user.getId(),
+                    "/settings/login-history");
         }
         userRepository.save(user);
     }

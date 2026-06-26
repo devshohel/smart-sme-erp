@@ -1,0 +1,82 @@
+<app-page-header
+  title="Notifications"
+  subtitle="Review ERP alerts, business events, and system notices.">
+</app-page-header>
+
+<app-card>
+  <div class="notification-toolbar">
+    <select class="form-select" [(ngModel)]="filters.read" (change)="applyFilters()" aria-label="Read status">
+      <option value="">All notifications</option>
+      <option [ngValue]="false">Unread</option>
+      <option [ngValue]="true">Read</option>
+    </select>
+
+    <select class="form-select" [(ngModel)]="filters.type" (change)="applyFilters()" aria-label="Notification type">
+      <option value="">All types</option>
+      <option *ngFor="let type of types" [value]="type">{{ type }}</option>
+    </select>
+
+    <select class="form-select" [(ngModel)]="filters.severity" (change)="applyFilters()" aria-label="Severity">
+      <option value="">All severities</option>
+      <option *ngFor="let severity of severities" [value]="severity">{{ severity }}</option>
+    </select>
+
+    <input class="form-control" type="date" [(ngModel)]="filters.fromDate" (change)="applyFilters()" aria-label="From date">
+    <input class="form-control" type="date" [(ngModel)]="filters.toDate" (change)="applyFilters()" aria-label="To date">
+
+    <button class="btn btn-outline-secondary" type="button" (click)="resetFilters()">Reset</button>
+    <button class="btn btn-success" type="button" (click)="markAllAsRead()" [disabled]="loading || !notifications.length">
+      Mark all read
+    </button>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table align-middle notification-table">
+      <thead>
+        <tr>
+          <th>Notification</th>
+          <th>Type</th>
+          <th>Severity</th>
+          <th>Created</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngIf="loading">
+          <td colspan="5" class="text-center py-4">Loading notifications...</td>
+        </tr>
+        <tr *ngFor="let item of notifications" [class.unread]="!item.read" (click)="open(item)">
+          <td>
+            <div class="notification-title">{{ item.title }}</div>
+            <div class="notification-message">{{ item.message }}</div>
+          </td>
+          <td><span class="badge type-badge" [ngClass]="item.type.toLowerCase()">{{ item.type }}</span></td>
+          <td><span class="badge severity-badge" [ngClass]="item.severity.toLowerCase()">{{ item.severity }}</span></td>
+          <td>{{ item.createdAt | date:'medium' }}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-success me-2" type="button" (click)="markAsRead(item, $event)" [disabled]="item.read || actionLoadingId === item.id">
+              Read
+            </button>
+            <button *ngIf="canManage()" class="btn btn-sm btn-outline-danger" type="button" (click)="delete(item, $event)" [disabled]="actionLoadingId === item.id">
+              Delete
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="!loading && notifications.length === 0">
+          <td colspan="5">
+            <app-empty-state title="No notifications found" message="No notifications match the selected filters."></app-empty-state>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="notification-pagination" *ngIf="totalElements > 0">
+    <span>{{ totalElements }} notifications</span>
+    <div>
+      <button class="btn btn-outline-secondary btn-sm me-2" type="button" (click)="pagePrevious()" [disabled]="(filters.page || 0) === 0 || loading">Previous</button>
+      <span>Page {{ (filters.page || 0) + 1 }} of {{ totalPages || 1 }}</span>
+      <button class="btn btn-outline-secondary btn-sm ms-2" type="button" (click)="pageNext()" [disabled]="(filters.page || 0) + 1 >= totalPages || loading">Next</button>
+    </div>
+  </div>
+</app-card>

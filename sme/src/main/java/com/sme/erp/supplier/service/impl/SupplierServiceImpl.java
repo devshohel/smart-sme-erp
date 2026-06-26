@@ -11,6 +11,9 @@ import com.sme.erp.common.util.RequestValueUtils;
 import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.enums.Status;
+import com.sme.erp.notification.enums.NotificationSeverity;
+import com.sme.erp.notification.enums.NotificationType;
+import com.sme.erp.notification.service.NotificationService;
 import com.sme.erp.purchase.entity.PurchaseOrder;
 import com.sme.erp.purchase.entity.PurchaseReturn;
 import com.sme.erp.purchase.repository.PurchaseOrderRepository;
@@ -69,6 +72,7 @@ public class SupplierServiceImpl implements SupplierService {
     private final JournalEntryLineRepository journalEntryLineRepository;
     private final ActivityLogService activityLogService;
     private final AuditLogService auditLogService;
+    private final NotificationService notificationService;
 
     public SupplierServiceImpl(
             SupplierRepository supplierRepository,
@@ -80,7 +84,8 @@ public class SupplierServiceImpl implements SupplierService {
             AccountRepository accountRepository,
             JournalEntryLineRepository journalEntryLineRepository,
             ActivityLogService activityLogService,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService,
+            NotificationService notificationService) {
         this.supplierRepository = supplierRepository;
         this.supplierMapper = supplierMapper;
         this.purchaseOrderRepository = purchaseOrderRepository;
@@ -91,6 +96,7 @@ public class SupplierServiceImpl implements SupplierService {
         this.journalEntryLineRepository = journalEntryLineRepository;
         this.activityLogService = activityLogService;
         this.auditLogService = auditLogService;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -415,6 +421,14 @@ public class SupplierServiceImpl implements SupplierService {
         SupplierDTO saved = supplierMapper.toDTO(supplierRepository.save(supplier));
         activityLogService.log("SUPPLIER_CREATE", "SUPPLIER", "suppliers", saved.getId(), "Created supplier " + saved.getName());
         auditLogService.log("suppliers", saved.getId(), null, auditLogService.toJson(saved), "CREATE");
+        notificationService.notifyGlobal(
+                "New supplier created",
+                "Supplier " + saved.getName() + " was created.",
+                NotificationType.SUCCESS,
+                NotificationSeverity.LOW,
+                "SUPPLIER",
+                saved.getId(),
+                "/suppliers/details/" + saved.getId());
         return saved;
     }
 
