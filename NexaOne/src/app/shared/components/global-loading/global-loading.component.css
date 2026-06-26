@@ -1,0 +1,29 @@
+.global-loading {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 1080;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  padding-top: 82px;
+}
+
+.loading-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 38px;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid #dcefe4;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #1f5f3a;
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+@media (max-width: 991px) {
+  .global-loading {
+    padding-top: 74px;
+  }
+}

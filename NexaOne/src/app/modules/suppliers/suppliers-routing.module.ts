@@ -14,16 +14,16 @@ const routes: Routes = [
   {
     path: '',
     children: [
-      { path: 'list', component: SupplierListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['SUPPLIER_VIEW', 'SUPPLIER_LEDGER_VIEW', 'SUPPLIER_EDIT'] } },
-      { path: 'details/:id', component: SupplierDetailsComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['SUPPLIER_VIEW', 'SUPPLIER_LEDGER_VIEW'] } },
-      { path: 'create', component: SupplierFormComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_CREATE'] } },
-      { path: 'edit/:id', component: SupplierFormComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_EDIT'] } },
-      { path: 'payments', component: SupplierPaymentListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['SUPPLIER_PAYMENT_VIEW', 'SUPPLIER_PAYMENT_CREATE', 'SUPPLIER_PAYMENT_EDIT'] } },
-      { path: 'payments/create', component: SupplierPaymentFormComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_PAYMENT_CREATE'] } },
-      { path: 'payments/details/:id', component: SupplierPaymentDetailsComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_PAYMENT_VIEW'] } },
-      { path: 'payments/edit/:id', component: SupplierPaymentFormComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_PAYMENT_EDIT'] } },
-      { path: 'aging', component: SupplierAgingComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['SUPPLIER_LEDGER_VIEW', 'SUPPLIER_VIEW'] } },
-      { path: 'ap-reconciliation', component: SupplierApReconciliationComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_LEDGER_VIEW'] } },
+      { path: 'list', component: SupplierListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['SUPPLIER_VIEW', 'SUPPLIER_LEDGER_VIEW', 'SUPPLIER_EDIT'], breadcrumb: 'Supplier List' } },
+      { path: 'details/:id', component: SupplierDetailsComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['SUPPLIER_VIEW', 'SUPPLIER_LEDGER_VIEW'], breadcrumb: 'Details' } },
+      { path: 'create', component: SupplierFormComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_CREATE'], breadcrumb: 'Create Supplier' } },
+      { path: 'edit/:id', component: SupplierFormComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_EDIT'], breadcrumb: 'Edit Supplier' } },
+      { path: 'payments', component: SupplierPaymentListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['SUPPLIER_PAYMENT_VIEW', 'SUPPLIER_PAYMENT_CREATE', 'SUPPLIER_PAYMENT_EDIT'], breadcrumb: 'Supplier Payments' } },
+      { path: 'payments/create', component: SupplierPaymentFormComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_PAYMENT_CREATE'], breadcrumb: 'Create Payment' } },
+      { path: 'payments/details/:id', component: SupplierPaymentDetailsComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_PAYMENT_VIEW'], breadcrumb: 'Payment Details' } },
+      { path: 'payments/edit/:id', component: SupplierPaymentFormComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_PAYMENT_EDIT'], breadcrumb: 'Edit Payment' } },
+      { path: 'aging', component: SupplierAgingComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['SUPPLIER_LEDGER_VIEW', 'SUPPLIER_VIEW'], breadcrumb: 'Supplier Aging' } },
+      { path: 'ap-reconciliation', component: SupplierApReconciliationComponent, canActivate: [PermissionGuard], data: { permissions: ['SUPPLIER_LEDGER_VIEW'], breadcrumb: 'AP Reconciliation' } },
       { path: '', redirectTo: 'list', pathMatch: 'full' }
     ]
   }

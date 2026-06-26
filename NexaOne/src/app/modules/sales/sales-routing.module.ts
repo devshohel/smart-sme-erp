@@ -9,18 +9,18 @@ const routes: Routes = [
   {
     path: '',
     children: [
-      { path: 'orders', component: OrdersComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_ORDER_VIEW'], mode: 'list' } },
-      { path: 'orders/create', component: OrdersComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_ORDER_CREATE'], mode: 'create' } },
-      { path: 'orders/edit/:id', component: OrdersComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_ORDER_EDIT'], mode: 'edit' } },
-      { path: 'orders/details/:id', component: OrdersComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_ORDER_VIEW'], mode: 'details' } },
-      { path: 'invoices', component: InvoicesComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_INVOICE_VIEW'], mode: 'list' } },
-      { path: 'invoices/create', component: InvoicesComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_INVOICE_CREATE'], mode: 'create' } },
-      { path: 'invoices/edit/:id', component: InvoicesComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_INVOICE_EDIT'], mode: 'edit' } },
-      { path: 'invoices/details/:id', component: InvoicesComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_INVOICE_VIEW'], mode: 'details' } },
-      { path: 'returns', component: ReturnsComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_RETURN_VIEW'], mode: 'list' } },
-      { path: 'returns/create', component: ReturnsComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_RETURN_CREATE'], mode: 'create' } },
-      { path: 'returns/edit/:id', component: ReturnsComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_RETURN_EDIT'], mode: 'edit' } },
-      { path: 'returns/details/:id', component: ReturnsComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_RETURN_VIEW'], mode: 'details' } },
+      { path: 'orders', component: OrdersComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_ORDER_VIEW'], mode: 'list', breadcrumb: 'Sales Orders' } },
+      { path: 'orders/create', component: OrdersComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_ORDER_CREATE'], mode: 'create', breadcrumb: 'Create' } },
+      { path: 'orders/edit/:id', component: OrdersComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_ORDER_EDIT'], mode: 'edit', breadcrumb: 'Edit' } },
+      { path: 'orders/details/:id', component: OrdersComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_ORDER_VIEW'], mode: 'details', breadcrumb: 'Details' } },
+      { path: 'invoices', component: InvoicesComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_INVOICE_VIEW'], mode: 'list', breadcrumb: 'Sales Invoice' } },
+      { path: 'invoices/create', component: InvoicesComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_INVOICE_CREATE'], mode: 'create', breadcrumb: 'Create' } },
+      { path: 'invoices/edit/:id', component: InvoicesComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_INVOICE_EDIT'], mode: 'edit', breadcrumb: 'Edit' } },
+      { path: 'invoices/details/:id', component: InvoicesComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_INVOICE_VIEW'], mode: 'details', breadcrumb: 'Details' } },
+      { path: 'returns', component: ReturnsComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_RETURN_VIEW'], mode: 'list', breadcrumb: 'Sales Returns' } },
+      { path: 'returns/create', component: ReturnsComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_RETURN_CREATE'], mode: 'create', breadcrumb: 'Create' } },
+      { path: 'returns/edit/:id', component: ReturnsComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_RETURN_EDIT'], mode: 'edit', breadcrumb: 'Edit' } },
+      { path: 'returns/details/:id', component: ReturnsComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_RETURN_VIEW'], mode: 'details', breadcrumb: 'Details' } },
       { path: '', redirectTo: 'orders', pathMatch: 'full' }
     ]
   }

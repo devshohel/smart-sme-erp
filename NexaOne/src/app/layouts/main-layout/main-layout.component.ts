@@ -1,4 +1,6 @@
 import { Component, HostListener, OnInit } from '@angular/core';
+import { NavigationCancel, NavigationEnd, NavigationError, NavigationStart, Router } from '@angular/router';
+import { LoadingService } from '../../shared/services/loading.service';
 
 @Component({
   selector: 'app-main-layout',
@@ -11,8 +13,19 @@ export class MainLayoutComponent implements OnInit {
   isMobileView = false;
   isSidebarCollapsed = false;
 
+  constructor(private router: Router, private loadingService: LoadingService) {}
+
   ngOnInit(): void {
     this.updateViewportState();
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationStart) {
+        this.loadingService.show();
+      }
+
+      if (event instanceof NavigationEnd || event instanceof NavigationCancel || event instanceof NavigationError) {
+        this.loadingService.hide();
+      }
+    });
   }
 
   @HostListener('window:resize')

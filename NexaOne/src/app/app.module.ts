@@ -13,6 +13,7 @@ import { UnauthorizedComponent } from './unauthorized/unauthorized.component';
 
 import { SharedModule } from './shared/shared.module';
 import { JwtInterceptor } from './modules/auth/jwt.interceptor';
+import { AppHttpInterceptor } from './shared/interceptors/app-http.interceptor';
 
 @NgModule({
   declarations: [
@@ -29,7 +30,8 @@ import { JwtInterceptor } from './modules/auth/jwt.interceptor';
     SharedModule
   ],
   providers: [
-    { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true }
+    { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: AppHttpInterceptor, multi: true }
   ],
   bootstrap: [AppComponent]
 })

@@ -1,8 +1,9 @@
 .app-table {
   background: white;
-  border-radius: 14px;
+  border-radius: 8px;
   overflow: hidden;
   border: 1px solid #f0f0f0;
+  position: relative;
 }
 
 .table {
@@ -20,4 +21,28 @@ th {
 
 td {
   padding: 16px;
+}
+
+.table-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 54px;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #edf2ee;
+  color: #506157;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.table.is-loading {
+  opacity: 0.58;
+}
+
+@media (max-width: 767px) {
+  th,
+  td {
+    padding: 12px;
+    white-space: nowrap;
+  }
 }

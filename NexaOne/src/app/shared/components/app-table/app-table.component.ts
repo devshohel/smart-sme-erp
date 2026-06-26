@@ -8,5 +8,9 @@ import { Component, Input } from '@angular/core';
 export class AppTableComponent {
 
   @Input() headers: string[] = [];
+  @Input() loading = false;
+  @Input() empty = false;
+  @Input() emptyTitle = 'No records found';
+  @Input() emptyMessage = '';
 
 }

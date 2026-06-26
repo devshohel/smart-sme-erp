@@ -1,4 +1,4 @@
-import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
 import { AuthService } from '../../../modules/auth/auth.service';
 
 @Component({
@@ -6,7 +6,9 @@ import { AuthService } from '../../../modules/auth/auth.service';
   templateUrl: './sidebar.component.html',
   styleUrls: ['./sidebar.component.css']
 })
-export class SidebarComponent {
+export class SidebarComponent implements OnInit {
+  private readonly menuStateKey = 'nexa_sidebar_menu_state';
+
   @Input() isMobileView = false;
   @Input() isMobileOpen = false;
   @Input() isCollapsed = false;
@@ -26,6 +28,10 @@ export class SidebarComponent {
     this.checkScreenSize();
   }
 
+  ngOnInit(): void {
+    this.restoreMenuState();
+  }
+
   @HostListener('window:resize')
   checkScreenSize(): void {
     this.isMobileView = window.innerWidth < 992;
@@ -33,38 +39,47 @@ export class SidebarComponent {
 
   toggleProducts(): void {
     this.isProductsOpen = !this.isProductsOpen;
+    this.saveMenuState();
   }
 
   toggleInventory(): void {
     this.isInventoryOpen = !this.isInventoryOpen;
+    this.saveMenuState();
   }
 
   toggleSales(): void {
     this.isSalesOpen = !this.isSalesOpen;
+    this.saveMenuState();
   }
 
   toggleCustomers(): void {
     this.isCustomersOpen = !this.isCustomersOpen;
+    this.saveMenuState();
   }
 
   toggleSuppliers(): void {
     this.isSuppliersOpen = !this.isSuppliersOpen;
+    this.saveMenuState();
   }
 
   togglePurchases(): void {
     this.isPurchasesOpen = !this.isPurchasesOpen;
+    this.saveMenuState();
   }
 
   toggleAccounting(): void {
     this.isAccountingOpen = !this.isAccountingOpen;
+    this.saveMenuState();
   }
 
   toggleReports(): void {
     this.isReportsOpen = !this.isReportsOpen;
+    this.saveMenuState();
   }
 
   toggleSettings(): void {
     this.isSettingsOpen = !this.isSettingsOpen;
+    this.saveMenuState();
   }
 
   logout(): void {
@@ -111,5 +126,41 @@ export class SidebarComponent {
     if (this.isMobileView) {
       this.closeRequested.emit();
     }
+  }
+
+  private restoreMenuState(): void {
+    const state = localStorage.getItem(this.menuStateKey);
+    if (!state) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(state);
+      this.isProductsOpen = parsed.products ?? this.isProductsOpen;
+      this.isInventoryOpen = parsed.inventory ?? this.isInventoryOpen;
+      this.isSalesOpen = parsed.sales ?? this.isSalesOpen;
+      this.isCustomersOpen = parsed.customers ?? this.isCustomersOpen;
+      this.isSuppliersOpen = parsed.suppliers ?? this.isSuppliersOpen;
+      this.isPurchasesOpen = parsed.purchases ?? this.isPurchasesOpen;
+      this.isAccountingOpen = parsed.accounting ?? this.isAccountingOpen;
+      this.isReportsOpen = parsed.reports ?? this.isReportsOpen;
+      this.isSettingsOpen = parsed.settings ?? this.isSettingsOpen;
+    } catch {
+      localStorage.removeItem(this.menuStateKey);
+    }
+  }
+
+  private saveMenuState(): void {
+    localStorage.setItem(this.menuStateKey, JSON.stringify({
+      products: this.isProductsOpen,
+      inventory: this.isInventoryOpen,
+      sales: this.isSalesOpen,
+      customers: this.isCustomersOpen,
+      suppliers: this.isSuppliersOpen,
+      purchases: this.isPurchasesOpen,
+      accounting: this.isAccountingOpen,
+      reports: this.isReportsOpen,
+      settings: this.isSettingsOpen
+    }));
   }
 }

@@ -8,21 +8,22 @@
   </div>
 
   <div class="nav-links-wrapper flex-grow-1 overflow-y-auto py-3">
-    <a *ngIf="hasPermission('DASHBOARD_VIEW')" routerLink="/dashboard" routerLinkActive="active" class="side-link d-flex align-items-center px-3 py-2 my-1" (click)="closeSidebar()">
+    <a *ngIf="hasPermission('DASHBOARD_VIEW')" routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="side-link d-flex align-items-center px-3 py-2 my-1" (click)="closeSidebar()">
       <i class="bi bi-grid-1x2-fill icon fs-5 me-3"></i>
       <span>Dashboard</span>
     </a>
 
-    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['PRODUCT_VIEW', 'PRODUCT_CREATE', 'CATEGORY_VIEW', 'BRAND_VIEW', 'UOM_VIEW'])">
+    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['PRODUCT_VIEW', 'PRODUCT_CREATE', 'CATEGORY_VIEW', 'BRAND_VIEW', 'UOM_VIEW'])" routerLinkActive #productsNav="routerLinkActive">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         [class.active]="productsNav.isActive"
          (click)="toggleProducts()"
          role="button"
-         [attr.aria-expanded]="isProductsOpen">
+         [attr.aria-expanded]="isProductsOpen || productsNav.isActive">
         <i class="bi bi-box icon fs-5 me-3"></i>
         <span>Products</span>
       </a>
 
-      <div class="submenu" [class.show]="isProductsOpen">
+      <div class="submenu" [class.show]="isProductsOpen || productsNav.isActive">
         <a *ngIf="hasPermission('PRODUCT_VIEW')" routerLink="/products/products" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-list-ul me-2"></i> All Products
         </a>
@@ -41,16 +42,17 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['INVENTORY_VIEW', 'STOCK_ADJUSTMENT_VIEW', 'STOCK_ADJUSTMENT_CREATE', 'TRANSFER_VIEW', 'TRANSFER_CREATE', 'TRANSFER_EDIT'])">
+    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['INVENTORY_VIEW', 'STOCK_ADJUSTMENT_VIEW', 'STOCK_ADJUSTMENT_CREATE', 'TRANSFER_VIEW', 'TRANSFER_CREATE', 'TRANSFER_EDIT'])" routerLinkActive #inventoryNav="routerLinkActive">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         [class.active]="inventoryNav.isActive"
          (click)="toggleInventory()"
          role="button"
-         [attr.aria-expanded]="isInventoryOpen">
+         [attr.aria-expanded]="isInventoryOpen || inventoryNav.isActive">
         <i class="bi bi-box-seam icon fs-5 me-3"></i>
         <span>Inventory</span>
       </a>
 
-      <div class="submenu" [class.show]="isInventoryOpen">
+      <div class="submenu" [class.show]="isInventoryOpen || inventoryNav.isActive">
         <a *ngIf="hasPermission('INVENTORY_VIEW')" routerLink="/inventory/stocks" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-graph-up-arrow me-2"></i> Stock Levels
         </a>
@@ -69,16 +71,17 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['SALES_VIEW', 'SALES_CREATE', 'SALES_EDIT', 'SALES_ORDER_VIEW', 'SALES_ORDER_CREATE', 'SALES_ORDER_EDIT', 'SALES_INVOICE_VIEW', 'SALES_INVOICE_CREATE', 'SALES_INVOICE_EDIT', 'SALES_RETURN_VIEW', 'SALES_RETURN_CREATE', 'SALES_RETURN_EDIT'])">
+    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['SALES_VIEW', 'SALES_CREATE', 'SALES_EDIT', 'SALES_ORDER_VIEW', 'SALES_ORDER_CREATE', 'SALES_ORDER_EDIT', 'SALES_INVOICE_VIEW', 'SALES_INVOICE_CREATE', 'SALES_INVOICE_EDIT', 'SALES_RETURN_VIEW', 'SALES_RETURN_CREATE', 'SALES_RETURN_EDIT'])" routerLinkActive #salesNav="routerLinkActive">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         [class.active]="salesNav.isActive"
          (click)="toggleSales()"
          role="button"
-         [attr.aria-expanded]="isSalesOpen">
+         [attr.aria-expanded]="isSalesOpen || salesNav.isActive">
         <i class="bi bi-cart-check icon fs-5 me-3"></i>
         <span>Sales</span>
       </a>
 
-      <div class="submenu" [class.show]="isSalesOpen">
+      <div class="submenu" [class.show]="isSalesOpen || salesNav.isActive">
         <a *ngIf="hasPermission('SALES_ORDER_VIEW')" routerLink="/sales/orders" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-receipt me-2"></i> Orders
         </a>
@@ -91,16 +94,17 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['CUSTOMER_VIEW', 'CUSTOMER_CREATE', 'CUSTOMER_EDIT', 'CUSTOMER_AGING_VIEW', 'CUSTOMER_LEDGER_VIEW', 'CUSTOMER_RECEIPT_VIEW', 'CUSTOMER_RECEIPT_CREATE', 'CUSTOMER_RECEIPT_EDIT'])">
+    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['CUSTOMER_VIEW', 'CUSTOMER_CREATE', 'CUSTOMER_EDIT', 'CUSTOMER_AGING_VIEW', 'CUSTOMER_LEDGER_VIEW', 'CUSTOMER_RECEIPT_VIEW', 'CUSTOMER_RECEIPT_CREATE', 'CUSTOMER_RECEIPT_EDIT'])" routerLinkActive #customersNav="routerLinkActive">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         [class.active]="customersNav.isActive"
          (click)="toggleCustomers()"
          role="button"
-         [attr.aria-expanded]="isCustomersOpen">
+         [attr.aria-expanded]="isCustomersOpen || customersNav.isActive">
         <i class="bi bi-people icon fs-5 me-3"></i>
         <span>Customers</span>
       </a>
 
-      <div class="submenu" [class.show]="isCustomersOpen">
+      <div class="submenu" [class.show]="isCustomersOpen || customersNav.isActive">
         <a *ngIf="hasAnyPermission(['CUSTOMER_VIEW', 'CUSTOMER_LEDGER_VIEW', 'CUSTOMER_EDIT'])" routerLink="/customers/list" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-person-lines-fill me-2"></i> Customer List
         </a>
@@ -116,16 +120,17 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['SUPPLIER_VIEW', 'SUPPLIER_CREATE', 'SUPPLIER_EDIT', 'SUPPLIER_LEDGER_VIEW', 'SUPPLIER_PAYMENT_VIEW', 'SUPPLIER_PAYMENT_CREATE', 'SUPPLIER_PAYMENT_EDIT'])">
+    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['SUPPLIER_VIEW', 'SUPPLIER_CREATE', 'SUPPLIER_EDIT', 'SUPPLIER_LEDGER_VIEW', 'SUPPLIER_PAYMENT_VIEW', 'SUPPLIER_PAYMENT_CREATE', 'SUPPLIER_PAYMENT_EDIT'])" routerLinkActive #suppliersNav="routerLinkActive">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         [class.active]="suppliersNav.isActive"
          (click)="toggleSuppliers()"
          role="button"
-         [attr.aria-expanded]="isSuppliersOpen">
+         [attr.aria-expanded]="isSuppliersOpen || suppliersNav.isActive">
         <i class="bi bi-truck icon fs-5 me-3"></i>
         <span>Suppliers</span>
       </a>
 
-      <div class="submenu" [class.show]="isSuppliersOpen">
+      <div class="submenu" [class.show]="isSuppliersOpen || suppliersNav.isActive">
         <a *ngIf="hasAnyPermission(['SUPPLIER_VIEW', 'SUPPLIER_LEDGER_VIEW', 'SUPPLIER_EDIT'])" routerLink="/suppliers/list" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-truck-flatbed me-2"></i> Supplier List
         </a>
@@ -141,16 +146,17 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['PURCHASE_VIEW', 'PURCHASE_CREATE', 'PURCHASE_EDIT', 'PURCHASE_ORDER_VIEW', 'PURCHASE_ORDER_CREATE', 'PURCHASE_ORDER_EDIT', 'PURCHASE_RECEIVE_VIEW', 'PURCHASE_RECEIVE_CREATE', 'PURCHASE_INVOICE_VIEW', 'PURCHASE_INVOICE_CREATE', 'PURCHASE_INVOICE_EDIT', 'PURCHASE_RETURN_VIEW', 'PURCHASE_RETURN_CREATE', 'PURCHASE_RETURN_EDIT'])">
+    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['PURCHASE_VIEW', 'PURCHASE_CREATE', 'PURCHASE_EDIT', 'PURCHASE_ORDER_VIEW', 'PURCHASE_ORDER_CREATE', 'PURCHASE_RECEIVE_VIEW', 'PURCHASE_RECEIVE_CREATE', 'PURCHASE_INVOICE_VIEW', 'PURCHASE_INVOICE_CREATE', 'PURCHASE_INVOICE_EDIT', 'PURCHASE_RETURN_VIEW', 'PURCHASE_RETURN_CREATE', 'PURCHASE_RETURN_EDIT'])" routerLinkActive #purchasesNav="routerLinkActive">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         [class.active]="purchasesNav.isActive"
          (click)="togglePurchases()"
          role="button"
-         [attr.aria-expanded]="isPurchasesOpen">
+         [attr.aria-expanded]="isPurchasesOpen || purchasesNav.isActive">
         <i class="bi bi-bag-check icon fs-5 me-3"></i>
         <span>Purchases</span>
       </a>
 
-      <div class="submenu" [class.show]="isPurchasesOpen">
+      <div class="submenu" [class.show]="isPurchasesOpen || purchasesNav.isActive">
         <a *ngIf="hasPermission('PURCHASE_ORDER_VIEW')" routerLink="/purchases/orders" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-cart-plus me-2"></i> Purchase Orders
         </a>
@@ -166,16 +172,17 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['ACCOUNTING_VIEW', 'ACCOUNTING_CREATE', 'ACCOUNTING_EDIT', 'REPORT_VIEW', 'COST_CENTER_VIEW', 'COST_CENTER_CREATE', 'COST_CENTER_EDIT', 'BUDGET_VIEW', 'BUDGET_CREATE', 'BUDGET_EDIT', 'FINANCIAL_DASHBOARD_VIEW', 'ACCOUNTING_PERIOD_VIEW', 'YEAR_END_VIEW', 'EXPENSE_VIEW', 'EXPENSE_CREATE', 'EXPENSE_EDIT', 'EXPENSE_SUBMIT', 'EXPENSE_APPROVE', 'EXPENSE_REJECT', 'EXPENSE_POST', 'EXPENSE_CANCEL', 'EXPENSE_REVERSE', 'EXPENSE_REPORT_VIEW'])">
+    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['ACCOUNTING_VIEW', 'ACCOUNTING_CREATE', 'ACCOUNTING_EDIT', 'REPORT_VIEW', 'COST_CENTER_VIEW', 'COST_CENTER_CREATE', 'COST_CENTER_EDIT', 'BUDGET_VIEW', 'BUDGET_CREATE', 'BUDGET_EDIT', 'FINANCIAL_DASHBOARD_VIEW', 'ACCOUNTING_PERIOD_VIEW', 'YEAR_END_VIEW', 'EXPENSE_VIEW', 'EXPENSE_CREATE', 'EXPENSE_EDIT', 'EXPENSE_SUBMIT', 'EXPENSE_APPROVE', 'EXPENSE_REJECT', 'EXPENSE_POST', 'EXPENSE_CANCEL', 'EXPENSE_REVERSE', 'EXPENSE_REPORT_VIEW'])" routerLinkActive #accountingNav="routerLinkActive">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         [class.active]="accountingNav.isActive"
          (click)="toggleAccounting()"
          role="button"
-         [attr.aria-expanded]="isAccountingOpen">
+         [attr.aria-expanded]="isAccountingOpen || accountingNav.isActive">
         <i class="bi bi-calculator icon fs-5 me-3"></i>
         <span>Accounting</span>
       </a>
 
-      <div class="submenu" [class.show]="isAccountingOpen">
+      <div class="submenu" [class.show]="isAccountingOpen || accountingNav.isActive">
         <a *ngIf="hasAnyPermission(['EXPENSE_VIEW', 'EXPENSE_CREATE', 'EXPENSE_EDIT', 'EXPENSE_SUBMIT', 'EXPENSE_APPROVE', 'EXPENSE_REJECT', 'EXPENSE_POST', 'EXPENSE_CANCEL', 'EXPENSE_REVERSE', 'EXPENSE_REPORT_VIEW'])" routerLink="/expenses" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-cash-stack me-2"></i> Expenses
         </a>
@@ -227,47 +234,49 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item" *ngIf="hasPermission('REPORT_VIEW')">
+    <div class="menu-dropdown-item" *ngIf="hasPermission('REPORT_VIEW')" routerLinkActive #reportsNav="routerLinkActive">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         [class.active]="reportsNav.isActive"
          (click)="toggleReports()"
          role="button"
-         [attr.aria-expanded]="isReportsOpen">
+         [attr.aria-expanded]="isReportsOpen || reportsNav.isActive">
         <i class="bi bi-bar-chart-line icon fs-5 me-3"></i>
         <span>Reports</span>
       </a>
 
-      <div class="submenu" [class.show]="isReportsOpen">
-        <a routerLink="/reports/sales" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+      <div class="submenu" [class.show]="isReportsOpen || reportsNav.isActive">
+        <a routerLink="/reports/view/sales" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-graph-up me-2"></i> Sales Report
         </a>
-        <a routerLink="/reports/purchases" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a routerLink="/reports/view/purchases" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-bag-check me-2"></i> Purchase Report
         </a>
-        <a routerLink="/reports/stock" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a routerLink="/reports/view/stock" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-box-seam me-2"></i> Stock Report
         </a>
-        <a routerLink="/reports/customer-dues" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a routerLink="/reports/view/customer-dues" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-person-check me-2"></i> Customer Due Report
         </a>
-        <a routerLink="/reports/supplier-dues" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a routerLink="/reports/view/supplier-dues" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-truck me-2"></i> Supplier Due Report
         </a>
-        <a routerLink="/reports/profit-loss" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a routerLink="/reports/view/profit-loss" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-cash-coin me-2"></i> Profit & Loss Summary
         </a>
       </div>
     </div>
 
-    <div class="menu-dropdown-item" *ngIf="canViewSettingsMenu()">
+    <div class="menu-dropdown-item" *ngIf="canViewSettingsMenu()" routerLinkActive #settingsNav="routerLinkActive">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
+         [class.active]="settingsNav.isActive"
          (click)="toggleSettings()"
          role="button"
-         [attr.aria-expanded]="isSettingsOpen">
+         [attr.aria-expanded]="isSettingsOpen || settingsNav.isActive">
         <i class="bi bi-gear icon fs-5 me-3"></i>
         <span>Settings</span>
       </a>
 
-      <div class="submenu" [class.show]="isSettingsOpen">
+      <div class="submenu" [class.show]="isSettingsOpen || settingsNav.isActive">
         <a *ngIf="hasPermission('SETTINGS_VIEW')" routerLink="/settings/company" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-building me-2"></i> Company Settings
         </a>

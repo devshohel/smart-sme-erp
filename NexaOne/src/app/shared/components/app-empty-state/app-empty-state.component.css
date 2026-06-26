@@ -1,0 +1,28 @@
+.app-empty-state {
+  display: flex;
+  min-height: 132px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 1.5rem;
+  color: #6b7a72;
+  text-align: center;
+  background: #ffffff;
+}
+
+.app-empty-state i {
+  color: #7ea38d;
+  font-size: 1.8rem;
+}
+
+.empty-title {
+  color: #26352d;
+  font-weight: 700;
+}
+
+.empty-message {
+  max-width: 460px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}

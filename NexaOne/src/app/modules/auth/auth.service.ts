@@ -35,9 +35,13 @@ export class AuthService {
     if (this.getToken()) {
       this.http.post<void>(`${this.authUrl}/logout`, {}).subscribe({ error: () => undefined });
     }
+    this.clearSession();
+    this.router.navigate(['/login']);
+  }
+
+  clearSession(): void {
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.userKey);
-    this.router.navigate(['/login']);
   }
 
   isAuthenticated(): boolean {

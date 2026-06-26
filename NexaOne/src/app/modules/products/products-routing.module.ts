@@ -14,13 +14,13 @@ const routes: Routes = [
   {
     path: '',
     children: [
-      { path: 'products', component: ProductListComponent, canActivate: [PermissionGuard], data: { permissions: ['PRODUCT_VIEW'] } },
-      { path: 'add-product', component: AddProductComponent, canActivate: [PermissionGuard], data: { permissions: ['PRODUCT_CREATE'] } },
-      { path: 'edit-product/:id', component: EditProductComponent, canActivate: [PermissionGuard], data: { permissions: ['PRODUCT_EDIT'] } },
-      { path: 'details/:id', component: ProductDetailsComponent, canActivate: [PermissionGuard], data: { permissions: ['PRODUCT_VIEW'] } },
-      { path: 'categories', component: CategoryListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['CATEGORY_VIEW', 'PRODUCT_VIEW'] } },
-      { path: 'brands', component: BrandListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['BRAND_VIEW', 'PRODUCT_VIEW'] } },
-      { path: 'uom', component: UomSettingComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['UOM_VIEW', 'PRODUCT_VIEW'] } },
+      { path: 'products', component: ProductListComponent, canActivate: [PermissionGuard], data: { permissions: ['PRODUCT_VIEW'], breadcrumb: 'Product List' } },
+      { path: 'add-product', component: AddProductComponent, canActivate: [PermissionGuard], data: { permissions: ['PRODUCT_CREATE'], breadcrumb: 'Add Product' } },
+      { path: 'edit-product/:id', component: EditProductComponent, canActivate: [PermissionGuard], data: { permissions: ['PRODUCT_EDIT'], breadcrumb: 'Edit Product' } },
+      { path: 'details/:id', component: ProductDetailsComponent, canActivate: [PermissionGuard], data: { permissions: ['PRODUCT_VIEW'], breadcrumb: 'Details' } },
+      { path: 'categories', component: CategoryListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['CATEGORY_VIEW', 'PRODUCT_VIEW'], breadcrumb: 'Categories' } },
+      { path: 'brands', component: BrandListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['BRAND_VIEW', 'PRODUCT_VIEW'], breadcrumb: 'Brands' } },
+      { path: 'uom', component: UomSettingComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['UOM_VIEW', 'PRODUCT_VIEW'], breadcrumb: 'Unit of Measures' } },
       { path: '', redirectTo: 'products', pathMatch: 'full' }
     ]
   }
