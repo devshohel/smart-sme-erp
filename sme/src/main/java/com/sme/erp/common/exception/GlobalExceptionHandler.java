@@ -3,6 +3,8 @@ package com.sme.erp.common.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.StandardEnvironment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -15,6 +17,15 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private final Environment environment;
+
+    public GlobalExceptionHandler() {
+        this(new StandardEnvironment());
+    }
+
+    public GlobalExceptionHandler(Environment environment) {
+        this.environment = environment;
+    }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleResourceNotFound(
@@ -89,7 +100,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
         return buildErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                resolveMeaningfulMessage(ex, "An unexpected error occurred"),
+                isProdProfile() ? "An unexpected error occurred" : resolveMeaningfulMessage(ex, "An unexpected error occurred"),
                 request,
                 null);
     }
@@ -141,5 +152,14 @@ public class GlobalExceptionHandler {
                 || normalized.equals("request body format is invalid")
                 || normalized.equals("database constraint violation")
                 || normalized.equals("an unexpected error occurred");
+    }
+
+    private boolean isProdProfile() {
+        for (String profile : environment.getActiveProfiles()) {
+            if ("prod".equalsIgnoreCase(profile)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
