@@ -31,11 +31,17 @@ public class ActivityLog {
     @Column(nullable = false)
     private String action;
 
+    @Column(name = "action_type")
+    private String actionType;
+
     @Column(nullable = false)
     private String module;
 
     @Column(name = "table_name")
     private String tableName;
+
+    @Column(name = "entity_name")
+    private String entityName;
 
     @Column(name = "record_id")
     private Long recordId;
@@ -61,6 +67,12 @@ public class ActivityLog {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "archived_at")
+    private LocalDateTime archivedAt;
+
+    @Column(name = "archive_reason", length = 500)
+    private String archiveReason;
+
     @PrePersist
     public void onCreate() {
         createdAt = LocalDateTime.now();
@@ -73,10 +85,14 @@ public class ActivityLog {
     public void setUsername(String username) { this.username = username; }
     public String getAction() { return action; }
     public void setAction(String action) { this.action = action; }
+    public String getActionType() { return actionType; }
+    public void setActionType(String actionType) { this.actionType = actionType; }
     public String getModule() { return module; }
     public void setModule(String module) { this.module = module; }
     public String getTableName() { return tableName; }
     public void setTableName(String tableName) { this.tableName = tableName; }
+    public String getEntityName() { return entityName; }
+    public void setEntityName(String entityName) { this.entityName = entityName; }
     public Long getRecordId() { return recordId; }
     public void setRecordId(Long recordId) { this.recordId = recordId; }
     public Long getEntityId() { return entityId; }
@@ -92,4 +108,8 @@ public class ActivityLog {
     public String getNewValue() { return newValue; }
     public void setNewValue(String newValue) { this.newValue = newValue; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getArchivedAt() { return archivedAt; }
+    public void setArchivedAt(LocalDateTime archivedAt) { this.archivedAt = archivedAt; }
+    public String getArchiveReason() { return archiveReason; }
+    public void setArchiveReason(String archiveReason) { this.archiveReason = archiveReason; }
 }

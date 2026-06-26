@@ -7,8 +7,10 @@ public record ActivityLogDTO(
         Long userId,
         String username,
         String action,
+        String actionType,
         String module,
         String tableName,
+        String entityName,
         Long recordId,
         Long entityId,
         String ipAddress,
@@ -16,5 +18,6 @@ public record ActivityLogDTO(
         String details,
         String oldValue,
         String newValue,
-        LocalDateTime createdAt) {
+        LocalDateTime createdAt,
+        LocalDateTime archivedAt) {
 }

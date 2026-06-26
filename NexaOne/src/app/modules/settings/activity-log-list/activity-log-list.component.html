@@ -24,6 +24,10 @@
         <input class="form-control" [(ngModel)]="filter.action" name="activityAction">
       </div>
       <div class="col-md-2">
+        <label class="form-label">Entity ID</label>
+        <input class="form-control" type="number" [(ngModel)]="filter.entityId" name="activityEntityId">
+      </div>
+      <div class="col-md-2">
         <label class="form-label">Search</label>
         <input class="form-control" [(ngModel)]="filter.search" name="activitySearch">
       </div>
@@ -37,9 +41,14 @@
   <app-card title="Activity Log List">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div class="text-muted small">Total: {{ totalElements }}</div>
-      <button class="btn btn-outline-success btn-sm" type="button" (click)="exportCsv()" [disabled]="exporting" *ngIf="canExport()">
-        {{ exporting ? 'Exporting...' : 'Export CSV' }}
-      </button>
+      <div class="d-flex gap-2" *ngIf="canExport()">
+        <button class="btn btn-outline-success btn-sm" type="button" (click)="exportCsv()" [disabled]="exporting">
+          {{ exporting ? 'Exporting...' : 'Export CSV' }}
+        </button>
+        <button class="btn btn-outline-success btn-sm" type="button" (click)="exportExcel()" [disabled]="exporting">
+          Export Excel
+        </button>
+      </div>
     </div>
     <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
     <div class="text-muted py-4" *ngIf="loading">Loading activity logs...</div>
@@ -53,7 +62,7 @@
             <th>User</th>
             <th>Module</th>
             <th>Action</th>
-            <th>Table</th>
+            <th>Entity</th>
             <th>Record</th>
             <th>IP</th>
             <th>Device</th>
@@ -66,7 +75,7 @@
             <td>{{ log.username || '-' }}</td>
             <td>{{ log.module }}</td>
             <td><span class="badge bg-success">{{ log.action }}</span></td>
-            <td>{{ log.tableName || '-' }}</td>
+            <td>{{ log.entityName || log.tableName || '-' }}</td>
             <td>{{ log.entityId || log.recordId || '-' }}</td>
             <td>{{ log.ipAddress || '-' }}</td>
             <td class="text-truncate" style="max-width: 220px;" [title]="log.userAgent || '-'">{{ log.userAgent || '-' }}</td>

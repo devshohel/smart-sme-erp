@@ -2,6 +2,7 @@ package com.sme.erp.audit.repository;
 
 import com.sme.erp.audit.entity.AuditLog;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -25,4 +26,17 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
             @Param("username") String username,
             @Param("action") String action,
             @Param("module") String module);
+
+    @Modifying
+    @Query("""
+            update AuditLog l
+            set l.archivedAt = :archivedAt,
+                l.archiveReason = :archiveReason
+            where l.archivedAt is null
+              and l.createdAt < :cutoff
+            """)
+    int archiveOlderThan(
+            @Param("cutoff") LocalDateTime cutoff,
+            @Param("archivedAt") LocalDateTime archivedAt,
+            @Param("archiveReason") String archiveReason);
 }

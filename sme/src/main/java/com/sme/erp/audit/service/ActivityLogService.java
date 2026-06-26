@@ -14,5 +14,9 @@ public interface ActivityLogService {
 
     List<ActivityLogDTO> search(LocalDateTime fromDate, LocalDateTime toDate, String username, String action, String module);
 
-    Page<ActivityLogDTO> search(LocalDateTime fromDate, LocalDateTime toDate, String username, String action, String module, String search, Pageable pageable);
+    Page<ActivityLogDTO> search(LocalDateTime fromDate, LocalDateTime toDate, String username, String action, String module, Long entityId, String search, Pageable pageable);
+
+    List<ActivityLogDTO> entityHistory(String entityName, Long entityId);
+
+    int archiveExpiredActivityLogs();
 }

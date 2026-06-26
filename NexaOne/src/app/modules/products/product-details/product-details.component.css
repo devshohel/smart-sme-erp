@@ -124,6 +124,53 @@
   word-break: break-word;
 }
 
+.detail-tabs {
+  margin-top: 1rem;
+}
+
+.history-panel {
+  padding-top: 1rem;
+}
+
+.history-list {
+  display: grid;
+  gap: .75rem;
+}
+
+.history-row {
+  border: 1px solid #edf2ef;
+  border-radius: 8px;
+  padding: .85rem;
+  background: #fbfdfb;
+}
+
+.history-row strong,
+.history-row span {
+  display: block;
+}
+
+.history-row span {
+  color: #66736b;
+  font-size: .82rem;
+  margin-top: .15rem;
+}
+
+.history-row p {
+  margin: .6rem 0 0;
+  color: #25342c;
+}
+
+.history-row pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: .6rem 0 0;
+  border-radius: 8px;
+  background: #f1f5f3;
+  color: #25342c;
+  padding: .75rem;
+  font-size: .78rem;
+}
+
 @media (max-width: 991px) {
   .details-shell {
     grid-template-columns: 1fr;

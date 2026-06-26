@@ -38,7 +38,16 @@
         </div>
       </div>
 
-      <div class="detail-grid">
+      <ul class="nav nav-tabs detail-tabs" *ngIf="canViewHistory()">
+        <li class="nav-item">
+          <button class="nav-link" type="button" [class.active]="activeTab === 'details'" (click)="showTab('details')">Details</button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" type="button" [class.active]="activeTab === 'history'" (click)="showTab('history')">History</button>
+        </li>
+      </ul>
+
+      <div class="detail-grid" *ngIf="activeTab === 'details'">
         <div><span>SKU</span><strong>{{ product.sku }}</strong></div>
         <div><span>Barcode</span><strong>{{ product.barcode || 'N/A' }}</strong></div>
         <div><span>Category</span><strong>{{ product.categoryName || 'N/A' }}</strong></div>
@@ -49,6 +58,22 @@
         <div><span>Reorder Level</span><strong>{{ product.reorderLevel ?? 0 }}</strong></div>
         <div><span>Created Date</span><strong>{{ product.createdAt ? (product.createdAt | date:'medium') : 'N/A' }}</strong></div>
         <div><span>Updated Date</span><strong>{{ product.updatedAt ? (product.updatedAt | date:'medium') : 'N/A' }}</strong></div>
+      </div>
+
+      <div class="history-panel" *ngIf="activeTab === 'history'">
+        <div class="alert alert-danger" *ngIf="historyErrorMessage">{{ historyErrorMessage }}</div>
+        <div class="text-muted py-3" *ngIf="historyLoading">Loading history...</div>
+        <div class="text-muted py-3" *ngIf="!historyLoading && !history.length">No history found.</div>
+        <div class="history-list" *ngIf="!historyLoading && history.length">
+          <div class="history-row" *ngFor="let item of history">
+            <div>
+              <strong>{{ item.actionType || item.action }}</strong>
+              <span>{{ item.username || 'System' }} · {{ item.createdAt | date:'medium' }}</span>
+            </div>
+            <p *ngIf="item.details">{{ item.details }}</p>
+            <pre *ngIf="item.oldValue || item.newValue">{{ item.oldValue ? ('Old: ' + item.oldValue) : '' }}{{ item.oldValue && item.newValue ? '\n' : '' }}{{ item.newValue ? ('New: ' + item.newValue) : '' }}</pre>
+          </div>
+        </div>
       </div>
     </div>
   </div>

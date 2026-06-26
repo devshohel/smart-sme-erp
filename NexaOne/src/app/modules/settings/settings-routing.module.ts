@@ -22,7 +22,7 @@ const routes: Routes = [
   { path: 'users/create', component: UserFormComponent, canActivate: [PermissionGuard], data: { permissions: ['USER_CREATE'] } },
   { path: 'users/edit/:id', component: UserFormComponent, canActivate: [PermissionGuard], data: { permissions: ['USER_EDIT'] } },
   { path: 'roles-permissions', component: RolePermissionsComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['ROLE_VIEW', 'ROLE_EDIT'] } },
-  { path: 'activity-logs', component: ActivityLogListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['ACTIVITY_LOG_VIEW', 'ACTIVITY_VIEW'] } },
+  { path: 'activity-logs', component: ActivityLogListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['AUDIT_VIEW', 'ACTIVITY_LOG_VIEW', 'ACTIVITY_VIEW'] } },
   { path: 'audit-logs', component: AuditLogListComponent, canActivate: [PermissionGuard], data: { permissions: ['AUDIT_VIEW'] } },
   { path: 'login-history', component: LoginHistoryListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['LOGIN_HISTORY_VIEW', 'AUDIT_VIEW'] } },
   { path: 'change-password', component: ChangePasswordComponent },

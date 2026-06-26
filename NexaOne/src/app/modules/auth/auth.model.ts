@@ -40,6 +40,7 @@ export interface AuditFilter {
   username: string;
   action: string;
   module: string;
+  entityId?: string;
   search?: string;
 }
 
@@ -48,8 +49,10 @@ export interface ActivityLog {
   userId?: number | null;
   username?: string | null;
   action: string;
+  actionType?: string | null;
   module: string;
   tableName?: string | null;
+  entityName?: string | null;
   recordId?: number | null;
   entityId?: number | null;
   ipAddress?: string | null;
@@ -58,6 +61,7 @@ export interface ActivityLog {
   oldValue?: string | null;
   newValue?: string | null;
   createdAt: string;
+  archivedAt?: string | null;
 }
 
 export interface PageResponse<T> {

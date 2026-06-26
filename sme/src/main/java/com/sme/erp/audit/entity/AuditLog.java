@@ -43,6 +43,12 @@ public class AuditLog {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "archived_at")
+    private LocalDateTime archivedAt;
+
+    @Column(name = "archive_reason", length = 500)
+    private String archiveReason;
+
     @PrePersist
     public void onCreate() {
         createdAt = LocalDateTime.now();
@@ -62,4 +68,8 @@ public class AuditLog {
     public String getAction() { return action; }
     public void setAction(String action) { this.action = action; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getArchivedAt() { return archivedAt; }
+    public void setArchivedAt(LocalDateTime archivedAt) { this.archivedAt = archivedAt; }
+    public String getArchiveReason() { return archiveReason; }
+    public void setArchiveReason(String archiveReason) { this.archiveReason = archiveReason; }
 }

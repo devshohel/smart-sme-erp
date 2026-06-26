@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { ActivityLog } from '../../auth/auth.model';
+import { AuthService } from '../../auth/auth.service';
 import { Product } from '../../../models/product.model';
 import { ProductService } from '../../../services/product.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
@@ -11,13 +13,18 @@ import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api
 })
 export class ProductDetailsComponent implements OnInit {
   product: Product | null = null;
+  history: ActivityLog[] = [];
   loading = false;
+  historyLoading = false;
   errorMessage = '';
+  historyErrorMessage = '';
+  activeTab: 'details' | 'history' = 'details';
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private productService: ProductService
+    private productService: ProductService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -32,6 +39,7 @@ export class ProductDetailsComponent implements OnInit {
       next: (data) => {
         this.product = data;
         this.loading = false;
+        this.loadHistory(data.id);
       },
       error: (error) => {
         this.errorMessage = extractApiErrorMessage(error, 'Product details could not be loaded.');
@@ -53,5 +61,32 @@ export class ProductDetailsComponent implements OnInit {
     if (this.product?.id) {
       this.router.navigate(['/products/edit-product', this.product.id]);
     }
+  }
+
+  showTab(tab: 'details' | 'history'): void {
+    this.activeTab = tab;
+  }
+
+  private loadHistory(productId?: number): void {
+    if (!productId || !this.canViewHistory()) {
+      return;
+    }
+    this.historyLoading = true;
+    this.historyErrorMessage = '';
+    this.authService.getActivityHistory('Products', productId).subscribe({
+      next: history => {
+        this.history = history;
+        this.historyLoading = false;
+      },
+      error: error => {
+        this.historyErrorMessage = extractApiErrorMessage(error, 'Product history could not be loaded.');
+        this.historyLoading = false;
+        debugApiError('ProductDetailsComponent.loadHistory', error);
+      }
+    });
+  }
+
+  canViewHistory(): boolean {
+    return this.authService.hasAnyPermission(['AUDIT_VIEW', 'ACTIVITY_VIEW', 'ACTIVITY_LOG_VIEW']);
   }
 }

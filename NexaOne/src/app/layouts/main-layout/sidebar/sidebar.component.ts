@@ -80,11 +80,11 @@ export class SidebarComponent {
   }
 
   canViewSettingsMenu(): boolean {
-    return this.hasAnyPermission(['SETTINGS_VIEW', 'SETTINGS_EDIT', 'USER_VIEW', 'USER_CREATE', 'USER_EDIT', 'ROLE_VIEW', 'ACTIVITY_VIEW', 'AUDIT_VIEW', 'LOGIN_HISTORY_VIEW']);
+    return this.hasAnyPermission(['SETTINGS_VIEW', 'SETTINGS_EDIT', 'USER_VIEW', 'USER_CREATE', 'USER_EDIT', 'ROLE_VIEW', 'ACTIVITY_LOG_VIEW', 'ACTIVITY_VIEW', 'AUDIT_VIEW', 'LOGIN_HISTORY_VIEW']);
   }
 
   canViewActivityLogs(): boolean {
-    return this.hasPermission('ACTIVITY_VIEW');
+    return this.hasAnyPermission(['AUDIT_VIEW', 'ACTIVITY_LOG_VIEW', 'ACTIVITY_VIEW']);
   }
 
   canViewAuditLogs(): boolean {

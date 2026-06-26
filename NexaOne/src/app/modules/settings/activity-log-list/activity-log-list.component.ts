@@ -70,18 +70,26 @@ export class ActivityLogListComponent implements OnInit {
   }
 
   canExport(): boolean {
-    return this.authService.hasPermission('ACTIVITY_LOG_EXPORT');
+    return this.authService.hasAnyPermission(['AUDIT_EXPORT', 'ACTIVITY_LOG_EXPORT']);
   }
 
   exportCsv(): void {
+    this.exportFile('csv');
+  }
+
+  exportExcel(): void {
+    this.exportFile('excel');
+  }
+
+  private exportFile(format: 'csv' | 'excel'): void {
     this.exporting = true;
     this.errorMessage = '';
-    this.authService.exportActivityLogs(this.filter).subscribe({
+    this.authService.exportActivityLogs(this.filter, format).subscribe({
       next: blob => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'activity-logs.csv';
+        link.download = format === 'excel' ? 'activity-logs.xls' : 'activity-logs.csv';
         link.click();
         window.URL.revokeObjectURL(url);
         this.exporting = false;
@@ -95,6 +103,6 @@ export class ActivityLogListComponent implements OnInit {
   }
 
   private emptyFilter(): AuditFilter {
-    return { fromDate: '', toDate: '', username: '', action: '', module: '', search: '' };
+    return { fromDate: '', toDate: '', username: '', action: '', module: '', entityId: '', search: '' };
   }
 }

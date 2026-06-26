@@ -162,11 +162,18 @@ export class AuthService {
       .pipe(map(response => this.toPage(unwrapApiResponse(response), page, size)));
   }
 
-  exportActivityLogs(filter: AuditFilter): Observable<Blob> {
-    return this.http.get(`${this.auditUrl}/activity-logs/export`, {
+  exportActivityLogs(filter: AuditFilter, format: 'csv' | 'excel' = 'csv'): Observable<Blob> {
+    const endpoint = format === 'excel' ? 'activity-logs/export-excel' : 'activity-logs/export';
+    return this.http.get(`${this.auditUrl}/${endpoint}`, {
       params: this.buildAuditParams(filter),
       responseType: 'blob'
     });
+  }
+
+  getActivityHistory(entityName: string, entityId: number): Observable<ActivityLog[]> {
+    return this.http
+      .get<ActivityLog[] | ApiResponse<ActivityLog[]>>(`${this.auditUrl}/activity-logs/history/${encodeURIComponent(entityName)}/${entityId}`)
+      .pipe(map(response => unwrapApiResponse(response)));
   }
 
   getAuditLogs(filter: AuditFilter): Observable<AuditLog[]> {
@@ -208,6 +215,9 @@ export class AuthService {
     }
     if (filter.module?.trim()) {
       params = params.set('module', filter.module.trim());
+    }
+    if (filter.entityId?.trim()) {
+      params = params.set('entityId', filter.entityId.trim());
     }
     if (filter.search?.trim()) {
       params = params.set('search', filter.search.trim());
