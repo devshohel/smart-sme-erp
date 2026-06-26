@@ -4,7 +4,6 @@ import com.sme.erp.inventory.dto.StockTransferDTO;
 import com.sme.erp.inventory.dto.StockTransferPageDTO;
 import com.sme.erp.inventory.enums.StockTransferStatus;
 import com.sme.erp.inventory.service.StockTransferService;
-import com.sme.erp.purchase.dto.PurchaseActionReasonDTO;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -81,12 +80,6 @@ public class StockTransferController {
     @PreAuthorize("hasAuthority('TRANSFER_RECEIVE')")
     public ResponseEntity<StockTransferDTO> receive(@PathVariable Long id) {
         return ResponseEntity.ok(service.receive(id));
-    }
-
-    @PostMapping("/{id}/reverse")
-    @PreAuthorize("hasAuthority('TRANSFER_REVERSE')")
-    public ResponseEntity<StockTransferDTO> reverse(@PathVariable Long id, @Valid @RequestBody PurchaseActionReasonDTO request) {
-        return ResponseEntity.ok(service.reverse(id, request.getReason()));
     }
 
     @PostMapping("/{id}/cancel")

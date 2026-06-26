@@ -1,6 +1,5 @@
 package com.sme.erp.sales.controller;
 
-import com.sme.erp.sales.dto.SalesReverseRequestDTO;
 import com.sme.erp.sales.dto.SalesInvoiceDTO;
 import com.sme.erp.sales.service.SalesInvoiceService;
 import jakarta.validation.Valid;
@@ -81,9 +80,4 @@ public class SalesInvoiceController {
         return ResponseEntity.ok(salesInvoiceService.cancel(id));
     }
 
-    @PostMapping("/{id}/reverse")
-    @PreAuthorize("hasAuthority('SALES_INVOICE_REVERSE')")
-    public ResponseEntity<SalesInvoiceDTO> reverse(@PathVariable Long id, @Valid @RequestBody SalesReverseRequestDTO request) {
-        return ResponseEntity.ok(salesInvoiceService.reverse(id, request.getReversalReason()));
-    }
 }

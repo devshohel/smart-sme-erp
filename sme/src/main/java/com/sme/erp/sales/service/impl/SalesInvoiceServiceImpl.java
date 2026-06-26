@@ -273,8 +273,9 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     private void deductStock(SalesInvoice invoice) {
         Long warehouseId = invoice.getWarehouse().getId();
         for (SalesItem item : invoice.getItems()) {
+            Product product = requireProduct(item, "Sales invoice contains a deleted product. Edit the invoice and select an active product before posting.");
             stockService.stockOut(
-                    item.getProduct().getId(),
+                    product.getId(),
                     warehouseId,
                     item.getQuantity(),
                     "SALES_INVOICE",
@@ -286,8 +287,9 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         Long warehouseId = invoice.getWarehouse().getId();
         String referenceNo = invoice.getInvoiceNo() + "-REV";
         for (SalesItem item : invoice.getItems()) {
+            Product product = requireProduct(item, "Sales invoice contains a deleted product. Stock reversal cannot continue.");
             stockService.stockIn(
-                    item.getProduct().getId(),
+                    product.getId(),
                     warehouseId,
                     item.getQuantity(),
                     item.getUnitPrice(),
@@ -480,6 +482,13 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         }
         return uomRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("UOM not found with id: " + id));
+    }
+
+    private Product requireProduct(SalesItem item, String message) {
+        if (item == null || item.getProduct() == null) {
+            throw new BadRequestException(message);
+        }
+        return item.getProduct();
     }
 
     private BigDecimal safe(BigDecimal value) {

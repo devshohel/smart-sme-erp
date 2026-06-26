@@ -82,9 +82,4 @@ public class SupplierPaymentController {
         return ResponseEntity.ok(service.cancel(id));
     }
 
-    @PostMapping("/{id}/reverse")
-    @PreAuthorize("hasAuthority('SUPPLIER_PAYMENT_CANCEL')")
-    public ResponseEntity<SupplierPaymentDTO> reverse(@PathVariable Long id, @RequestBody(required = false) SupplierPaymentDTO dto) {
-        return ResponseEntity.ok(service.reverse(id, dto == null ? null : dto.getReversalReason()));
-    }
 }

@@ -91,11 +91,6 @@ export class ExpenseService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
-  reverse(id: number, reversalReason: string): Observable<Expense> {
-    return this.http.post<Expense | ApiResponse<Expense>>(`${this.baseUrl}/${id}/reverse`, { reversalReason })
-      .pipe(map(response => unwrapApiResponse(response)));
-  }
-
   post(id: number): Observable<Expense> {
     return this.http.post<Expense | ApiResponse<Expense>>(`${this.baseUrl}/${id}/post`, {})
       .pipe(map(response => unwrapApiResponse(response)));

@@ -81,9 +81,6 @@
           <button *ngIf="canCancel(selectedInvoice)" type="button" class="btn btn-outline-danger btn-sm" (click)="cancelSelected()">
             Cancel
           </button>
-          <button *ngIf="canReverse(selectedInvoice)" type="button" class="btn btn-outline-dark btn-sm" (click)="reverseSelected()">
-            Reverse
-          </button>
           <button *ngIf="hasPermission('SALES_RETURN_CREATE')" type="button" class="btn btn-outline-success btn-sm" (click)="newReturnFromInvoice()">
             Create Return
           </button>

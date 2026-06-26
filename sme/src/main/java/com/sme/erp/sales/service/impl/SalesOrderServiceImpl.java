@@ -208,9 +208,10 @@ public class SalesOrderServiceImpl implements SalesOrderService {
         List<SalesItem> invoiceItems = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
         for (SalesItem orderItem : order.getItems()) {
+            Product product = requireProduct(orderItem, "Sales order contains a deleted product. Edit the order and select an active product before converting.");
             SalesItem invoiceItem = new SalesItem();
             invoiceItem.setInvoice(invoice);
-            invoiceItem.setProduct(orderItem.getProduct());
+            invoiceItem.setProduct(product);
             invoiceItem.setUom(orderItem.getUom());
             invoiceItem.setQuantity(orderItem.getQuantity());
             invoiceItem.setUnitPrice(orderItem.getUnitPrice());
@@ -378,6 +379,13 @@ public class SalesOrderServiceImpl implements SalesOrderService {
         }
         return uomRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("UOM not found with id: " + id));
+    }
+
+    private Product requireProduct(SalesItem item, String message) {
+        if (item == null || item.getProduct() == null) {
+            throw new BadRequestException(message);
+        }
+        return item.getProduct();
     }
 
     private void validateItems(List<SalesItemDTO> items) {

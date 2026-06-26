@@ -4,7 +4,6 @@
       <button type="button" class="btn btn-outline-secondary" (click)="backToList()"><i class="bi bi-arrow-left me-1"></i> Back</button>
       <button type="button" class="btn btn-outline-success" *ngIf="payment?.status === 'DRAFT' && hasPermission('SUPPLIER_PAYMENT_EDIT')" (click)="editPayment()"><i class="bi bi-pencil-square me-1"></i> Edit</button>
       <button type="button" class="btn btn-success" *ngIf="payment?.status === 'DRAFT' && hasPermission('SUPPLIER_PAYMENT_POST')" (click)="postPayment()"><i class="bi bi-check2-circle me-1"></i> Post</button>
-      <button type="button" class="btn btn-outline-danger" *ngIf="payment?.status === 'POSTED' && payment?.canReverse && hasPermission('SUPPLIER_PAYMENT_CANCEL')" (click)="reversePayment()"><i class="bi bi-arrow-counterclockwise me-1"></i> Reverse</button>
       <button type="button" class="btn btn-outline-secondary" (click)="print()"><i class="bi bi-printer me-1"></i> Print</button>
     </div>
   </app-page-header>

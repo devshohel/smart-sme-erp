@@ -83,16 +83,6 @@ export class ExpenseDetailsComponent implements OnInit {
     });
   }
 
-  reverse(): void {
-    if (!this.expense?.id) return;
-    const reversalReason = prompt(`Reverse posted expense "${this.expense.expenseNo}". Enter reason:`);
-    if (!reversalReason?.trim()) return;
-    this.expenseService.reverse(this.expense.id, reversalReason).subscribe({
-      next: expense => this.expense = expense,
-      error: error => this.errorMessage = extractApiErrorMessage(error, 'Expense could not be reversed.')
-    });
-  }
-
   cancelExpense(): void {
     if (!this.expense?.id || !confirm(`Cancel expense "${this.expense.expenseNo}"?`)) return;
     this.expenseService.cancel(this.expense.id).subscribe({
@@ -121,7 +111,4 @@ export class ExpenseDetailsComponent implements OnInit {
     return this.expense?.status === 'APPROVED' && this.hasPermission('EXPENSE_POST');
   }
 
-  canReverse(): boolean {
-    return this.expense?.status === 'POSTED' && this.hasPermission('EXPENSE_REVERSE');
-  }
 }

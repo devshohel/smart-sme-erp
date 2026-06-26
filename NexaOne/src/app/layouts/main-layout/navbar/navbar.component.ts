@@ -60,7 +60,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     { label: 'Customer Due Report', route: '/reports/customer-dues', keywords: ['customer due report'], permissions: ['REPORT_VIEW'] },
     { label: 'Supplier Due Report', route: '/reports/supplier-dues', keywords: ['supplier due report'], permissions: ['REPORT_VIEW'] },
     { label: 'Profit & Loss Summary', route: '/reports/profit-loss', keywords: ['profit loss', 'profit and loss', 'p&l'], anyPermissions: ['ACCOUNTING_VIEW', 'REPORT_VIEW'] },
-    { label: 'Expenses', route: '/expenses', keywords: ['accounting', 'expense', 'expenses'], anyPermissions: ['EXPENSE_VIEW', 'EXPENSE_CREATE', 'EXPENSE_EDIT', 'EXPENSE_SUBMIT', 'EXPENSE_APPROVE', 'EXPENSE_REJECT', 'EXPENSE_POST', 'EXPENSE_CANCEL', 'EXPENSE_REVERSE', 'EXPENSE_REPORT_VIEW'] },
+    { label: 'Expenses', route: '/expenses', keywords: ['accounting', 'expense', 'expenses'], anyPermissions: ['EXPENSE_VIEW', 'EXPENSE_CREATE', 'EXPENSE_EDIT', 'EXPENSE_SUBMIT', 'EXPENSE_APPROVE', 'EXPENSE_REJECT', 'EXPENSE_POST', 'EXPENSE_CANCEL', 'EXPENSE_REPORT_VIEW'] },
     { label: 'Expense Categories', route: '/accounting/expense-categories', keywords: ['expense category'], permissions: ['ACCOUNTING_VIEW'] },
     { label: 'Cash Book', route: '/accounting/cash-book', keywords: ['cash book'], permissions: ['ACCOUNTING_VIEW'] },
     { label: 'Bank Book', route: '/accounting/bank-book', keywords: ['bank book'], permissions: ['ACCOUNTING_VIEW'] },

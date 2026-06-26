@@ -2,7 +2,6 @@ package com.sme.erp.inventory.controller;
 
 import com.sme.erp.inventory.dto.StockAdjustmentDTO;
 import com.sme.erp.inventory.service.StockAdjustmentService;
-import com.sme.erp.purchase.dto.PurchaseActionReasonDTO;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -65,9 +64,4 @@ public class AdjustmentController {
         return ResponseEntity.ok(service.cancel(id));
     }
 
-    @PostMapping("/{id}/reverse")
-    @PreAuthorize("hasAuthority('STOCK_ADJUSTMENT_REVERSE')")
-    public ResponseEntity<StockAdjustmentDTO> reverse(@PathVariable Long id, @RequestBody PurchaseActionReasonDTO request) {
-        return ResponseEntity.ok(service.reverse(id, request.getReason()));
-    }
 }

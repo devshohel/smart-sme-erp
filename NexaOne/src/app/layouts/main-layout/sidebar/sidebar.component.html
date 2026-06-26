@@ -172,7 +172,7 @@
       </div>
     </div>
 
-    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['ACCOUNTING_VIEW', 'ACCOUNTING_CREATE', 'ACCOUNTING_EDIT', 'REPORT_VIEW', 'COST_CENTER_VIEW', 'COST_CENTER_CREATE', 'COST_CENTER_EDIT', 'BUDGET_VIEW', 'BUDGET_CREATE', 'BUDGET_EDIT', 'FINANCIAL_DASHBOARD_VIEW', 'ACCOUNTING_PERIOD_VIEW', 'YEAR_END_VIEW', 'EXPENSE_VIEW', 'EXPENSE_CREATE', 'EXPENSE_EDIT', 'EXPENSE_SUBMIT', 'EXPENSE_APPROVE', 'EXPENSE_REJECT', 'EXPENSE_POST', 'EXPENSE_CANCEL', 'EXPENSE_REVERSE', 'EXPENSE_REPORT_VIEW'])" routerLinkActive #accountingNav="routerLinkActive">
+    <div class="menu-dropdown-item" *ngIf="hasAnyPermission(['ACCOUNTING_VIEW', 'ACCOUNTING_CREATE', 'ACCOUNTING_EDIT', 'REPORT_VIEW', 'COST_CENTER_VIEW', 'COST_CENTER_CREATE', 'COST_CENTER_EDIT', 'BUDGET_VIEW', 'BUDGET_CREATE', 'BUDGET_EDIT', 'FINANCIAL_DASHBOARD_VIEW', 'ACCOUNTING_PERIOD_VIEW', 'YEAR_END_VIEW', 'EXPENSE_VIEW', 'EXPENSE_CREATE', 'EXPENSE_EDIT', 'EXPENSE_SUBMIT', 'EXPENSE_APPROVE', 'EXPENSE_REJECT', 'EXPENSE_POST', 'EXPENSE_CANCEL', 'EXPENSE_REPORT_VIEW'])" routerLinkActive #accountingNav="routerLinkActive">
       <a class="side-link dropdown-toggle d-flex align-items-center px-3 py-2 my-1"
          [class.active]="accountingNav.isActive"
          (click)="toggleAccounting()"
@@ -183,7 +183,7 @@
       </a>
 
       <div class="submenu" [class.show]="isAccountingOpen || accountingNav.isActive">
-        <a *ngIf="hasAnyPermission(['EXPENSE_VIEW', 'EXPENSE_CREATE', 'EXPENSE_EDIT', 'EXPENSE_SUBMIT', 'EXPENSE_APPROVE', 'EXPENSE_REJECT', 'EXPENSE_POST', 'EXPENSE_CANCEL', 'EXPENSE_REVERSE', 'EXPENSE_REPORT_VIEW'])" routerLink="/expenses" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+        <a *ngIf="hasAnyPermission(['EXPENSE_VIEW', 'EXPENSE_CREATE', 'EXPENSE_EDIT', 'EXPENSE_SUBMIT', 'EXPENSE_APPROVE', 'EXPENSE_REJECT', 'EXPENSE_POST', 'EXPENSE_CANCEL', 'EXPENSE_REPORT_VIEW'])" routerLink="/expenses" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-cash-stack me-2"></i> Expenses
         </a>
         <a *ngIf="hasPermission('EXPENSE_APPROVE')" routerLink="/expenses/approval-queue" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">

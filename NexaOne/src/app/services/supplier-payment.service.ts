@@ -90,9 +90,4 @@ export class SupplierPaymentService {
       .pipe(map(response => unwrapApiResponse(response)));
   }
 
-  reversePayment(id: number, reversalReason: string): Observable<SupplierPayment> {
-    return this.http
-      .post<SupplierPayment | ApiResponse<SupplierPayment>>(`${this.baseUrl}/${id}/reverse`, { reversalReason })
-      .pipe(map(response => unwrapApiResponse(response)));
-  }
 }

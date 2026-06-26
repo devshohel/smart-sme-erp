@@ -261,8 +261,9 @@ public class SalesReturnServiceImpl implements SalesReturnService {
     private void restockReturnedItems(SalesReturn salesReturn) {
         Long warehouseId = salesReturn.getInvoice().getWarehouse().getId();
         for (SalesReturnItem item : salesReturn.getItems()) {
+            Product product = requireProduct(item, "Sales return contains a deleted product. Edit the return and select an active product before posting.");
             stockService.stockIn(
-                    item.getProduct().getId(),
+                    product.getId(),
                     warehouseId,
                     item.getQuantity(),
                     item.getUnitPrice(),
@@ -275,8 +276,9 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         Long warehouseId = salesReturn.getInvoice().getWarehouse().getId();
         String referenceNo = salesReturn.getReturnCode() + "-REV";
         for (SalesReturnItem item : salesReturn.getItems()) {
+            Product product = requireProduct(item, "Sales return contains a deleted product. Stock reversal cannot continue.");
             stockService.stockOut(
-                    item.getProduct().getId(),
+                    product.getId(),
                     warehouseId,
                     item.getQuantity(),
                     "SALES_RETURN_REVERSAL",
@@ -472,6 +474,13 @@ public class SalesReturnServiceImpl implements SalesReturnService {
     private Product findProductById(Long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+    }
+
+    private Product requireProduct(SalesReturnItem item, String message) {
+        if (item == null || item.getProduct() == null) {
+            throw new BadRequestException(message);
+        }
+        return item.getProduct();
     }
 
     private BigDecimal nonNegative(BigDecimal value, String message) {

@@ -38,7 +38,7 @@ export class InvoicesComponent implements OnInit {
   dateFilter = '';
 
   readonly paymentStatuses: PaymentStatus[] = ['PAID', 'PARTIAL', 'DUE'];
-  readonly statuses: SalesInvoiceStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'POSTED', 'PARTIAL_PAID', 'PAID', 'CANCELLED', 'REVERSED'];
+  readonly statuses: SalesInvoiceStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'POSTED', 'PARTIAL_PAID', 'PAID', 'CANCELLED'];
 
   constructor(
     private fb: FormBuilder,
@@ -401,10 +401,6 @@ export class InvoicesComponent implements OnInit {
     return !!invoice && !!invoice.id && ['DRAFT', 'SUBMITTED', 'APPROVED'].includes(invoice.status || '') && this.hasPermission('SALES_INVOICE_CANCEL');
   }
 
-  canReverse(invoice: SalesInvoice | null): boolean {
-    return !!invoice && !!invoice.id && ['POSTED', 'PARTIAL_PAID', 'PAID', 'CONFIRMED', 'COMPLETED'].includes(invoice.status || '') && this.hasPermission('SALES_INVOICE_REVERSE');
-  }
-
   submitSelected(): void {
     if (!this.selectedInvoice?.id) {
       return;
@@ -446,21 +442,6 @@ export class InvoicesComponent implements OnInit {
     this.invoiceService.cancelInvoice(this.selectedInvoice.id).subscribe({
       next: (saved) => this.handleWorkflowSuccess(saved, 'Sales invoice cancelled successfully.'),
       error: (error) => this.handleWorkflowError(error, 'Invoice cancellation failed.')
-    });
-  }
-
-  reverseSelected(): void {
-    if (!this.selectedInvoice?.id) {
-      return;
-    }
-    const reversalReason = window.prompt('Reversal reason');
-    if (!reversalReason) {
-      return;
-    }
-    this.submitting = true;
-    this.invoiceService.reverseInvoice(this.selectedInvoice.id, reversalReason).subscribe({
-      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales invoice reversed successfully.'),
-      error: (error) => this.handleWorkflowError(error, 'Invoice reversal failed.')
     });
   }
 

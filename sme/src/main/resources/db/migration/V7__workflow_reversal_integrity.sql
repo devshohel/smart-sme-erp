@@ -95,12 +95,8 @@ CALL sme_modify_column_if_exists('stock_transfers', 'status', 'status ENUM(''DRA
 CALL sme_modify_column_if_exists('stock_adjustments', 'status', 'status ENUM(''DRAFT'',''APPROVED'',''POSTED'',''CANCELLED'',''REVERSED'') NOT NULL DEFAULT ''DRAFT''');
 CALL sme_exec_if_table_exists('stock_adjustments', 'UPDATE stock_adjustments SET status = ''POSTED'', posted_at = COALESCE(posted_at, created_at, NOW()) WHERE status = ''DRAFT''');
 
-CALL sme_exec_if_table_exists('permissions', 'INSERT INTO permissions (name, module, action, description, created_at) SELECT ''SALES_RETURN_REVERSE'', ''SALES_RETURN'', ''REVERSE'', ''SALES RETURN REVERSE'', NOW() WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = ''SALES_RETURN_REVERSE'')');
-CALL sme_exec_if_table_exists('permissions', 'INSERT INTO permissions (name, module, action, description, created_at) SELECT ''PURCHASE_RETURN_REVERSE'', ''PURCHASE_RETURN'', ''REVERSE'', ''PURCHASE RETURN REVERSE'', NOW() WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = ''PURCHASE_RETURN_REVERSE'')');
-CALL sme_exec_if_table_exists('permissions', 'INSERT INTO permissions (name, module, action, description, created_at) SELECT ''TRANSFER_REVERSE'', ''TRANSFER'', ''REVERSE'', ''TRANSFER REVERSE'', NOW() WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = ''TRANSFER_REVERSE'')');
 CALL sme_exec_if_table_exists('permissions', 'INSERT INTO permissions (name, module, action, description, created_at) SELECT ''STOCK_ADJUSTMENT_POST'', ''STOCK_ADJUSTMENT'', ''POST'', ''STOCK ADJUSTMENT POST'', NOW() WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = ''STOCK_ADJUSTMENT_POST'')');
 CALL sme_exec_if_table_exists('permissions', 'INSERT INTO permissions (name, module, action, description, created_at) SELECT ''STOCK_ADJUSTMENT_CANCEL'', ''STOCK_ADJUSTMENT'', ''CANCEL'', ''STOCK ADJUSTMENT CANCEL'', NOW() WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = ''STOCK_ADJUSTMENT_CANCEL'')');
-CALL sme_exec_if_table_exists('permissions', 'INSERT INTO permissions (name, module, action, description, created_at) SELECT ''STOCK_ADJUSTMENT_REVERSE'', ''STOCK_ADJUSTMENT'', ''REVERSE'', ''STOCK ADJUSTMENT REVERSE'', NOW() WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = ''STOCK_ADJUSTMENT_REVERSE'')');
 
 DROP PROCEDURE IF EXISTS sme_exec_if_table_exists;
 DROP PROCEDURE IF EXISTS sme_modify_column_if_exists;

@@ -107,8 +107,7 @@
                 <button *ngIf="payment.status === 'DRAFT' && hasPermission('SUPPLIER_PAYMENT_EDIT')" type="button" class="btn-action btn-edit" title="Edit" (click)="editPayment(payment)"><i class="bi bi-pencil-square"></i></button>
                 <button *ngIf="payment.status === 'DRAFT' && hasPermission('SUPPLIER_PAYMENT_POST')" type="button" class="btn-action btn-post" title="Post" (click)="postPayment(payment)"><i class="bi bi-check2-circle"></i></button>
                 <button *ngIf="payment.status === 'DRAFT' && hasPermission('SUPPLIER_PAYMENT_CANCEL')" type="button" class="btn-action btn-delete" title="Cancel" (click)="cancelPayment(payment)"><i class="bi bi-x-circle"></i></button>
-                <button *ngIf="payment.status === 'POSTED' && payment.canReverse && hasPermission('SUPPLIER_PAYMENT_CANCEL')" type="button" class="btn-action btn-delete" title="Reverse" (click)="reversePayment(payment)"><i class="bi bi-arrow-counterclockwise"></i></button>
-              </div>
+            </div>
             </td>
           </tr>
         </tbody>

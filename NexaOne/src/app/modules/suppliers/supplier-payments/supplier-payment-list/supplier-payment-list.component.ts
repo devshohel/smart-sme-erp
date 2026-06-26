@@ -170,23 +170,6 @@ export class SupplierPaymentListComponent implements OnInit {
     });
   }
 
-  reversePayment(payment: SupplierPayment): void {
-    if (!payment.id || payment.status !== 'POSTED' || !payment.canReverse) {
-      return;
-    }
-    const reason = prompt(`Reverse supplier payment "${payment.paymentNo || payment.id}"? Enter reversal reason:`);
-    if (reason === null) {
-      return;
-    }
-    this.paymentService.reversePayment(payment.id, reason).subscribe({
-      next: () => this.loadPayments(),
-      error: error => {
-        this.errorMessage = extractApiErrorMessage(error, 'Supplier payment could not be reversed.');
-        debugApiError('SupplierPaymentListComponent.reversePayment', error);
-      }
-    });
-  }
-
   onSupplierSearch(term: string): void {
     this.supplierSearchTerm = term;
     this.filters.supplierId = '';

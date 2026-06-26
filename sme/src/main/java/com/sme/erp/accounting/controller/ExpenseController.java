@@ -4,7 +4,6 @@ import com.sme.erp.accounting.dto.ExpenseDTO;
 import com.sme.erp.accounting.dto.ExpensePageDTO;
 import com.sme.erp.accounting.dto.ExpenseRejectRequestDTO;
 import com.sme.erp.accounting.dto.ExpenseReportRowDTO;
-import com.sme.erp.accounting.dto.ExpenseReverseRequestDTO;
 import com.sme.erp.accounting.enums.AccountingPaymentMethod;
 import com.sme.erp.accounting.enums.ExpenseStatus;
 import com.sme.erp.accounting.service.ExpenseService;
@@ -30,7 +29,7 @@ public class ExpenseController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('EXPENSE_VIEW','EXPENSE_CREATE','EXPENSE_EDIT','EXPENSE_SUBMIT','EXPENSE_APPROVE','EXPENSE_REJECT','EXPENSE_POST','EXPENSE_CANCEL','EXPENSE_REVERSE','EXPENSE_REPORT_VIEW')")
+    @PreAuthorize("hasAnyAuthority('EXPENSE_VIEW','EXPENSE_CREATE','EXPENSE_EDIT','EXPENSE_SUBMIT','EXPENSE_APPROVE','EXPENSE_REJECT','EXPENSE_POST','EXPENSE_CANCEL','EXPENSE_REPORT_VIEW')")
     public ResponseEntity<List<ExpenseDTO>> getAll(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
@@ -52,7 +51,7 @@ public class ExpenseController {
     }
 
     @GetMapping("/page")
-    @PreAuthorize("hasAnyAuthority('EXPENSE_VIEW','EXPENSE_CREATE','EXPENSE_EDIT','EXPENSE_SUBMIT','EXPENSE_APPROVE','EXPENSE_REJECT','EXPENSE_POST','EXPENSE_CANCEL','EXPENSE_REVERSE','EXPENSE_REPORT_VIEW')")
+    @PreAuthorize("hasAnyAuthority('EXPENSE_VIEW','EXPENSE_CREATE','EXPENSE_EDIT','EXPENSE_SUBMIT','EXPENSE_APPROVE','EXPENSE_REJECT','EXPENSE_POST','EXPENSE_CANCEL','EXPENSE_REPORT_VIEW')")
     public ResponseEntity<ExpensePageDTO> getPage(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
@@ -69,7 +68,7 @@ public class ExpenseController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('EXPENSE_VIEW','EXPENSE_CREATE','EXPENSE_EDIT','EXPENSE_SUBMIT','EXPENSE_APPROVE','EXPENSE_REJECT','EXPENSE_POST','EXPENSE_CANCEL','EXPENSE_REVERSE','EXPENSE_REPORT_VIEW')")
+    @PreAuthorize("hasAnyAuthority('EXPENSE_VIEW','EXPENSE_CREATE','EXPENSE_EDIT','EXPENSE_SUBMIT','EXPENSE_APPROVE','EXPENSE_REJECT','EXPENSE_POST','EXPENSE_CANCEL','EXPENSE_REPORT_VIEW')")
     public ResponseEntity<ExpenseDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
@@ -131,12 +130,6 @@ public class ExpenseController {
     @PreAuthorize("hasAuthority('EXPENSE_POST')")
     public ResponseEntity<ExpenseDTO> post(@PathVariable Long id) {
         return ResponseEntity.ok(service.post(id));
-    }
-
-    @PostMapping("/{id}/reverse")
-    @PreAuthorize("hasAuthority('EXPENSE_REVERSE')")
-    public ResponseEntity<ExpenseDTO> reverse(@PathVariable Long id, @Valid @RequestBody ExpenseReverseRequestDTO request) {
-        return ResponseEntity.ok(service.reverse(id, request.getReversalReason()));
     }
 
     @GetMapping("/reports/summary")
