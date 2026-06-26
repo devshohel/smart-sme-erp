@@ -20,6 +20,8 @@ export interface ReportFilters {
   brandId?: number | null;
 }
 
+export type ReportExportFormat = 'csv' | 'excel' | 'pdf';
+
 export interface SalesReport {
   totalSales: number;
   totalPaid: number;
@@ -189,6 +191,40 @@ export interface PurchaseReturnReport {
   rows: PurchaseReturnRow[];
 }
 
+export interface SalesReturnReport {
+  returnCount: number;
+  totalReturnAmount: number;
+  rows: SalesReturnRow[];
+}
+
+export interface SalesReturnRow {
+  returnNo: string;
+  customer: string;
+  invoiceNo: string;
+  date: string;
+  quantity: number;
+  amount: number;
+  status: string;
+}
+
+export interface PurchaseByProductReport {
+  totalQuantityPurchased: number;
+  totalGrossPurchase: number;
+  totalReturnQty: number;
+  totalNetQty: number;
+  rows: PurchaseByProductRow[];
+}
+
+export interface PurchaseByProductRow {
+  productId?: number;
+  product: string;
+  sku: string;
+  quantityPurchased: number;
+  grossPurchase: number;
+  returnQty: number;
+  netQty: number;
+}
+
 export interface PurchaseReturnRow {
   returnNo: string;
   supplier: string;
@@ -276,6 +312,12 @@ export class ReportsService {
       .pipe(map(response => this.normalizeCustomerSales(unwrapApiResponse(response))));
   }
 
+  getSalesReturns(filters: ReportFilters): Observable<SalesReturnReport> {
+    return this.http
+      .get<SalesReturnReport | ApiResponse<SalesReturnReport>>(`${this.baseUrl}/sales-returns`, { params: this.params(filters) })
+      .pipe(map(response => this.normalizeSalesReturns(unwrapApiResponse(response))));
+  }
+
   getPurchaseSummary(filters: ReportFilters): Observable<PurchaseReport> {
     return this.http
       .get<PurchaseReport | ApiResponse<PurchaseReport>>(`${this.baseUrl}/purchase-summary`, { params: this.params(filters) })
@@ -294,6 +336,12 @@ export class ReportsService {
       .pipe(map(response => this.normalizeSupplierPurchases(unwrapApiResponse(response))));
   }
 
+  getPurchaseByProduct(filters: ReportFilters): Observable<PurchaseByProductReport> {
+    return this.http
+      .get<PurchaseByProductReport | ApiResponse<PurchaseByProductReport>>(`${this.baseUrl}/purchase-by-product`, { params: this.params(filters) })
+      .pipe(map(response => this.normalizePurchaseByProduct(unwrapApiResponse(response))));
+  }
+
   getPurchaseReturns(filters: ReportFilters): Observable<PurchaseReturnReport> {
     return this.http
       .get<PurchaseReturnReport | ApiResponse<PurchaseReturnReport>>(`${this.baseUrl}/purchase-returns`, { params: this.params(filters) })
@@ -309,6 +357,12 @@ export class ReportsService {
   getStockMovements(filters: ReportFilters): Observable<StockReport> {
     return this.http
       .get<StockReport | ApiResponse<StockReport>>(`${this.baseUrl}/stock-movements`, { params: this.params(filters) })
+      .pipe(map(response => this.normalizeStock(unwrapApiResponse(response))));
+  }
+
+  getNegativeStock(filters: ReportFilters): Observable<StockReport> {
+    return this.http
+      .get<StockReport | ApiResponse<StockReport>>(`${this.baseUrl}/negative-stock`, { params: this.params(filters) })
       .pipe(map(response => this.normalizeStock(unwrapApiResponse(response))));
   }
 
@@ -346,6 +400,13 @@ export class ReportsService {
     return this.http
       .get<ProfitLossSummary | ApiResponse<ProfitLossSummary>>(`${this.baseUrl}/profit-loss`, { params: this.params(filters) })
       .pipe(map(response => this.normalizeProfitLoss(unwrapApiResponse(response))));
+  }
+
+  exportReport(report: string, filters: ReportFilters, format: ReportExportFormat): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/export`, {
+      params: this.params({ ...filters }).set('report', report).set('format', format),
+      responseType: 'blob'
+    });
   }
 
   private params(filters: ReportFilters): HttpParams {
@@ -532,6 +593,40 @@ export class ReportsService {
         date: row.date || '',
         amount: this.toNumber(row.amount),
         status: row.status || ''
+      }))
+    };
+  }
+
+  private normalizeSalesReturns(report: Partial<SalesReturnReport>): SalesReturnReport {
+    return {
+      returnCount: this.toNumber(report.returnCount),
+      totalReturnAmount: this.toNumber(report.totalReturnAmount),
+      rows: this.toArray<SalesReturnRow>(report.rows).map(row => ({
+        returnNo: row.returnNo || '',
+        customer: row.customer || '',
+        invoiceNo: row.invoiceNo || '',
+        date: row.date || '',
+        quantity: this.toNumber(row.quantity),
+        amount: this.toNumber(row.amount),
+        status: row.status || ''
+      }))
+    };
+  }
+
+  private normalizePurchaseByProduct(report: Partial<PurchaseByProductReport>): PurchaseByProductReport {
+    return {
+      totalQuantityPurchased: this.toNumber(report.totalQuantityPurchased),
+      totalGrossPurchase: this.toNumber(report.totalGrossPurchase),
+      totalReturnQty: this.toNumber(report.totalReturnQty),
+      totalNetQty: this.toNumber(report.totalNetQty),
+      rows: this.toArray<PurchaseByProductRow>(report.rows).map(row => ({
+        productId: row.productId,
+        product: row.product || '',
+        sku: row.sku || '',
+        quantityPurchased: this.toNumber(row.quantityPurchased),
+        grossPurchase: this.toNumber(row.grossPurchase),
+        returnQty: this.toNumber(row.returnQty),
+        netQty: this.toNumber(row.netQty)
       }))
     };
   }

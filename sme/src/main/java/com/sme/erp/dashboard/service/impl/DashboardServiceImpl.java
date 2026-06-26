@@ -32,6 +32,7 @@ import com.sme.erp.purchase.entity.PurchaseOrder;
 import com.sme.erp.purchase.repository.PurchaseOrderRepository;
 import com.sme.erp.reports.dto.CustomerDueReportDTO;
 import com.sme.erp.reports.dto.CustomerDueReportRowDTO;
+import com.sme.erp.reports.dto.CustomerSalesRowDTO;
 import com.sme.erp.reports.dto.LowStockReportDTO;
 import com.sme.erp.reports.dto.LowStockRowDTO;
 import com.sme.erp.reports.dto.PurchaseReportDTO;
@@ -40,6 +41,7 @@ import com.sme.erp.reports.dto.SalesReportDTO;
 import com.sme.erp.reports.dto.SalesReportRowDTO;
 import com.sme.erp.reports.dto.SupplierDueReportDTO;
 import com.sme.erp.reports.dto.SupplierDueReportRowDTO;
+import com.sme.erp.reports.dto.SupplierPurchaseRowDTO;
 import com.sme.erp.reports.dto.TopSellingProductReportDTO;
 import com.sme.erp.reports.dto.TopSellingProductRowDTO;
 import com.sme.erp.reports.dto.WarehouseStockValuationReportDTO;
@@ -190,6 +192,53 @@ public class DashboardServiceImpl implements DashboardService {
         return summary;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<TopSellingProductDTO> getTopSellingProducts(String period, LocalDate fromDate, LocalDate toDate) {
+        DateRange range = resolveRange(period, fromDate, toDate);
+        return buildTopSellingProducts(reportService.getTopSellingProducts(range.from(), range.to(), null, null, null, null, null));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DashboardSummaryDTO.CustomerAnalyticsDTO> getTopCustomers(String period, LocalDate fromDate, LocalDate toDate) {
+        DateRange range = resolveRange(period, fromDate, toDate);
+        return reportService.getCustomerSales(range.from(), range.to(), null, null).rows().stream()
+                .limit(LIST_LIMIT)
+                .map(this::customerAnalytics)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DashboardSummaryDTO.SupplierAnalyticsDTO> getTopSuppliers(String period, LocalDate fromDate, LocalDate toDate) {
+        DateRange range = resolveRange(period, fromDate, toDate);
+        return reportService.getSupplierPurchases(range.from(), range.to(), null, null).rows().stream()
+                .limit(LIST_LIMIT)
+                .map(this::supplierAnalytics)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MonthlySalesPurchaseDTO> getMonthlySalesTrend(String period, LocalDate fromDate, LocalDate toDate) {
+        return getSummary(period, fromDate, toDate).getSalesPurchaseTrend();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MonthlySalesPurchaseDTO> getMonthlyPurchaseTrend(String period, LocalDate fromDate, LocalDate toDate) {
+        return getSummary(period, fromDate, toDate).getSalesPurchaseTrend();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ChartPointDTO> getMonthlyExpenseTrend(String period, LocalDate fromDate, LocalDate toDate) {
+        return getSummary(period, fromDate, toDate).getMonthlyIncomeExpense().stream()
+                .map(point -> new ChartPointDTO(point.getLabel(), point.getSecondaryValue(), BigDecimal.ZERO))
+                .toList();
+    }
+
     private PendingApprovalSummary buildPendingApprovals() {
         List<PendingApprovalDTO> rows = new ArrayList<>();
         long totalCount = 0L;
@@ -312,6 +361,24 @@ public class DashboardServiceImpl implements DashboardService {
                         safe(row.netQty()),
                         safe(row.grossSales())))
                 .collect(Collectors.toList());
+    }
+
+    private DashboardSummaryDTO.CustomerAnalyticsDTO customerAnalytics(CustomerSalesRowDTO row) {
+        return new DashboardSummaryDTO.CustomerAnalyticsDTO(
+                row.customerId(),
+                row.customer(),
+                safe(row.totalSales()),
+                safe(row.dueAmount()),
+                row.invoiceCount());
+    }
+
+    private DashboardSummaryDTO.SupplierAnalyticsDTO supplierAnalytics(SupplierPurchaseRowDTO row) {
+        return new DashboardSummaryDTO.SupplierAnalyticsDTO(
+                row.supplierId(),
+                row.supplier(),
+                safe(row.totalPurchase()),
+                safe(row.dueAmount()),
+                row.purchaseCount());
     }
 
     private List<ChartPointDTO> buildExpenseByCategory(DateRange range) {

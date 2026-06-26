@@ -1,6 +1,8 @@
 package com.sme.erp.sales.repository;
 
 import com.sme.erp.sales.entity.SalesReturn;
+import com.sme.erp.reports.dto.SalesReturnRowDTO;
+import com.sme.erp.sales.enums.SalesReturnStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -51,4 +53,40 @@ public interface SalesReturnRepository extends JpaRepository<SalesReturn, Long> 
     java.math.BigDecimal sumReturnAmount(@Param("startDate") LocalDateTime startDate,
                                          @Param("endDate") LocalDateTime endDate,
                                          @Param("customerId") Long customerId);
+
+    @Query("""
+            select new com.sme.erp.reports.dto.SalesReturnRowDTO(
+                r.returnCode,
+                c.name,
+                i.invoiceNo,
+                r.returnDate,
+                coalesce(sum(item.quantity), 0),
+                r.totalAmount,
+                r.status
+            )
+            from SalesReturn r
+            join r.customer c
+            join r.invoice i
+            left join r.items item
+            left join item.product p
+            left join i.warehouse w
+            where (:startDate is null or r.returnDate >= :startDate)
+              and (:endDate is null or r.returnDate < :endDate)
+              and (:customerId is null or c.id = :customerId)
+              and (:productId is null or p.id = :productId)
+              and (:warehouseId is null or w.id = :warehouseId)
+              and (:status is null or r.status = :status)
+              and (:keyword is null or lower(r.returnCode) like lower(concat('%', :keyword, '%'))
+                   or lower(c.name) like lower(concat('%', :keyword, '%'))
+                   or lower(i.invoiceNo) like lower(concat('%', :keyword, '%')))
+            group by r.id, r.returnCode, c.name, i.invoiceNo, r.returnDate, r.totalAmount, r.status
+            order by r.returnDate desc, r.id desc
+            """)
+    List<SalesReturnRowDTO> findSalesReturnReportRows(@Param("startDate") LocalDateTime startDate,
+                                                      @Param("endDate") LocalDateTime endDate,
+                                                      @Param("customerId") Long customerId,
+                                                      @Param("productId") Long productId,
+                                                      @Param("warehouseId") Long warehouseId,
+                                                      @Param("status") SalesReturnStatus status,
+                                                      @Param("keyword") String keyword);
 }

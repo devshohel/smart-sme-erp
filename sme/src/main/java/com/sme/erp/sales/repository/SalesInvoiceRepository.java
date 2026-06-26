@@ -5,6 +5,7 @@ import com.sme.erp.reports.dto.CustomerSalesRowDTO;
 import com.sme.erp.reports.dto.CustomerDueReportRowDTO;
 import com.sme.erp.reports.dto.SalesReportRowDTO;
 import com.sme.erp.reports.dto.TopSellingProductRowDTO;
+import com.sme.erp.sales.enums.SalesInvoiceStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -97,6 +98,42 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
                                                 @Param("productId") Long productId,
                                                 @Param("warehouseId") Long warehouseId,
                                                 @Param("keyword") String keyword);
+
+    @Query("""
+            select new com.sme.erp.reports.dto.SalesReportRowDTO(
+                i.invoiceNo,
+                c.name,
+                w.name,
+                i.status,
+                i.saleDate,
+                coalesce(sum(item.quantity), 0),
+                i.netTotal,
+                i.paidAmount,
+                i.dueAmount
+            )
+            from SalesInvoice i
+            join i.customer c
+            join i.warehouse w
+            left join i.items item
+            where (:startDate is null or i.saleDate >= :startDate)
+              and (:endDate is null or i.saleDate < :endDate)
+              and (:customerId is null or c.id = :customerId)
+              and (:productId is null or item.product.id = :productId)
+              and (:warehouseId is null or w.id = :warehouseId)
+              and (:status is null or i.status = :status)
+              and (:keyword is null or lower(i.invoiceNo) like lower(concat('%', :keyword, '%'))
+                   or lower(c.name) like lower(concat('%', :keyword, '%'))
+                   or lower(w.name) like lower(concat('%', :keyword, '%')))
+            group by i.id, i.invoiceNo, c.name, w.name, i.status, i.saleDate, i.netTotal, i.paidAmount, i.dueAmount
+            order by i.saleDate desc, i.id desc
+            """)
+    List<SalesReportRowDTO> findSalesDetailRowsWithStatus(@Param("startDate") LocalDateTime startDate,
+                                                          @Param("endDate") LocalDateTime endDate,
+                                                          @Param("customerId") Long customerId,
+                                                          @Param("productId") Long productId,
+                                                          @Param("warehouseId") Long warehouseId,
+                                                          @Param("status") SalesInvoiceStatus status,
+                                                          @Param("keyword") String keyword);
 
     @Query("""
             select new com.sme.erp.reports.dto.TopSellingProductRowDTO(

@@ -12,8 +12,8 @@
       <button *ngIf="canExportExcel" class="btn btn-outline-secondary btn-sm" type="button" [disabled]="!hasRows" (click)="exportExcel()">
         <i class="bi bi-file-earmark-spreadsheet me-1"></i> Excel
       </button>
-      <button *ngIf="canPrintReport" class="btn btn-outline-dark btn-sm" type="button" (click)="print()">
-        <i class="bi bi-printer me-1"></i> Print
+      <button *ngIf="canPrintReport" class="btn btn-outline-dark btn-sm" type="button" [disabled]="!hasRows" (click)="print()">
+        <i class="bi bi-filetype-pdf me-1"></i> PDF
       </button>
     </div>
   </div>
@@ -68,10 +68,16 @@
           <select class="form-select" [(ngModel)]="filters.status">
             <option value="">All Statuses</option>
             <option value="DRAFT">DRAFT</option>
+            <option value="SUBMITTED">SUBMITTED</option>
             <option value="PENDING">PENDING</option>
             <option value="APPROVED">APPROVED</option>
+            <option value="REJECTED">REJECTED</option>
+            <option value="POSTED">POSTED</option>
+            <option value="PARTIAL_PAID">PARTIAL_PAID</option>
+            <option value="PAID">PAID</option>
             <option value="IN_TRANSIT">IN_TRANSIT</option>
             <option value="RECEIVED">RECEIVED</option>
+            <option value="REVERSED">REVERSED</option>
             <option value="CANCELLED">CANCELLED</option>
           </select>
         </label>

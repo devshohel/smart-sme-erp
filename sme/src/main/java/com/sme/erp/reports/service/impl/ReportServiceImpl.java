@@ -15,11 +15,15 @@ import com.sme.erp.reports.dto.LowStockReportDTO;
 import com.sme.erp.reports.dto.LowStockRowDTO;
 import com.sme.erp.reports.dto.ProfitLossSummaryDTO;
 import com.sme.erp.reports.dto.PurchaseReturnReportDTO;
+import com.sme.erp.reports.dto.PurchaseByProductReportDTO;
+import com.sme.erp.reports.dto.PurchaseByProductRowDTO;
 import com.sme.erp.reports.dto.PurchaseReturnRowDTO;
 import com.sme.erp.reports.dto.PurchaseReportDTO;
 import com.sme.erp.reports.dto.PurchaseReportRowDTO;
 import com.sme.erp.reports.dto.SalesReportDTO;
 import com.sme.erp.reports.dto.SalesReportRowDTO;
+import com.sme.erp.reports.dto.SalesReturnReportDTO;
+import com.sme.erp.reports.dto.SalesReturnRowDTO;
 import com.sme.erp.reports.dto.StockTransferReportDTO;
 import com.sme.erp.reports.dto.StockTransferRowDTO;
 import com.sme.erp.reports.dto.StockMovementReportRowDTO;
@@ -34,6 +38,9 @@ import com.sme.erp.reports.dto.TopSellingProductRowDTO;
 import com.sme.erp.reports.dto.WarehouseStockValuationReportDTO;
 import com.sme.erp.reports.dto.WarehouseStockValuationRowDTO;
 import com.sme.erp.reports.service.ReportService;
+import com.sme.erp.purchase.enums.PurchaseStatus;
+import com.sme.erp.sales.enums.SalesInvoiceStatus;
+import com.sme.erp.sales.enums.SalesReturnStatus;
 import com.sme.erp.sales.repository.SalesInvoiceRepository;
 import com.sme.erp.sales.repository.SalesReturnRepository;
 import org.springframework.stereotype.Service;
@@ -103,6 +110,30 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     @Transactional(readOnly = true)
+    public SalesReportDTO getSalesDetail(LocalDate fromDate, LocalDate toDate, Long customerId, Long productId,
+                                         Long warehouseId, String status, String keyword) {
+        List<SalesReportRowDTO> rows = salesInvoiceRepository.findSalesDetailRowsWithStatus(
+                startOfDay(fromDate), exclusiveEnd(toDate), customerId, productId, warehouseId,
+                parseEnum(status, SalesInvoiceStatus.class), clean(keyword));
+        BigDecimal returnAmount = salesReturnRepository.sumReturnAmount(startOfDay(fromDate), exclusiveEnd(toDate), customerId);
+        return buildSalesReport(rows, returnAmount);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SalesReturnReportDTO getSalesReturns(LocalDate fromDate, LocalDate toDate, Long customerId, Long productId,
+                                                Long warehouseId, String status, String keyword) {
+        List<SalesReturnRowDTO> rows = salesReturnRepository.findSalesReturnReportRows(
+                startOfDay(fromDate), exclusiveEnd(toDate), customerId, productId, warehouseId,
+                parseEnum(status, SalesReturnStatus.class), clean(keyword));
+        return new SalesReturnReportDTO(
+                (long) rows.size(),
+                rows.stream().map(SalesReturnRowDTO::amount).reduce(BigDecimal.ZERO, this::add),
+                rows);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public TopSellingProductReportDTO getTopSellingProducts(LocalDate fromDate, LocalDate toDate, Long productId,
                                                             Long warehouseId, Long categoryId, Long brandId,
                                                             String keyword) {
@@ -153,6 +184,15 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     @Transactional(readOnly = true)
+    public PurchaseReportDTO getPurchaseDetail(LocalDate fromDate, LocalDate toDate, Long supplierId, Long warehouseId, String status, String keyword) {
+        List<PurchaseReportRowDTO> rows = purchaseOrderRepository.findPurchaseDetailRowsWithStatus(
+                startOfDay(fromDate), exclusiveEnd(toDate), supplierId, warehouseId, parseEnum(status, PurchaseStatus.class), clean(keyword));
+        BigDecimal returnAmount = purchaseReturnRepository.sumReturnAmount(startOfDay(fromDate), exclusiveEnd(toDate), supplierId);
+        return buildPurchaseReport(rows, returnAmount);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public SupplierPurchaseReportDTO getSupplierPurchases(LocalDate fromDate, LocalDate toDate, Long supplierId, String keyword) {
         List<SupplierPurchaseRowDTO> rows = purchaseOrderRepository.findSupplierPurchaseRows(
                 startOfDay(fromDate), exclusiveEnd(toDate), supplierId, clean(keyword));
@@ -161,6 +201,21 @@ public class ReportServiceImpl implements ReportService {
                 rows.stream().map(SupplierPurchaseRowDTO::totalPurchase).reduce(BigDecimal.ZERO, this::add),
                 rows.stream().map(SupplierPurchaseRowDTO::paidAmount).reduce(BigDecimal.ZERO, this::add),
                 rows.stream().map(SupplierPurchaseRowDTO::dueAmount).reduce(BigDecimal.ZERO, this::add),
+                rows);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PurchaseByProductReportDTO getPurchaseByProduct(LocalDate fromDate, LocalDate toDate, Long supplierId, Long productId,
+                                                           Long warehouseId, Long categoryId, Long brandId, String status, String keyword) {
+        List<PurchaseByProductRowDTO> rows = purchaseOrderRepository.findPurchaseByProductRows(
+                startOfDay(fromDate), exclusiveEnd(toDate), supplierId, productId, warehouseId, categoryId, brandId,
+                parseEnum(status, PurchaseStatus.class), clean(keyword));
+        return new PurchaseByProductReportDTO(
+                rows.stream().map(PurchaseByProductRowDTO::quantityPurchased).reduce(BigDecimal.ZERO, this::add),
+                rows.stream().map(PurchaseByProductRowDTO::grossPurchase).reduce(BigDecimal.ZERO, this::add),
+                rows.stream().map(PurchaseByProductRowDTO::returnQty).reduce(BigDecimal.ZERO, this::add),
+                rows.stream().map(PurchaseByProductRowDTO::netQty).reduce(BigDecimal.ZERO, this::add),
                 rows);
     }
 
@@ -204,6 +259,20 @@ public class ReportServiceImpl implements ReportService {
                 0L,
                 List.of(),
                 movements);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StockReportDTO getNegativeStockReport(Long warehouseId, Long productId, Long categoryId, Long brandId, String keyword) {
+        List<StockReportRowDTO> rows = stockRepository.findStockReportRows(warehouseId, productId, categoryId, brandId, clean(keyword)).stream()
+                .filter(row -> safe(row.getQuantity()).signum() < 0)
+                .toList();
+        return new StockReportDTO(
+                rows.stream().map(StockReportRowDTO::getQuantity).reduce(BigDecimal.ZERO, this::add),
+                rows.stream().map(StockReportRowDTO::getStockValue).reduce(BigDecimal.ZERO, this::add),
+                0L,
+                rows,
+                List.of());
     }
 
     @Override
@@ -341,6 +410,11 @@ public class ReportServiceImpl implements ReportService {
             return null;
         }
         return StockTransferStatus.valueOf(value.toUpperCase());
+    }
+
+    private <E extends Enum<E>> E parseEnum(String status, Class<E> enumType) {
+        String value = clean(status);
+        return value == null ? null : Enum.valueOf(enumType, value.toUpperCase());
     }
 
     private BigDecimal sumSales(List<SalesReportRowDTO> rows) {

@@ -390,4 +390,64 @@ public class DashboardSummaryDTO {
         public String getDate() { return date; }
         public void setDate(String date) { this.date = date; }
     }
+
+    public static class CustomerAnalyticsDTO {
+        private Long customerId;
+        private String customerName;
+        private BigDecimal totalSales = BigDecimal.ZERO;
+        private BigDecimal dueAmount = BigDecimal.ZERO;
+        private Long invoiceCount = 0L;
+
+        public CustomerAnalyticsDTO() {}
+
+        public CustomerAnalyticsDTO(Long customerId, String customerName, BigDecimal totalSales,
+                                    BigDecimal dueAmount, Long invoiceCount) {
+            this.customerId = customerId;
+            this.customerName = customerName;
+            this.totalSales = totalSales;
+            this.dueAmount = dueAmount;
+            this.invoiceCount = invoiceCount;
+        }
+
+        public Long getCustomerId() { return customerId; }
+        public void setCustomerId(Long customerId) { this.customerId = customerId; }
+        public String getCustomerName() { return customerName; }
+        public void setCustomerName(String customerName) { this.customerName = customerName; }
+        public BigDecimal getTotalSales() { return totalSales; }
+        public void setTotalSales(BigDecimal totalSales) { this.totalSales = totalSales; }
+        public BigDecimal getDueAmount() { return dueAmount; }
+        public void setDueAmount(BigDecimal dueAmount) { this.dueAmount = dueAmount; }
+        public Long getInvoiceCount() { return invoiceCount; }
+        public void setInvoiceCount(Long invoiceCount) { this.invoiceCount = invoiceCount; }
+    }
+
+    public static class SupplierAnalyticsDTO {
+        private Long supplierId;
+        private String supplierName;
+        private BigDecimal totalPurchase = BigDecimal.ZERO;
+        private BigDecimal dueAmount = BigDecimal.ZERO;
+        private Long purchaseCount = 0L;
+
+        public SupplierAnalyticsDTO() {}
+
+        public SupplierAnalyticsDTO(Long supplierId, String supplierName, BigDecimal totalPurchase,
+                                    BigDecimal dueAmount, Long purchaseCount) {
+            this.supplierId = supplierId;
+            this.supplierName = supplierName;
+            this.totalPurchase = totalPurchase;
+            this.dueAmount = dueAmount;
+            this.purchaseCount = purchaseCount;
+        }
+
+        public Long getSupplierId() { return supplierId; }
+        public void setSupplierId(Long supplierId) { this.supplierId = supplierId; }
+        public String getSupplierName() { return supplierName; }
+        public void setSupplierName(String supplierName) { this.supplierName = supplierName; }
+        public BigDecimal getTotalPurchase() { return totalPurchase; }
+        public void setTotalPurchase(BigDecimal totalPurchase) { this.totalPurchase = totalPurchase; }
+        public BigDecimal getDueAmount() { return dueAmount; }
+        public void setDueAmount(BigDecimal dueAmount) { this.dueAmount = dueAmount; }
+        public Long getPurchaseCount() { return purchaseCount; }
+        public void setPurchaseCount(Long purchaseCount) { this.purchaseCount = purchaseCount; }
+    }
 }
