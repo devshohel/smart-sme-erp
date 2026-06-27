@@ -33,6 +33,7 @@ export class OrdersComponent implements OnInit {
   searchTerm = '';
   statusFilter = '';
   dateFilter = '';
+  customerSearchTerm = '';
 
   readonly statuses: SalesOrderStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'CONVERTED', 'CANCELLED'];
 
@@ -87,6 +88,9 @@ export class OrdersComponent implements OnInit {
         if (selectedId && this.currentMode === 'edit' && this.selectedOrder) {
           this.editOrder(this.selectedOrder);
         }
+        if (selectedId && this.currentMode === 'details' && this.selectedOrder) {
+          this.openOrderDetails(this.selectedOrder, false);
+        }
         this.loading = false;
       },
       error: (error) => {
@@ -127,11 +131,14 @@ export class OrdersComponent implements OnInit {
       productId: [item?.productId ?? null, Validators.required],
       quantity: [item?.quantity ?? 1, [Validators.required, Validators.min(0.01)]],
       unitPrice: [item?.unitPrice ?? 0, [Validators.required, Validators.min(0)]],
+      discount: [item?.discount ?? 0, [Validators.required, Validators.min(0)]],
+      tax: [item?.tax ?? 0, [Validators.required, Validators.min(0)]],
       subtotal: [{ value: item?.subtotal ?? 0, disabled: true }]
     });
 
-    group.get('quantity')?.valueChanges.subscribe(() => this.recalculateRow(group));
-    group.get('unitPrice')?.valueChanges.subscribe(() => this.recalculateRow(group));
+    ['quantity', 'unitPrice', 'discount', 'tax'].forEach(field => {
+      group.get(field)?.valueChanges.subscribe(() => this.recalculateRow(group));
+    });
 
     this.items.push(group);
     this.recalculateRow(group);
@@ -156,12 +163,42 @@ export class OrdersComponent implements OnInit {
   recalculateRow(group: FormGroup): void {
     const quantity = Number(group.get('quantity')?.value || 0);
     const unitPrice = Number(group.get('unitPrice')?.value || 0);
-    const subtotal = quantity * unitPrice;
+    const discount = Number(group.get('discount')?.value || 0);
+    const tax = Number(group.get('tax')?.value || 0);
+    const subtotal = (quantity * unitPrice) - discount + tax;
     group.get('subtotal')?.setValue(subtotal, { emitEvent: false });
   }
 
+  get subTotalAmount(): number {
+    return this.items.controls.reduce((sum, control) => {
+      const quantity = Number(control.get('quantity')?.value || 0);
+      const unitPrice = Number(control.get('unitPrice')?.value || 0);
+      return sum + (quantity * unitPrice);
+    }, 0);
+  }
+
+  get discountAmount(): number {
+    return this.items.controls.reduce((sum, control) => sum + Number(control.get('discount')?.value || 0), 0);
+  }
+
+  get taxAmount(): number {
+    return this.items.controls.reduce((sum, control) => sum + Number(control.get('tax')?.value || 0), 0);
+  }
+
   get grandTotal(): number {
-    return this.items.controls.reduce((sum, control) => sum + Number(control.get('subtotal')?.value || 0), 0);
+    return this.subTotalAmount - this.discountAmount + this.taxAmount;
+  }
+
+  get filteredCustomers(): SalesCustomer[] {
+    const keyword = this.customerSearchTerm.trim().toLowerCase();
+    if (!keyword) {
+      return this.customers.slice(0, 8);
+    }
+    return this.customers.filter(customer =>
+      (customer.name || '').toLowerCase().includes(keyword)
+      || (customer.phone || '').toLowerCase().includes(keyword)
+      || ((customer.customerCode || '') as string).toLowerCase().includes(keyword)
+    ).slice(0, 8);
   }
 
   get filteredOrders(): SalesOrder[] {
@@ -174,7 +211,7 @@ export class OrdersComponent implements OnInit {
       const matchesStatus = !this.statusFilter || order.status === this.statusFilter;
       const matchesDate = !this.dateFilter || (order.orderDate || '').slice(0, 10) === this.dateFilter;
       return matchesKeyword && matchesStatus && matchesDate;
-    });
+    }).sort((left, right) => this.sortNewestFirst(left.id, right.id, left['createdAt'], right['createdAt']));
   }
 
   saveOrder(): void {
@@ -212,7 +249,13 @@ export class OrdersComponent implements OnInit {
     }
   }
 
+  viewOrder(order: SalesOrder): void {
+    this.openOrderDetails(order, true);
+  }
+
   editOrder(order: SalesOrder): void {
+    this.orderForm.enable({ emitEvent: false });
+    this.currentMode = 'edit';
     this.editingOrderId = order.id || null;
     this.selectedOrder = order;
     while (this.items.length > 0) {
@@ -226,6 +269,7 @@ export class OrdersComponent implements OnInit {
       status: order.status || 'DRAFT',
       notes: order.notes || ''
     });
+    this.customerSearchTerm = order.customerName || '';
 
     if (!order.items.length) {
       this.addItem();
@@ -236,6 +280,7 @@ export class OrdersComponent implements OnInit {
   }
 
   resetForm(): void {
+    this.orderForm.enable({ emitEvent: false });
     this.editingOrderId = null;
     while (this.items.length > 0) {
       this.items.removeAt(0);
@@ -248,9 +293,83 @@ export class OrdersComponent implements OnInit {
       status: 'DRAFT',
       notes: ''
     });
+    this.customerSearchTerm = '';
     this.addItem();
     if (this.currentMode !== 'create') {
       this.router.navigate(['/sales/orders']);
+    }
+  }
+
+  selectCustomer(customer: SalesCustomer): void {
+    this.orderForm.patchValue({ customerId: customer.id });
+    this.customerSearchTerm = customer.name || '';
+  }
+
+  overrideSubTotal(value: string): void {
+    const target = this.parseSummaryValue(value);
+    if (target === null) {
+      return;
+    }
+    const lastItem = this.lastItemGroup();
+    if (!lastItem) {
+      return;
+    }
+    const quantity = Number(lastItem.get('quantity')?.value || 0);
+    if (quantity <= 0) {
+      return;
+    }
+    const diff = target - this.subTotalAmount;
+    const currentGross = Number(lastItem.get('quantity')?.value || 0) * Number(lastItem.get('unitPrice')?.value || 0);
+    const nextGross = Math.max(currentGross + diff, 0);
+    lastItem.patchValue({ unitPrice: nextGross / quantity });
+  }
+
+  overrideDiscountAmount(value: string): void {
+    this.applyDiscountDelta(this.parseSummaryValue(value));
+  }
+
+  overrideTaxAmount(value: string): void {
+    const target = this.parseSummaryValue(value);
+    if (target === null) {
+      return;
+    }
+    const lastItem = this.lastItemGroup();
+    if (!lastItem) {
+      return;
+    }
+    const nextTax = Math.max(Number(lastItem.get('tax')?.value || 0) + (target - this.taxAmount), 0);
+    lastItem.patchValue({ tax: nextTax });
+  }
+
+  overrideGrandTotal(value: string): void {
+    const target = this.parseSummaryValue(value);
+    if (target === null) {
+      return;
+    }
+    const diff = target - this.grandTotal;
+    if (diff === 0) {
+      return;
+    }
+    if (diff > 0) {
+      const discountShift = Math.min(this.lastItemDiscount(), diff);
+      if (discountShift > 0) {
+        this.applyDiscountDelta(this.discountAmount - discountShift);
+      }
+      const remaining = diff - discountShift;
+      if (remaining > 0) {
+        this.overrideTaxAmount(String(this.taxAmount + remaining));
+      }
+      return;
+    }
+
+    const reduction = Math.abs(diff);
+    const taxShift = Math.min(this.lastItemTax(), reduction);
+    if (taxShift > 0) {
+      this.overrideTaxAmount(String(this.taxAmount - taxShift));
+    }
+    const remaining = reduction - taxShift;
+    if (remaining > 0) {
+      this.applyDiscountDelta(this.discountAmount + remaining);
     }
   }
 
@@ -368,6 +487,8 @@ export class OrdersComponent implements OnInit {
       productName: this.productName(item.productId !== null ? Number(item.productId) : null),
       quantity: Number(item.quantity || 0),
       unitPrice: Number(item.unitPrice || 0),
+      discount: Number(item.discount || 0),
+      tax: Number(item.tax || 0),
       subtotal: Number(item.subtotal || 0)
     }));
 
@@ -382,7 +503,7 @@ export class OrdersComponent implements OnInit {
       notes: value.notes || '',
       status: 'DRAFT',
       items,
-      grandTotal: items.reduce((sum, item) => sum + item.subtotal, 0)
+      grandTotal: this.grandTotal
     };
   }
 
@@ -405,5 +526,52 @@ export class OrdersComponent implements OnInit {
     this.submitting = false;
     this.errorMessage = extractApiErrorMessage(error, fallbackMessage);
     debugApiError('OrdersComponent.workflow', error);
+  }
+
+  private applyDiscountDelta(target: number | null): void {
+    if (target === null) {
+      return;
+    }
+    const lastItem = this.lastItemGroup();
+    if (!lastItem) {
+      return;
+    }
+    const nextDiscount = Math.max(Number(lastItem.get('discount')?.value || 0) + (target - this.discountAmount), 0);
+    lastItem.patchValue({ discount: nextDiscount });
+  }
+
+  private lastItemGroup(): FormGroup | null {
+    return this.items.length ? this.items.at(this.items.length - 1) as FormGroup : null;
+  }
+
+  private lastItemDiscount(): number {
+    return Number(this.lastItemGroup()?.get('discount')?.value || 0);
+  }
+
+  private lastItemTax(): number {
+    return Number(this.lastItemGroup()?.get('tax')?.value || 0);
+  }
+
+  private parseSummaryValue(value: string): number | null {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  }
+
+  private sortNewestFirst(leftId?: number, rightId?: number, leftCreatedAt?: string, rightCreatedAt?: string): number {
+    const leftTime = leftCreatedAt ? new Date(leftCreatedAt).getTime() : 0;
+    const rightTime = rightCreatedAt ? new Date(rightCreatedAt).getTime() : 0;
+    if (leftTime !== rightTime) {
+      return rightTime - leftTime;
+    }
+    return (rightId || 0) - (leftId || 0);
+  }
+
+  private openOrderDetails(order: SalesOrder, navigate: boolean): void {
+    this.editOrder(order);
+    this.currentMode = 'details';
+    this.orderForm.disable({ emitEvent: false });
+    if (navigate && order.id) {
+      this.router.navigate(['/sales/orders/details', order.id]);
+    }
   }
 }

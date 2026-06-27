@@ -36,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -79,6 +80,9 @@ public class SalesOrderServiceImpl implements SalesOrderService {
     @Transactional(readOnly = true)
     public List<SalesOrderDTO> getAll() {
         return salesOrderRepository.findAll().stream()
+                .sorted(Comparator
+                        .comparing(SalesOrder::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(SalesOrder::getId, Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(salesOrderMapper::toDTO)
                 .collect(Collectors.toList());
     }
@@ -271,7 +275,9 @@ public class SalesOrderServiceImpl implements SalesOrderService {
             Uom uom = findUomById(itemDTO.getUomId());
             BigDecimal quantity = positive(itemDTO.getQuantity(), "Quantity must be positive");
             BigDecimal unitPrice = nonNegative(itemDTO.getUnitPrice(), "Unit price cannot be negative");
-            BigDecimal subTotal = quantity.multiply(unitPrice);
+            BigDecimal discount = nonNegative(itemDTO.getDiscount(), "Discount cannot be negative");
+            BigDecimal tax = nonNegative(itemDTO.getTax(), "Tax cannot be negative");
+            BigDecimal subTotal = quantity.multiply(unitPrice).subtract(discount).add(tax);
 
             SalesItem item = new SalesItem();
             item.setOrder(order);
@@ -279,8 +285,8 @@ public class SalesOrderServiceImpl implements SalesOrderService {
             item.setUom(uom);
             item.setQuantity(quantity);
             item.setUnitPrice(unitPrice);
-            item.setDiscount(BigDecimal.ZERO);
-            item.setTax(BigDecimal.ZERO);
+            item.setDiscount(discount);
+            item.setTax(tax);
             item.setSubTotal(subTotal);
             items.add(item);
 

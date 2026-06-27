@@ -21,6 +21,8 @@ export interface SalesInvoice {
   dueAmount: number;
   paymentStatus?: PaymentStatus | null;
   status?: SalesInvoiceStatus;
+  createdAt?: string;
+  updatedAt?: string;
   submittedAt?: string;
   submittedBy?: string;
   approvedAt?: string;

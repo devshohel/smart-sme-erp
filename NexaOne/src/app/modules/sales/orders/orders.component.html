@@ -37,7 +37,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let order of filteredOrders" class="cursor-pointer" (click)="selectOrder(order)">
+              <tr *ngFor="let order of filteredOrders">
                 <td class="fw-semibold">{{ order.orderNo || 'Draft' }}</td>
                 <td>{{ order.customerName || 'N/A' }}</td>
                 <td>{{ order.warehouseName || 'N/A' }}</td>
@@ -45,9 +45,12 @@
                 <td class="text-end">{{ order.grandTotal | number:'1.2-2' }}</td>
                 <td><app-sales-status-badge [label]="order.status"></app-sales-status-badge></td>
                 <td class="text-center">
-                  <button *ngIf="canEdit(order)" type="button" class="btn btn-sm btn-outline-primary" (click)="editOrder(order); $event.stopPropagation()">
-                    <i class="bi bi-pencil"></i>
-                  </button>
+                  <div class="d-inline-flex flex-wrap gap-1 justify-content-center">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" (click)="viewOrder(order)">View</button>
+                    <button *ngIf="canEdit(order)" type="button" class="btn btn-sm btn-outline-primary" (click)="editOrder(order)">Edit</button>
+                    <button *ngIf="canCancel(order)" type="button" class="btn btn-sm btn-outline-danger" (click)="selectOrder(order); cancelSelected()">Delete</button>
+                    <button *ngIf="canApprove(order)" type="button" class="btn btn-sm btn-success" (click)="selectOrder(order); approveSelected()">Approve</button>
+                  </div>
                 </td>
               </tr>
               <tr *ngIf="!loading && filteredOrders.length === 0">
@@ -61,43 +64,10 @@
         </div>
       </app-card>
 
-      <app-card *ngIf="selectedOrder" title="Selected Order" subtitle="Quick order summary for the selected row.">
-        <div class="row g-3">
-          <div class="col-md-6"><strong>Order No:</strong> {{ selectedOrder.orderNo || 'Draft' }}</div>
-          <div class="col-md-6"><strong>Status:</strong> <app-sales-status-badge [label]="selectedOrder.status"></app-sales-status-badge></div>
-          <div class="col-md-6"><strong>Customer:</strong> {{ selectedOrder.customerName }}</div>
-          <div class="col-md-6"><strong>Warehouse:</strong> {{ selectedOrder.warehouseName }}</div>
-          <div class="col-md-6"><strong>Order Date:</strong> {{ selectedOrder.orderDate }}</div>
-          <div class="col-md-6"><strong>Notes:</strong> {{ selectedOrder.notes || 'N/A' }}</div>
-        </div>
-        <div class="d-flex flex-wrap gap-2 mt-3">
-          <button *ngIf="canEdit(selectedOrder)" type="button" class="btn btn-outline-primary btn-sm" (click)="editOrder(selectedOrder)">
-            Edit Draft
-          </button>
-          <button *ngIf="canSubmit(selectedOrder)" type="button" class="btn btn-warning btn-sm" (click)="submitSelected()">
-            Submit
-          </button>
-          <button *ngIf="canApprove(selectedOrder)" type="button" class="btn btn-success btn-sm" (click)="approveSelected()">
-            Approve
-          </button>
-          <button *ngIf="canReject(selectedOrder)" type="button" class="btn btn-outline-dark btn-sm" (click)="rejectSelected()">
-            Reject
-          </button>
-          <button *ngIf="canCancel(selectedOrder)" type="button" class="btn btn-outline-danger btn-sm" (click)="cancelSelected()">
-            Cancel
-          </button>
-          <button *ngIf="canConvert(selectedOrder)" type="button" class="btn btn-primary btn-sm" (click)="convertSelected()">
-            Convert to Invoice
-          </button>
-          <button *ngIf="hasPermission('SALES_ORDER_PRINT')" type="button" class="btn btn-outline-secondary btn-sm" (click)="printSelected()">
-            Print
-          </button>
-        </div>
-      </app-card>
     </div>
 
     <div class="col-12">
-      <app-card *ngIf="hasPermission(editingOrderId ? 'SALES_ORDER_EDIT' : 'SALES_ORDER_CREATE')" [title]="editingOrderId ? 'Edit Sales Order' : 'Create Sales Order'" subtitle="Create customer order requests before invoice confirmation.">
+      <app-card *ngIf="hasPermission(editingOrderId ? 'SALES_ORDER_EDIT' : 'SALES_ORDER_CREATE') || currentMode === 'details'" [title]="currentMode === 'details' ? 'Sales Order Details' : (editingOrderId ? 'Edit Sales Order' : 'Create Sales Order')" subtitle="Create customer order requests before invoice confirmation.">
         <form [formGroup]="orderForm" (ngSubmit)="saveOrder()" novalidate>
           <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
 
@@ -105,10 +75,14 @@
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label">Customer *</label>
-              <select class="form-select" formControlName="customerId">
-                <option [ngValue]="null">Select Customer</option>
-                <option *ngFor="let customer of customers" [ngValue]="customer.id">{{ customer.name }}</option>
-              </select>
+              <input class="form-control" [ngModel]="customerSearchTerm" (ngModelChange)="customerSearchTerm = $event" [ngModelOptions]="{ standalone: true }" [readonly]="currentMode === 'details'" placeholder="Search customer by name, phone, or code">
+              <div class="customer-suggestions" *ngIf="currentMode !== 'details' && customerSearchTerm && filteredCustomers.length">
+                <button type="button" class="customer-suggestion" *ngFor="let customer of filteredCustomers" (click)="selectCustomer(customer)">
+                  <span>{{ customer.name }}</span>
+                  <small>{{ customer.customerCode || 'No code' }} | {{ customer.phone || 'No phone' }}</small>
+                </button>
+              </div>
+              <input type="hidden" formControlName="customerId">
               <div class="invalid-feedback d-block" *ngIf="hasError('customerId', 'required')">Customer is required.</div>
             </div>
 
@@ -140,7 +114,7 @@
 
           <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
             <div class="section-title mb-0">Item Table</div>
-            <button *ngIf="hasPermission(editingOrderId ? 'SALES_ORDER_EDIT' : 'SALES_ORDER_CREATE')" type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
+            <button *ngIf="currentMode !== 'details' && hasPermission(editingOrderId ? 'SALES_ORDER_EDIT' : 'SALES_ORDER_CREATE')" type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
               <i class="bi bi-plus-lg me-1"></i>Add Row
             </button>
           </div>
@@ -159,16 +133,16 @@
               <tbody formArrayName="items">
                 <tr *ngFor="let group of items.controls; let i = index" [formGroupName]="i">
                   <td>
-                    <select class="form-select form-select-sm" formControlName="productId" (change)="onProductChange(i)">
+              <select class="form-select form-select-sm" formControlName="productId" (change)="onProductChange(i)" [disabled]="currentMode === 'details'">
                       <option [ngValue]="null">Select Product</option>
                       <option *ngFor="let product of products" [ngValue]="product.id">{{ product.productName }}</option>
                     </select>
                   </td>
-                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="quantity" min="0.01" step="0.01"></td>
-                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="unitPrice" min="0" step="0.01"></td>
+                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="quantity" min="0.01" step="0.01" [readonly]="currentMode === 'details'"></td>
+                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="unitPrice" min="0" step="0.01" [readonly]="currentMode === 'details'"></td>
                   <td><input type="number" class="form-control form-control-sm text-end" formControlName="subtotal" readonly></td>
                   <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-light border" (click)="removeItem(i)" [disabled]="items.length === 1">
+                    <button type="button" class="btn btn-sm btn-light border" (click)="removeItem(i)" [disabled]="items.length === 1 || currentMode === 'details'">
                       <i class="bi bi-trash text-danger"></i>
                     </button>
                   </td>
@@ -179,18 +153,31 @@
 
           <div class="section-title mt-4">Summary</div>
           <div class="summary-panel">
-            <div class="d-flex justify-content-between">
+            <div class="summary-row">
+              <span>Sub Total</span>
+              <input type="number" class="form-control text-end" [value]="subTotalAmount" (change)="overrideSubTotal($any($event.target).value)" [readonly]="currentMode === 'details'" min="0" step="0.01">
+            </div>
+            <div class="summary-row">
+              <span>Discount Amount</span>
+              <input type="number" class="form-control text-end" [value]="discountAmount" (change)="overrideDiscountAmount($any($event.target).value)" [readonly]="currentMode === 'details'" min="0" step="0.01">
+            </div>
+            <div class="summary-row">
+              <span>Tax Amount</span>
+              <input type="number" class="form-control text-end" [value]="taxAmount" (change)="overrideTaxAmount($any($event.target).value)" [readonly]="currentMode === 'details'" min="0" step="0.01">
+            </div>
+            <div class="summary-row">
               <span>Grand Total</span>
-              <strong>{{ grandTotal | number:'1.2-2' }}</strong>
+              <input type="number" class="form-control text-end" [value]="grandTotal" (change)="overrideGrandTotal($any($event.target).value)" [readonly]="currentMode === 'details'" min="0" step="0.01">
             </div>
           </div>
 
           <div class="section-title mt-4">Action Buttons</div>
           <div class="d-flex flex-wrap justify-content-end gap-2">
+            <button *ngIf="currentMode === 'details'" type="button" class="btn btn-outline-secondary" routerLink="/sales/orders">Back</button>
             <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">
               {{ editingOrderId ? 'Cancel Edit' : 'Reset' }}
             </button>
-            <button type="submit" class="btn btn-success px-4" [disabled]="submitting || !hasPermission(editingOrderId ? 'SALES_ORDER_EDIT' : 'SALES_ORDER_CREATE')">
+            <button *ngIf="currentMode !== 'details'" type="submit" class="btn btn-success px-4" [disabled]="submitting || !hasPermission(editingOrderId ? 'SALES_ORDER_EDIT' : 'SALES_ORDER_CREATE')">
               {{ submitting ? 'Saving...' : (editingOrderId ? 'Update Order' : 'Save Order') }}
             </button>
           </div>

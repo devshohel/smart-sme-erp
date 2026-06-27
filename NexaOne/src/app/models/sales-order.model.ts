@@ -11,6 +11,8 @@ export interface SalesOrder {
   orderDate: string;
   notes?: string;
   status: SalesOrderStatus;
+  createdAt?: string;
+  updatedAt?: string;
   submittedAt?: string;
   submittedBy?: string;
   approvedAt?: string;

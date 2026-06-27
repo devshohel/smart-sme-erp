@@ -34,10 +34,11 @@
                 <th class="text-end">Due</th>
                 <th>Status</th>
                 <th>Payment</th>
+                <th class="text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let invoice of filteredInvoices" class="cursor-pointer" (click)="selectInvoice(invoice)">
+              <tr *ngFor="let invoice of filteredInvoices">
                 <td class="fw-semibold">{{ invoice.invoiceNo || 'Draft' }}</td>
                 <td>{{ invoice.customerName || 'N/A' }}</td>
                 <td>{{ invoice.saleDate }}</td>
@@ -45,70 +46,18 @@
                 <td class="text-end">{{ invoice.dueAmount | number:'1.2-2' }}</td>
                 <td><app-sales-status-badge [label]="invoice.status || 'DRAFT'"></app-sales-status-badge></td>
                 <td><app-sales-status-badge [label]="invoice.paymentStatus" type="payment"></app-sales-status-badge></td>
+                <td class="text-center">
+                  <div class="d-inline-flex flex-wrap gap-1 justify-content-center">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" (click)="viewInvoice(invoice)">View</button>
+                    <button *ngIf="hasPermission('SALES_INVOICE_PRINT')" type="button" class="btn btn-sm btn-outline-primary" (click)="selectInvoice(invoice); printSelected()">Print</button>
+                  </div>
+                </td>
               </tr>
               <tr *ngIf="!loading && filteredInvoices.length === 0">
-                <td colspan="7" class="text-center text-muted py-5">No invoices found.</td>
+                <td colspan="8" class="text-center text-muted py-5">No invoices found.</td>
               </tr>
               <tr *ngIf="loading">
-                <td colspan="7" class="text-center text-muted py-5">Loading invoices...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </app-card>
-
-      <app-card *ngIf="selectedInvoice" title="Invoice Details" subtitle="Selected invoice detail snapshot.">
-        <div class="row g-3 mb-3">
-          <div class="col-md-6"><strong>Invoice No:</strong> {{ selectedInvoice.invoiceNo || 'Draft' }}</div>
-          <div class="col-md-6"><strong>Status:</strong> <app-sales-status-badge [label]="selectedInvoice.status || 'DRAFT'"></app-sales-status-badge></div>
-          <div class="col-md-6"><strong>Payment:</strong> <app-sales-status-badge [label]="selectedInvoice.paymentStatus" type="payment"></app-sales-status-badge></div>
-          <div class="col-md-6"><strong>Customer:</strong> {{ selectedInvoice.customerName }}</div>
-          <div class="col-md-6"><strong>Warehouse:</strong> {{ selectedInvoice.warehouseName }}</div>
-        </div>
-        <div class="d-flex flex-wrap gap-2 mb-3">
-          <button *ngIf="canEdit(selectedInvoice)" type="button" class="btn btn-outline-primary btn-sm" (click)="editInvoice(selectedInvoice)">
-            Edit Draft
-          </button>
-          <button *ngIf="canSubmit(selectedInvoice)" type="button" class="btn btn-warning btn-sm" (click)="submitSelected()">
-            Submit
-          </button>
-          <button *ngIf="canApprove(selectedInvoice)" type="button" class="btn btn-success btn-sm" (click)="approveSelected()">
-            Approve
-          </button>
-          <button *ngIf="canPost(selectedInvoice)" type="button" class="btn btn-primary btn-sm" (click)="postSelected()">
-            Post
-          </button>
-          <button *ngIf="canCancel(selectedInvoice)" type="button" class="btn btn-outline-danger btn-sm" (click)="cancelSelected()">
-            Cancel
-          </button>
-          <button *ngIf="hasPermission('SALES_RETURN_CREATE')" type="button" class="btn btn-outline-success btn-sm" (click)="newReturnFromInvoice()">
-            Create Return
-          </button>
-          <button *ngIf="hasPermission('SALES_INVOICE_PRINT')" type="button" class="btn btn-outline-secondary btn-sm" (click)="printSelected()">
-            Print
-          </button>
-        </div>
-
-        <div class="table-responsive">
-          <table class="table table-sm align-middle mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>Product</th>
-                <th class="text-end">Qty</th>
-                <th class="text-end">Unit Price</th>
-                <th class="text-end">Discount</th>
-                <th class="text-end">Tax</th>
-                <th class="text-end">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let item of selectedInvoice.items">
-                <td>{{ item.productName || 'N/A' }}</td>
-                <td class="text-end">{{ item.quantity }}</td>
-                <td class="text-end">{{ item.unitPrice | number:'1.2-2' }}</td>
-                <td class="text-end">{{ item.discount | number:'1.2-2' }}</td>
-                <td class="text-end">{{ item.tax | number:'1.2-2' }}</td>
-                <td class="text-end">{{ item.subtotal | number:'1.2-2' }}</td>
+                <td colspan="8" class="text-center text-muted py-5">Loading invoices...</td>
               </tr>
             </tbody>
           </table>
@@ -117,7 +66,7 @@
     </div>
 
     <div class="col-12">
-      <app-card *ngIf="hasPermission(editingInvoiceId ? 'SALES_INVOICE_EDIT' : 'SALES_INVOICE_CREATE')" [title]="editingInvoiceId ? 'Edit Sales Invoice' : 'Create Sales Invoice'" subtitle="Generate an invoice from an approved order or create a direct invoice.">
+      <app-card *ngIf="hasPermission(editingInvoiceId ? 'SALES_INVOICE_EDIT' : 'SALES_INVOICE_CREATE') || currentMode === 'details'" [title]="currentMode === 'details' ? 'Sales Invoice Details' : (editingInvoiceId ? 'Edit Sales Invoice' : 'Create Sales Invoice')" subtitle="Generate an invoice from an approved order or create a direct invoice.">
         <form [formGroup]="invoiceForm" (ngSubmit)="saveInvoice()" novalidate>
           <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
 
@@ -133,10 +82,14 @@
 
             <div class="col-12 col-md-6 col-xl-3">
               <label class="form-label">Customer *</label>
-              <select class="form-select" formControlName="customerId">
-                <option [ngValue]="null">Select Customer</option>
-                <option *ngFor="let customer of customers" [ngValue]="customer.id">{{ customer.name }}</option>
-              </select>
+              <input class="form-control" [ngModel]="customerSearchTerm" (ngModelChange)="customerSearchTerm = $event" [ngModelOptions]="{ standalone: true }" [readonly]="currentMode === 'details'" placeholder="Search customer by name, phone, or code">
+              <div class="customer-suggestions" *ngIf="currentMode !== 'details' && customerSearchTerm && filteredCustomers.length">
+                <button type="button" class="customer-suggestion" *ngFor="let customer of filteredCustomers" (click)="selectCustomer(customer)">
+                  <span>{{ customer.name }}</span>
+                  <small>{{ customer.customerCode || 'No code' }} | {{ customer.phone || 'No phone' }}</small>
+                </button>
+              </div>
+              <input type="hidden" formControlName="customerId">
               <div class="invalid-feedback d-block" *ngIf="hasError('customerId', 'required')">Customer is required.</div>
             </div>
 
@@ -168,7 +121,7 @@
 
           <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
             <div class="section-title mb-0">Item Table</div>
-            <button type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
+            <button *ngIf="currentMode !== 'details'" type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
               <i class="bi bi-plus-lg me-1"></i>Add Row
             </button>
           </div>
@@ -189,18 +142,18 @@
               <tbody formArrayName="items">
                 <tr *ngFor="let group of items.controls; let i = index" [formGroupName]="i">
                   <td>
-                    <select class="form-select form-select-sm" formControlName="productId" (change)="onProductChange(i)">
+                    <select class="form-select form-select-sm" formControlName="productId" (change)="onProductChange(i)" [disabled]="currentMode === 'details'">
                       <option [ngValue]="null">Select Product</option>
                       <option *ngFor="let product of products" [ngValue]="product.id">{{ product.productName }}</option>
                     </select>
                   </td>
-                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="quantity" min="0.01" step="0.01"></td>
-                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="unitPrice" min="0" step="0.01"></td>
-                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="discount" min="0" step="0.01"></td>
-                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="tax" min="0" step="0.01"></td>
+                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="quantity" min="0.01" step="0.01" [readonly]="currentMode === 'details'"></td>
+                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="unitPrice" min="0" step="0.01" [readonly]="currentMode === 'details'"></td>
+                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="discount" min="0" step="0.01" [readonly]="currentMode === 'details'"></td>
+                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="tax" min="0" step="0.01" [readonly]="currentMode === 'details'"></td>
                   <td><input type="number" class="form-control form-control-sm text-end" formControlName="subtotal" readonly></td>
                   <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-light border" (click)="removeItem(i)" [disabled]="items.length === 1">
+                    <button type="button" class="btn btn-sm btn-light border" (click)="removeItem(i)" [disabled]="items.length === 1 || currentMode === 'details'">
                       <i class="bi bi-trash text-danger"></i>
                     </button>
                   </td>
@@ -211,18 +164,19 @@
 
           <div class="section-title mt-4">Summary</div>
           <div class="summary-grid">
-            <div class="summary-row"><span>Total Amount</span><strong>{{ totalAmount | number:'1.2-2' }}</strong></div>
-            <div class="summary-row"><span>Discount Amount</span><strong>{{ discountAmount | number:'1.2-2' }}</strong></div>
-            <div class="summary-row"><span>Tax Amount</span><strong>{{ taxAmount | number:'1.2-2' }}</strong></div>
-            <div class="summary-row"><span>Net Total</span><strong>{{ netTotal | number:'1.2-2' }}</strong></div>
+            <div class="summary-row"><span>Sub Total</span><input type="number" class="form-control text-end" [value]="totalAmount" (change)="overrideInvoiceSubTotal($any($event.target).value)" [readonly]="currentMode === 'details'" min="0" step="0.01"></div>
+            <div class="summary-row"><span>Discount Amount</span><input type="number" class="form-control text-end" [value]="discountAmount" (change)="overrideInvoiceDiscount($any($event.target).value)" [readonly]="currentMode === 'details'" min="0" step="0.01"></div>
+            <div class="summary-row"><span>Tax Amount</span><input type="number" class="form-control text-end" [value]="taxAmount" (change)="overrideInvoiceTax($any($event.target).value)" [readonly]="currentMode === 'details'" min="0" step="0.01"></div>
+            <div class="summary-row"><span>Grand Total</span><input type="number" class="form-control text-end" [value]="netTotal" (change)="overrideInvoiceGrandTotal($any($event.target).value)" [readonly]="currentMode === 'details'" min="0" step="0.01"></div>
             <div class="summary-row"><span>Due Amount</span><strong>{{ dueAmount | number:'1.2-2' }}</strong></div>
             <div class="summary-row"><span>Payment Status</span><app-sales-status-badge [label]="paymentStatus" type="payment"></app-sales-status-badge></div>
           </div>
 
           <div class="section-title mt-4">Action Buttons</div>
           <div class="d-flex flex-wrap justify-content-end gap-2">
+            <button *ngIf="currentMode === 'details'" type="button" class="btn btn-outline-secondary" routerLink="/sales/invoices">Back</button>
             <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">Reset</button>
-            <button type="submit" class="btn btn-success px-4" [disabled]="submitting">
+            <button *ngIf="currentMode !== 'details'" type="submit" class="btn btn-success px-4" [disabled]="submitting">
               {{ submitting ? 'Saving...' : (editingInvoiceId ? 'Update Invoice' : 'Save Invoice') }}
             </button>
           </div>

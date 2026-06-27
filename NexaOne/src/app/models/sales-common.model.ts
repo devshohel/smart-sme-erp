@@ -5,6 +5,7 @@ export type PaymentStatus = 'PAID' | 'PARTIAL' | 'DUE';
 
 export interface SalesCustomer {
   id: number;
+  customerCode?: string;
   name: string;
   phone?: string;
   email?: string;
@@ -19,6 +20,8 @@ export interface SalesOrderLineItem {
   uomName?: string;
   quantity: number;
   unitPrice: number;
+  discount?: number;
+  tax?: number;
   subtotal: number;
 }
 

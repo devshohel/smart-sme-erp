@@ -36,6 +36,7 @@ export class InvoicesComponent implements OnInit {
   searchTerm = '';
   statusFilter = '';
   dateFilter = '';
+  customerSearchTerm = '';
 
   readonly paymentStatuses: PaymentStatus[] = ['PAID', 'PARTIAL', 'DUE'];
   readonly statuses: SalesInvoiceStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'POSTED', 'PARTIAL_PAID', 'PAID', 'CANCELLED'];
@@ -122,6 +123,18 @@ export class InvoicesComponent implements OnInit {
     return 'DUE';
   }
 
+  get filteredCustomers(): SalesCustomer[] {
+    const keyword = this.customerSearchTerm.trim().toLowerCase();
+    if (!keyword) {
+      return this.customers.slice(0, 8);
+    }
+    return this.customers.filter(customer =>
+      (customer.name || '').toLowerCase().includes(keyword)
+      || (customer.phone || '').toLowerCase().includes(keyword)
+      || ((customer.customerCode || '') as string).toLowerCase().includes(keyword)
+    ).slice(0, 8);
+  }
+
   loadInvoices(selectedId?: number): void {
     this.loading = true;
     this.invoiceService.getAllInvoices().subscribe({
@@ -130,6 +143,9 @@ export class InvoicesComponent implements OnInit {
         this.selectedInvoice = invoices.find(invoice => invoice.id === selectedId) || invoices[0] || null;
         if (selectedId && this.currentMode === 'edit' && this.selectedInvoice) {
           this.editInvoice(this.selectedInvoice);
+        }
+        if (selectedId && this.currentMode === 'details' && this.selectedInvoice) {
+          this.openInvoiceDetails(this.selectedInvoice, false);
         }
         this.loading = false;
       },
@@ -229,6 +245,7 @@ export class InvoicesComponent implements OnInit {
       customerId: order.customerId,
       warehouseId: order.warehouseId
     });
+    this.customerSearchTerm = order.customerName || '';
 
     if (!order.items.length) {
       this.addItem();
@@ -278,7 +295,13 @@ export class InvoicesComponent implements OnInit {
     this.selectedInvoice = invoice;
   }
 
+  viewInvoice(invoice: SalesInvoice): void {
+    this.openInvoiceDetails(invoice, true);
+  }
+
   editInvoice(invoice: SalesInvoice): void {
+    this.invoiceForm.enable({ emitEvent: false });
+    this.currentMode = 'edit';
     this.editingInvoiceId = invoice.id || null;
     this.selectedInvoice = invoice;
     while (this.items.length > 0) {
@@ -292,6 +315,7 @@ export class InvoicesComponent implements OnInit {
       paidAmount: Number(invoice.paidAmount || 0),
       notes: invoice.notes || ''
     });
+    this.customerSearchTerm = invoice.customerName || '';
     (invoice.items || []).forEach(item => this.addItem(item));
   }
 
@@ -305,10 +329,11 @@ export class InvoicesComponent implements OnInit {
       const matchesStatus = !this.statusFilter || invoice.status === this.statusFilter;
       const matchesDate = !this.dateFilter || (invoice.saleDate || '').slice(0, 10) === this.dateFilter;
       return matchesKeyword && matchesStatus && matchesDate;
-    });
+    }).sort((left, right) => this.sortNewestFirst(left.id, right.id, left['createdAt'], right['createdAt']));
   }
 
   resetForm(): void {
+    this.invoiceForm.enable({ emitEvent: false });
     this.editingInvoiceId = null;
     while (this.items.length > 0) {
       this.items.removeAt(0);
@@ -322,9 +347,83 @@ export class InvoicesComponent implements OnInit {
       paidAmount: 0,
       notes: ''
     });
+    this.customerSearchTerm = '';
     this.addItem();
     if (this.currentMode !== 'create') {
       this.router.navigate(['/sales/invoices']);
+    }
+  }
+
+  selectCustomer(customer: SalesCustomer): void {
+    this.invoiceForm.patchValue({ customerId: customer.id });
+    this.customerSearchTerm = customer.name || '';
+  }
+
+  overrideInvoiceSubTotal(value: string): void {
+    const target = this.parseSummaryValue(value);
+    if (target === null) {
+      return;
+    }
+    const lastItem = this.lastItemGroup();
+    if (!lastItem) {
+      return;
+    }
+    const quantity = Number(lastItem.get('quantity')?.value || 0);
+    if (quantity <= 0) {
+      return;
+    }
+    const diff = target - this.totalAmount;
+    const currentGross = Number(lastItem.get('quantity')?.value || 0) * Number(lastItem.get('unitPrice')?.value || 0);
+    const nextGross = Math.max(currentGross + diff, 0);
+    lastItem.patchValue({ unitPrice: nextGross / quantity });
+  }
+
+  overrideInvoiceDiscount(value: string): void {
+    this.applyDiscountTarget(this.parseSummaryValue(value));
+  }
+
+  overrideInvoiceTax(value: string): void {
+    const target = this.parseSummaryValue(value);
+    if (target === null) {
+      return;
+    }
+    const lastItem = this.lastItemGroup();
+    if (!lastItem) {
+      return;
+    }
+    const nextTax = Math.max(Number(lastItem.get('tax')?.value || 0) + (target - this.taxAmount), 0);
+    lastItem.patchValue({ tax: nextTax });
+  }
+
+  overrideInvoiceGrandTotal(value: string): void {
+    const target = this.parseSummaryValue(value);
+    if (target === null) {
+      return;
+    }
+    const diff = target - this.netTotal;
+    if (diff === 0) {
+      return;
+    }
+    if (diff > 0) {
+      const discountShift = Math.min(this.lastItemDiscount(), diff);
+      if (discountShift > 0) {
+        this.applyDiscountTarget(this.discountAmount - discountShift);
+      }
+      const remaining = diff - discountShift;
+      if (remaining > 0) {
+        this.overrideInvoiceTax(String(this.taxAmount + remaining));
+      }
+      return;
+    }
+
+    const reduction = Math.abs(diff);
+    const taxShift = Math.min(this.lastItemTax(), reduction);
+    if (taxShift > 0) {
+      this.overrideInvoiceTax(String(this.taxAmount - taxShift));
+    }
+    const remaining = reduction - taxShift;
+    if (remaining > 0) {
+      this.applyDiscountTarget(this.discountAmount + remaining);
     }
   }
 
@@ -467,5 +566,52 @@ export class InvoicesComponent implements OnInit {
     this.submitting = false;
     this.errorMessage = extractApiErrorMessage(error, fallbackMessage);
     debugApiError('InvoicesComponent.workflow', error);
+  }
+
+  private applyDiscountTarget(target: number | null): void {
+    if (target === null) {
+      return;
+    }
+    const lastItem = this.lastItemGroup();
+    if (!lastItem) {
+      return;
+    }
+    const nextDiscount = Math.max(Number(lastItem.get('discount')?.value || 0) + (target - this.discountAmount), 0);
+    lastItem.patchValue({ discount: nextDiscount });
+  }
+
+  private lastItemGroup(): FormGroup | null {
+    return this.items.length ? this.items.at(this.items.length - 1) as FormGroup : null;
+  }
+
+  private lastItemDiscount(): number {
+    return Number(this.lastItemGroup()?.get('discount')?.value || 0);
+  }
+
+  private lastItemTax(): number {
+    return Number(this.lastItemGroup()?.get('tax')?.value || 0);
+  }
+
+  private parseSummaryValue(value: string): number | null {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  }
+
+  private sortNewestFirst(leftId?: number, rightId?: number, leftCreatedAt?: string, rightCreatedAt?: string): number {
+    const leftTime = leftCreatedAt ? new Date(leftCreatedAt).getTime() : 0;
+    const rightTime = rightCreatedAt ? new Date(rightCreatedAt).getTime() : 0;
+    if (leftTime !== rightTime) {
+      return rightTime - leftTime;
+    }
+    return (rightId || 0) - (leftId || 0);
+  }
+
+  private openInvoiceDetails(invoice: SalesInvoice, navigate: boolean): void {
+    this.editInvoice(invoice);
+    this.currentMode = 'details';
+    this.invoiceForm.disable({ emitEvent: false });
+    if (navigate && invoice.id) {
+      this.router.navigate(['/sales/invoices/details', invoice.id]);
+    }
   }
 }

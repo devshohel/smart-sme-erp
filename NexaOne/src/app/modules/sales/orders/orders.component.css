@@ -1,7 +1,3 @@
-.cursor-pointer {
-  cursor: pointer;
-}
-
 .summary-panel {
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 0.75rem;
@@ -32,4 +28,39 @@
 .sales-items-table td {
   padding: 0.8rem 0.75rem;
   vertical-align: middle;
+}
+
+.summary-row {
+  display: grid;
+  grid-template-columns: 1fr minmax(150px, 220px);
+  gap: 1rem;
+  align-items: center;
+}
+
+.customer-suggestions {
+  margin-top: 0.35rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.75rem;
+  background: #fff;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.customer-suggestion {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.customer-suggestion + .customer-suggestion {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.customer-suggestion small {
+  color: #6c757d;
 }

@@ -41,6 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -94,6 +95,9 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     @Transactional(readOnly = true)
     public List<SalesInvoiceDTO> getAll() {
         return salesInvoiceRepository.findAll().stream()
+                .sorted(Comparator
+                        .comparing(SalesInvoice::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(SalesInvoice::getId, Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(salesInvoiceMapper::toDTO)
                 .map(this::normalizeReversedPaymentState)
                 .collect(Collectors.toList());
