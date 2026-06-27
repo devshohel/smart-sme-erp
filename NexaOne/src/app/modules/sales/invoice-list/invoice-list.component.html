@@ -1,0 +1,73 @@
+<div class="container-fluid p-4 sales-list-page">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <app-page-header title="All Sales" subtitle="Review invoices, payment status, and outstanding balances."></app-page-header>
+    <a *ngIf="hasPermission('SALES_INVOICE_CREATE')" class="btn btn-success" routerLink="/sales/add">
+      <i class="bi bi-plus-lg me-1"></i>Add Sale
+    </a>
+  </div>
+
+  <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+  <div class="row g-3 mb-4 summary-cards">
+    <div class="col-6 col-xl-3"><div class="summary-card"><span>Total Sales</span><strong>{{ totalSales | number }}</strong></div></div>
+    <div class="col-6 col-xl-3"><div class="summary-card"><span>Completed Sales</span><strong>{{ completedSales | number }}</strong></div></div>
+    <div class="col-6 col-xl-3"><div class="summary-card"><span>Total Revenue</span><strong>{{ totalRevenue | currency:'BDT':'code':'1.2-2' }}</strong></div></div>
+    <div class="col-6 col-xl-3"><div class="summary-card due"><span>Total Due</span><strong>{{ totalDue | currency:'BDT':'code':'1.2-2' }}</strong></div></div>
+  </div>
+
+  <app-card title="Sales Invoices" subtitle="Summary values are calculated from the currently loaded records.">
+    <div class="row g-3 mb-3 align-items-end">
+      <div class="col-12 col-lg-4">
+        <label class="form-label">Search</label>
+        <input class="form-control" [(ngModel)]="searchTerm" placeholder="Invoice number or customer">
+      </div>
+      <div class="col-6 col-lg-2">
+        <label class="form-label">Status</label>
+        <select class="form-select" [(ngModel)]="statusFilter">
+          <option value="">All statuses</option>
+          <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+        </select>
+      </div>
+      <div class="col-6 col-lg-2">
+        <label class="form-label">Payment</label>
+        <select class="form-select" [(ngModel)]="paymentStatusFilter">
+          <option value="">All payments</option>
+          <option *ngFor="let status of paymentStatuses" [value]="status">{{ status }}</option>
+        </select>
+      </div>
+      <div class="col-6 col-lg-1 date-filter"><label class="form-label">From</label><input type="date" class="form-control" [(ngModel)]="dateFrom"></div>
+      <div class="col-6 col-lg-1 date-filter"><label class="form-label">To</label><input type="date" class="form-control" [(ngModel)]="dateTo"></div>
+      <div class="col-12 col-lg-2"><button type="button" class="btn btn-outline-secondary w-100" (click)="clearFilters()">Clear</button></div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>Invoice</th><th>Customer</th><th>Date</th><th class="text-end">Total</th><th class="text-end">Due</th><th>Status</th><th>Payment</th><th class="text-end">Actions</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let invoice of filteredInvoices">
+            <td class="fw-semibold">{{ invoice.invoiceNo || ('Draft #' + invoice.id) }}</td>
+            <td>{{ invoice.customerName || 'N/A' }}</td>
+            <td>{{ invoice.saleDate | date:'mediumDate' }}</td>
+            <td class="text-end text-nowrap">{{ invoice.netTotal | currency:'BDT':'code':'1.2-2' }}</td>
+            <td class="text-end text-nowrap">{{ invoice.dueAmount | currency:'BDT':'code':'1.2-2' }}</td>
+            <td><app-sales-status-badge [label]="invoice.status || 'DRAFT'"></app-sales-status-badge></td>
+            <td><app-sales-status-badge [label]="invoice.paymentStatus || 'DUE'" type="payment"></app-sales-status-badge></td>
+            <td class="text-end">
+              <div class="d-inline-flex flex-wrap justify-content-end gap-1">
+                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="view(invoice)">View</button>
+                <button *ngIf="canEdit(invoice)" type="button" class="btn btn-sm btn-outline-primary" (click)="edit(invoice)">Edit</button>
+                <button *ngIf="canPrint(invoice)" type="button" class="btn btn-sm btn-outline-primary" (click)="print(invoice)">Print</button>
+                <button *ngIf="canReceivePayment(invoice)" type="button" class="btn btn-sm btn-outline-success" (click)="receivePayment(invoice)">Receive Payment</button>
+                <button *ngIf="canReturn(invoice)" type="button" class="btn btn-sm btn-outline-warning" (click)="createReturn(invoice)">Return</button>
+                <button *ngIf="canCancel(invoice)" type="button" class="btn btn-sm btn-outline-danger" [disabled]="actionInvoiceId === invoice.id" (click)="cancel(invoice)">Cancel</button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="loading"><td colspan="8" class="text-center text-muted py-5">Loading sales...</td></tr>
+          <tr *ngIf="!loading && filteredInvoices.length === 0"><td colspan="8" class="text-center text-muted py-5">No sales match the selected filters.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </app-card>
+</div>

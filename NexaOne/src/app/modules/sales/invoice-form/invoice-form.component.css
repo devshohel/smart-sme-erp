@@ -1,0 +1,11 @@
+.section-title { color: #6c757d; font-size: .82rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.invoice-meta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; padding: 1rem; border-radius: .75rem; background: #f8f9fa; }
+.invoice-meta > div { display: flex; flex-direction: column; gap: .3rem; }
+.invoice-meta span { color: #6c757d; font-size: .8rem; }
+.item-table-wrap { border: 1px solid rgba(0,0,0,.08); border-radius: .75rem; }
+.item-table th:first-child { min-width: 220px; }
+.summary-box { width: min(100%, 430px); padding: 1rem; border: 1px solid rgba(0,0,0,.08); border-radius: .75rem; background: #f8f9fa; }
+.summary-box > div { display: flex; justify-content: space-between; gap: 1rem; padding: .35rem 0; }
+.summary-box .grand-total { margin-top: .35rem; padding-top: .75rem; border-top: 1px solid rgba(0,0,0,.12); font-size: 1.1rem; }
+@media (max-width: 767px) { .invoice-page { padding: 1rem !important; } .invoice-meta { grid-template-columns: 1fr 1fr; } }
+@media print { .no-print { display: none !important; } .invoice-page { padding: 0 !important; } }

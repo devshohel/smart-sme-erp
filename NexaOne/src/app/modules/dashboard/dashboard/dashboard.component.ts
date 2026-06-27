@@ -108,7 +108,7 @@ export class DashboardComponent implements OnInit {
         format: 'currency',
         subtitle: 'Posted and confirmed sales invoices',
         tone: 'sales',
-        route: this.hasAnyPermission(['SALES_INVOICE_VIEW', 'SALES_VIEW']) ? '/sales/invoices' : undefined,
+        route: this.hasAnyPermission(['SALES_INVOICE_VIEW', 'SALES_VIEW']) ? '/sales' : undefined,
         visible: this.hasAnyPermission(['SALES_INVOICE_VIEW', 'SALES_VIEW'])
       },
       {
@@ -280,7 +280,7 @@ export class DashboardComponent implements OnInit {
       return this.pendingApprovalsRoute() || '/expenses';
     }
     if (type.includes('sales')) {
-      return '/sales/invoices';
+      return '/sales';
     }
     if (type.includes('purchase')) {
       return this.purchaseRoute() || '/purchases/orders';
@@ -294,7 +294,7 @@ export class DashboardComponent implements OnInit {
   recentTransactionRoute(item: RecentTransaction): string {
     const type = (item.type || '').toLowerCase();
     if (type.includes('sales')) {
-      return '/sales/invoices';
+      return '/sales';
     }
     if (type.includes('purchase')) {
       return this.purchaseRoute() || '/purchases/orders';

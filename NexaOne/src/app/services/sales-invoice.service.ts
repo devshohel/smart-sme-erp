@@ -31,6 +31,12 @@ export class SalesInvoiceService {
       .pipe(map(response => this.normalizeInvoice(unwrapApiResponse(response))));
   }
 
+  getInvoiceById(id: number): Observable<SalesInvoice> {
+    return this.http
+      .get<SalesInvoice | ApiResponse<SalesInvoice>>(`${this.baseUrl}/${id}`)
+      .pipe(map(response => this.normalizeInvoice(unwrapApiResponse(response))));
+  }
+
   submitInvoice(id: number): Observable<SalesInvoice> {
     return this.http.post<SalesInvoice | ApiResponse<SalesInvoice>>(`${this.baseUrl}/${id}/submit`, {})
       .pipe(map(response => this.normalizeInvoice(unwrapApiResponse(response))));

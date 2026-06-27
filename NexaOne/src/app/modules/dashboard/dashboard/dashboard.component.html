@@ -182,10 +182,10 @@
           <h2>Recent Sales</h2>
           <p>Latest posted invoices</p>
         </div>
-        <a class="panel-link" routerLink="/sales/invoices">View All</a>
+        <a class="panel-link" routerLink="/sales">View All</a>
       </div>
       <div class="table-shell" *ngIf="visibleRecentSales.length; else emptyRecentSales">
-        <button type="button" class="table-row" *ngFor="let item of visibleRecentSales" (click)="navigateTo('/sales/invoices')">
+        <button type="button" class="table-row" *ngFor="let item of visibleRecentSales" (click)="navigateTo('/sales')">
           <div>
             <strong>{{ item.referenceNo }}</strong>
             <small>{{ item.partyName }}</small>

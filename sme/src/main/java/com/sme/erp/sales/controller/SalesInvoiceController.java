@@ -38,7 +38,7 @@ public class SalesInvoiceController {
         return ResponseEntity.ok(salesInvoiceService.getUnpaidByCustomerId(customerId));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('SALES_INVOICE_VIEW')")
     public ResponseEntity<SalesInvoiceDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(salesInvoiceService.getById(id));
@@ -50,31 +50,31 @@ public class SalesInvoiceController {
         return ResponseEntity.ok(salesInvoiceService.create(dto));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('SALES_INVOICE_EDIT')")
     public ResponseEntity<SalesInvoiceDTO> update(@PathVariable Long id, @Valid @RequestBody SalesInvoiceDTO dto) {
         return ResponseEntity.ok(salesInvoiceService.update(id, dto));
     }
 
-    @PostMapping("/{id}/submit")
+    @PostMapping("/{id:\\d+}/submit")
     @PreAuthorize("hasAuthority('SALES_INVOICE_SUBMIT')")
     public ResponseEntity<SalesInvoiceDTO> submit(@PathVariable Long id) {
         return ResponseEntity.ok(salesInvoiceService.submit(id));
     }
 
-    @PostMapping("/{id}/approve")
+    @PostMapping("/{id:\\d+}/approve")
     @PreAuthorize("hasAuthority('SALES_INVOICE_APPROVE')")
     public ResponseEntity<SalesInvoiceDTO> approve(@PathVariable Long id) {
         return ResponseEntity.ok(salesInvoiceService.approve(id));
     }
 
-    @PostMapping("/{id}/post")
+    @PostMapping("/{id:\\d+}/post")
     @PreAuthorize("hasAuthority('SALES_INVOICE_POST')")
     public ResponseEntity<SalesInvoiceDTO> post(@PathVariable Long id) {
         return ResponseEntity.ok(salesInvoiceService.post(id));
     }
 
-    @PostMapping("/{id}/cancel")
+    @PostMapping("/{id:\\d+}/cancel")
     @PreAuthorize("hasAuthority('SALES_INVOICE_CANCEL')")
     public ResponseEntity<SalesInvoiceDTO> cancel(@PathVariable Long id) {
         return ResponseEntity.ok(salesInvoiceService.cancel(id));

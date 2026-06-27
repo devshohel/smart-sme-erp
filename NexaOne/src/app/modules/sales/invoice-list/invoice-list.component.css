@@ -1,0 +1,7 @@
+.summary-card { height: 100%; padding: 1rem 1.1rem; border: 1px solid rgba(0,0,0,.08); border-radius: .75rem; background: #fff; display: flex; flex-direction: column; gap: .35rem; }
+.summary-card span { color: #6c757d; font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.summary-card strong { font-size: 1.35rem; }
+.summary-card.due { border-left: 4px solid #dc3545; }
+.date-filter { min-width: 145px; }
+@media (max-width: 767px) { .sales-list-page { padding: 1rem !important; } }
+@media print { .sales-list-page { display: none; } }

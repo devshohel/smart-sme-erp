@@ -202,7 +202,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
                 NotificationSeverity.MEDIUM,
                 "SALES_INVOICE",
                 saved.getId(),
-                "/sales/invoices/details/" + saved.getId());
+                "/sales/" + saved.getId() + "/view");
         return saved;
     }
 

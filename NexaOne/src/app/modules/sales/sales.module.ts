@@ -8,6 +8,8 @@ import { SalesStatusBadgeComponent } from './components/sales-status-badge/sales
 import { OrdersComponent } from './orders/orders.component';
 import { InvoicesComponent } from './invoices/invoices.component';
 import { ReturnsComponent } from './returns/returns.component';
+import { InvoiceListComponent } from './invoice-list/invoice-list.component';
+import { InvoiceFormComponent } from './invoice-form/invoice-form.component';
 
 
 @NgModule({
@@ -15,7 +17,9 @@ import { ReturnsComponent } from './returns/returns.component';
     SalesStatusBadgeComponent,
     OrdersComponent,
     InvoicesComponent,
-    ReturnsComponent
+    ReturnsComponent,
+    InvoiceListComponent,
+    InvoiceFormComponent
   ],
   imports: [
     CommonModule,

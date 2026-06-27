@@ -54,7 +54,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     { label: 'Purchase Invoices', route: '/purchases/invoices', keywords: ['purchase invoice'], permissions: ['PURCHASE_INVOICE_VIEW'] },
     { label: 'Purchase Returns', route: '/purchases/returns', keywords: ['purchase return'], permissions: ['PURCHASE_RETURN_VIEW'] },
     { label: 'Sales Orders', route: '/sales/orders', keywords: ['sales', 'sale', 'sales order', 'sale order'], permissions: ['SALES_ORDER_VIEW'] },
-    { label: 'Sales Invoices', route: '/sales/invoices', keywords: ['invoice', 'invoices', 'sales invoice', 'sales invoices'], permissions: ['SALES_INVOICE_VIEW'] },
+    { label: 'All Sales', route: '/sales', keywords: ['invoice', 'invoices', 'sales invoice', 'sales invoices'], permissions: ['SALES_INVOICE_VIEW'] },
     { label: 'Sales Returns', route: '/sales/returns', keywords: ['sales return'], permissions: ['SALES_RETURN_VIEW'] },
     { label: 'Sales Report', route: '/reports/sales', keywords: ['report', 'reports', 'sales report', 'sales reports'], permissions: ['REPORT_VIEW'] },
     { label: 'Purchase Report', route: '/reports/purchases', keywords: ['purchase report'], permissions: ['REPORT_VIEW'] },

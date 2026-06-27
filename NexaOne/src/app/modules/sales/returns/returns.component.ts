@@ -116,7 +116,14 @@ export class ReturnsComponent implements OnInit {
 
   loadReferenceData(): void {
     this.invoiceService.getAllInvoices().subscribe({
-      next: invoices => this.invoices = invoices,
+      next: invoices => {
+        this.invoices = invoices;
+        const invoiceId = Number(this.route.snapshot.queryParamMap.get('invoiceId') || 0);
+        if (this.currentMode === 'create' && invoiceId && invoices.some(invoice => invoice.id === invoiceId)) {
+          this.returnForm.patchValue({ invoiceId });
+          this.onInvoiceChange();
+        }
+      },
       error: error => debugApiError('ReturnsComponent.loadInvoices', error)
     });
 
