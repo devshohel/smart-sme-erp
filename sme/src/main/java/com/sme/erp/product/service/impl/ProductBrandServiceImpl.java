@@ -29,8 +29,12 @@ public class ProductBrandServiceImpl implements ProductBrandService {
 
     @Override
     @Transactional
-    public ProductBrandDTO save(ProductBrandDTO dto) {
-        dto.setCode(RequestValueUtils.normalizeRequired(dto.getCode(), "Brand code"));
+    public synchronized ProductBrandDTO save(ProductBrandDTO dto) {
+        String normalizedCode = RequestValueUtils.normalize(dto.getCode());
+        if (dto.getId() == null && normalizedCode == null) {
+            normalizedCode = generateCode();
+        }
+        dto.setCode(RequestValueUtils.normalizeRequired(normalizedCode, "Brand code"));
         dto.setBrandName(RequestValueUtils.normalizeRequired(dto.getBrandName(), "Brand name"));
         validateCodeUnique(dto.getCode(), dto.getId());
 
@@ -96,5 +100,14 @@ public class ProductBrandServiceImpl implements ProductBrandService {
     private ProductBrand findBrandById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Brand not found with id: " + id));
+    }
+
+    private String generateCode() {
+        long sequence = repository.findMaxId() + 1;
+        String code;
+        do {
+            code = "BRD-" + String.format("%04d", sequence++);
+        } while (repository.existsByCode(code));
+        return code;
     }
 }

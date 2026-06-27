@@ -26,4 +26,7 @@ public interface UomRepository extends JpaRepository<Uom, Long> {
     @Modifying
     @Query(value = "UPDATE uoms SET is_deleted = false, updated_at = CURRENT_TIMESTAMP WHERE id = :id", nativeQuery = true)
     int restoreById(@Param("id") Long id);
+
+    @Query(value = "SELECT COALESCE(MAX(id), 0) FROM uoms", nativeQuery = true)
+    long findMaxId();
 }

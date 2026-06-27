@@ -32,8 +32,12 @@ public class UomServiceImpl implements UomService {
 
     @Override
     @Transactional
-    public UomDTO save(UomDTO dto) {
-        dto.setCode(RequestValueUtils.normalizeRequired(dto.getCode(), "UOM code"));
+    public synchronized UomDTO save(UomDTO dto) {
+        String normalizedCode = RequestValueUtils.normalize(dto.getCode());
+        if (dto.getId() == null && normalizedCode == null) {
+            normalizedCode = generateCode();
+        }
+        dto.setCode(RequestValueUtils.normalizeRequired(normalizedCode, "UOM code"));
         dto.setName(RequestValueUtils.normalizeRequired(dto.getName(), "UOM name"));
         dto.setType(RequestValueUtils.normalize(dto.getType()));
         validateBusinessRules(dto);
@@ -108,5 +112,14 @@ public class UomServiceImpl implements UomService {
         if (dto.getConversionFactor() != null && dto.getConversionFactor().signum() <= 0) {
             throw new BadRequestException("Conversion factor must be positive");
         }
+    }
+
+    private String generateCode() {
+        long sequence = repository.findMaxId() + 1;
+        String code;
+        do {
+            code = "UOM-" + String.format("%04d", sequence++);
+        } while (repository.existsByCode(code));
+        return code;
     }
 }

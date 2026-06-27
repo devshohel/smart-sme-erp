@@ -96,18 +96,14 @@ export class DashboardComponent implements OnInit {
   }
 
   get primaryCards(): KpiCard[] {
-    return this.allCards.filter(card => card.visible).slice(0, 8);
-  }
-
-  get secondaryCards(): KpiCard[] {
-    return this.allCards.filter(card => card.visible).slice(8, 12);
+    return this.allCards.filter(card => card.visible);
   }
 
   get allCards(): KpiCard[] {
     const summary = this.summary;
     return [
       {
-        title: this.periodKpiTitle('Sales'),
+        title: 'Sales',
         value: summary.periodSales,
         format: 'currency',
         subtitle: 'Posted and confirmed sales invoices',
@@ -116,7 +112,7 @@ export class DashboardComponent implements OnInit {
         visible: this.hasAnyPermission(['SALES_INVOICE_VIEW', 'SALES_VIEW'])
       },
       {
-        title: this.periodKpiTitle('Purchase'),
+        title: 'Purchase',
         value: summary.periodPurchase,
         format: 'currency',
         subtitle: 'Received and posted purchases',
@@ -125,7 +121,7 @@ export class DashboardComponent implements OnInit {
         visible: this.hasAnyPermission(['PURCHASE_INVOICE_VIEW', 'PURCHASE_ORDER_VIEW', 'PURCHASE_VIEW'])
       },
       {
-        title: this.periodKpiTitle('Expense'),
+        title: 'Expense',
         value: summary.periodExpense,
         format: 'currency',
         subtitle: 'Posted expenses only',
@@ -134,7 +130,7 @@ export class DashboardComponent implements OnInit {
         visible: this.hasAnyPermission(['EXPENSE_VIEW', 'EXPENSE_APPROVE'])
       },
       {
-        title: 'Net Profit / Net Income',
+        title: 'Net Profit',
         value: summary.netProfit,
         format: 'currency',
         subtitle: 'Profit and loss driven',
@@ -143,7 +139,7 @@ export class DashboardComponent implements OnInit {
         visible: this.hasPermission('ACCOUNTING_VIEW')
       },
       {
-        title: 'Total Stock Value',
+        title: 'Stock Value',
         value: summary.totalStockValue,
         format: 'currency',
         subtitle: 'Current warehouse valuation',
@@ -152,7 +148,7 @@ export class DashboardComponent implements OnInit {
         visible: this.hasAnyPermission(['REPORT_VIEW', 'INVENTORY_VIEW'])
       },
       {
-        title: 'Customer Receivable',
+        title: 'Receivable',
         value: summary.customerReceivable,
         format: 'currency',
         subtitle: 'Customer due and aging logic',
@@ -161,7 +157,7 @@ export class DashboardComponent implements OnInit {
         visible: this.hasPermission('REPORT_VIEW')
       },
       {
-        title: 'Supplier Payable',
+        title: 'Payable',
         value: summary.supplierPayable,
         format: 'currency',
         subtitle: 'AP reconciliation balance',
@@ -170,55 +166,21 @@ export class DashboardComponent implements OnInit {
         visible: this.hasPermission('SUPPLIER_LEDGER_VIEW')
       },
       {
-        title: 'Cash + Bank Balance',
+        title: 'Cash/Bank',
         value: summary.cashBankBalance,
         format: 'currency',
         subtitle: 'As of selected end date',
         tone: 'cash',
         route: this.hasPermission('FINANCIAL_DASHBOARD_VIEW') ? '/accounting/financial-dashboard' : undefined,
         visible: this.hasPermission('ACCOUNTING_VIEW') || this.hasPermission('FINANCIAL_DASHBOARD_VIEW')
-      },
-      {
-        title: 'Low Stock Items',
-        value: summary.lowStockItemsCount,
-        format: 'number',
-        subtitle: 'Based on reorder logic',
-        tone: 'risk',
-        route: this.lowStockRoute(),
-        visible: this.hasAnyPermission(['REPORT_VIEW', 'INVENTORY_VIEW'])
-      },
-      {
-        title: 'Pending Approvals',
-        value: summary.pendingApprovalsCount,
-        format: 'number',
-        subtitle: 'Expenses, sales, purchases, transfers',
-        tone: 'warning',
-        route: this.pendingApprovalsRoute(),
-        visible: this.hasAnyPermission(['EXPENSE_APPROVE', 'EXPENSE_VIEW'])
-      },
-      {
-        title: 'Trial Balance Difference',
-        value: summary.trialBalanceDifference,
-        format: 'currency',
-        subtitle: 'Accounting validation gap',
-        tone: 'neutral',
-        route: this.hasPermission('ACCOUNTING_VIEW') ? '/accounting/trial-balance' : undefined,
-        visible: this.hasPermission('ACCOUNTING_VIEW')
-      },
-      {
-        title: 'Budget Utilization',
-        value: summary.budgetUtilization,
-        format: 'percent',
-        subtitle: 'Budget vs actual utilization',
-        tone: 'budget',
-        route: this.hasPermission('BUDGET_VIEW') ? '/accounting/budget-vs-actual' : undefined,
-        visible: this.hasPermission('ACCOUNTING_VIEW') || this.hasPermission('BUDGET_VIEW')
       }
     ];
   }
 
   get visibleTopSellingProducts(): TopSellingProduct[] {
-    return this.summary.topSellingProducts.slice(0, 6);
+    return [...this.summary.topSellingProducts]
+      .sort((left, right) => right.quantity - left.quantity)
+      .slice(0, 6);
   }
 
   get visiblePendingApprovals(): PendingApproval[] {
@@ -241,6 +203,19 @@ export class DashboardComponent implements OnInit {
     return this.summary.recentPurchases.slice(0, 6);
   }
 
+  get canViewPendingApprovals(): boolean {
+    return this.hasAnyPermission([
+      'EXPENSE_APPROVE',
+      'EXPENSE_VIEW',
+      'SALES_INVOICE_VIEW',
+      'SALES_VIEW',
+      'PURCHASE_INVOICE_VIEW',
+      'PURCHASE_ORDER_VIEW',
+      'PURCHASE_VIEW',
+      'INVENTORY_VIEW'
+    ]);
+  }
+
   get incomeExpenseMax(): number {
     return this.maxFromChart(this.summary.monthlyIncomeExpense.flatMap(point => [point.value, point.secondaryValue]));
   }
@@ -249,20 +224,8 @@ export class DashboardComponent implements OnInit {
     return this.maxFromChart(this.summary.salesPurchaseTrend.flatMap(point => [point.sales, point.purchase]));
   }
 
-  get cashBankMax(): number {
-    return this.maxFromChart(this.summary.cashBankTrend.flatMap(point => [point.value, point.secondaryValue]));
-  }
-
   get topSellingMax(): number {
-    return this.maxFromChart(this.visibleTopSellingProducts.map(item => item.amount));
-  }
-
-  get expenseCategoryMax(): number {
-    return this.maxFromChart(this.summary.expenseByCategory.map(item => item.value));
-  }
-
-  get warehouseValueMax(): number {
-    return this.maxFromChart(this.summary.warehouseStockValue.map(item => item.value));
+    return this.maxFromChart(this.visibleTopSellingProducts.map(item => item.quantity));
   }
 
   hasPermission(permission: string): boolean {
@@ -342,6 +305,10 @@ export class DashboardComponent implements OnInit {
     return '/dashboard';
   }
 
+  topSellingProductsRoute(): string | undefined {
+    return this.hasPermission('REPORT_VIEW') ? '/reports/view/top-selling-products' : undefined;
+  }
+
   asChartLabel(point: DashboardChartPoint | DashboardSalesPurchasePoint): string {
     return point.label || 'N/A';
   }
@@ -352,13 +319,6 @@ export class DashboardComponent implements OnInit {
 
   get lastUpdatedLabel(): string {
     return this.summary.generatedAt ? new Date(this.summary.generatedAt).toLocaleString() : 'Not available';
-  }
-
-  private periodKpiTitle(base: string): string {
-    if (this.summary.period === 'today') {
-      return `Today's ${base}`;
-    }
-    return `${this.rangeLabel} ${base}`;
   }
 
   purchaseRoute(): string | undefined {

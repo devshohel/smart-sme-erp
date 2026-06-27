@@ -1,9 +1,7 @@
 <div class="dashboard-page">
   <section class="hero-card">
     <div class="hero-copy">
-      <p class="eyebrow">Executive Dashboard</p>
-      <h1>Enterprise overview</h1>
-      <p>Accounting, sales, purchase, inventory, supplier, customer, and expense indicators from live ERP data.</p>
+      <h1>Dashboard</h1>
     </div>
 
     <div class="hero-actions">
@@ -44,20 +42,6 @@
       type="button"
       class="kpi-card"
       *ngFor="let card of primaryCards"
-      [ngClass]="'tone-' + card.tone"
-      [class.is-clickable]="!!card.route"
-      (click)="navigateTo(card.route)">
-      <span>{{ card.title }}</span>
-      <strong>{{ formatCardValue(card) }}</strong>
-      <small>{{ card.subtitle }}</small>
-    </button>
-  </section>
-
-  <section class="card-grid secondary-grid" *ngIf="secondaryCards.length">
-    <button
-      type="button"
-      class="kpi-card"
-      *ngFor="let card of secondaryCards"
       [ngClass]="'tone-' + card.tone"
       [class.is-clickable]="!!card.route"
       (click)="navigateTo(card.route)">
@@ -112,15 +96,16 @@
           <h2>Top Selling Products</h2>
           <p>Best sellers for {{ rangeLabel.toLowerCase() }}</p>
         </div>
+        <a *ngIf="topSellingProductsRoute()" class="panel-link" [routerLink]="topSellingProductsRoute()">View All</a>
       </div>
       <div class="rank-list" *ngIf="visibleTopSellingProducts.length; else emptyTopProducts">
         <div class="rank-row" *ngFor="let product of visibleTopSellingProducts">
           <div>
             <strong>{{ product.productName }}</strong>
-            <small>{{ product.sku || 'No SKU' }} · Qty {{ product.quantity | number:'1.0-2' }}</small>
+            <small>{{ product.sku || 'No SKU' }} - Qty {{ product.quantity | number:'1.0-2' }}</small>
           </div>
           <div class="progress-line">
-            <span [style.width.%]="percentOf(product.amount, topSellingMax)"></span>
+            <span [style.width.%]="percentOf(product.quantity, topSellingMax)"></span>
           </div>
           <strong>{{ formatMoney(product.amount) }}</strong>
         </div>
@@ -128,106 +113,25 @@
       <ng-template #emptyTopProducts><div class="empty-state">No product sales for this range.</div></ng-template>
     </article>
 
-    <article class="dashboard-panel" *ngIf="hasAnyPermission(['EXPENSE_VIEW', 'ACCOUNTING_VIEW'])">
-      <div class="panel-head">
-        <div>
-          <h2>Expense by Category</h2>
-          <p>Posted expenses only</p>
-        </div>
-      </div>
-      <div class="stack-list" *ngIf="summary.expenseByCategory.length; else emptyExpenseCategory">
-        <div class="stack-row" *ngFor="let item of summary.expenseByCategory">
-          <div class="stack-copy">
-            <strong>{{ item.label }}</strong>
-            <small>{{ formatMoney(item.value) }}</small>
-          </div>
-          <div class="progress-line"><span class="warning-fill" [style.width.%]="percentOf(item.value, expenseCategoryMax)"></span></div>
-        </div>
-      </div>
-      <ng-template #emptyExpenseCategory><div class="empty-state">No posted expenses in this range.</div></ng-template>
-    </article>
-
-    <article class="dashboard-panel" *ngIf="hasAnyPermission(['REPORT_VIEW', 'INVENTORY_VIEW'])">
-      <div class="panel-head">
-        <div>
-          <h2>Warehouse Stock Value</h2>
-          <p>Current inventory valuation by warehouse</p>
-        </div>
-      </div>
-      <div class="stack-list" *ngIf="summary.warehouseStockValue.length; else emptyWarehouseStock">
-        <div class="stack-row" *ngFor="let item of summary.warehouseStockValue">
-          <div class="stack-copy">
-            <strong>{{ item.label }}</strong>
-            <small>{{ item.secondaryValue | number:'1.0-2' }} qty</small>
-          </div>
-          <div class="progress-line"><span class="stock-fill" [style.width.%]="percentOf(item.value, warehouseValueMax)"></span></div>
-          <strong>{{ formatMoney(item.value) }}</strong>
-        </div>
-      </div>
-      <ng-template #emptyWarehouseStock><div class="empty-state">No warehouse valuation data available.</div></ng-template>
-    </article>
-
-    <article class="dashboard-panel" *ngIf="hasPermission('ACCOUNTING_VIEW') || hasPermission('FINANCIAL_DASHBOARD_VIEW')">
-      <div class="panel-head">
-        <div>
-          <h2>Cash / Bank Trend</h2>
-          <p>Running balances up to selected period end</p>
-        </div>
-      </div>
-      <div class="stack-list" *ngIf="summary.cashBankTrend.length; else emptyCashBank">
-        <div class="stack-row" *ngFor="let item of summary.cashBankTrend">
-          <div class="stack-copy">
-            <strong>{{ item.label }}</strong>
-            <small>Cash {{ formatMoney(item.value) }}</small>
-          </div>
-          <div class="progress-line"><span class="cash-fill" [style.width.%]="percentOf(item.secondaryValue, cashBankMax)"></span></div>
-          <strong>Bank {{ formatMoney(item.secondaryValue) }}</strong>
-        </div>
-      </div>
-      <ng-template #emptyCashBank><div class="empty-state">No cash or bank trend data available.</div></ng-template>
-    </article>
-  </section>
-
-  <section class="list-grid">
     <article class="dashboard-panel">
       <div class="panel-head">
         <div>
           <h2>Recent Transactions</h2>
           <p>Latest posted activity</p>
         </div>
+        <a class="panel-link" routerLink="/reports">View All</a>
       </div>
       <div class="table-shell" *ngIf="visibleRecentTransactions.length; else emptyTransactions">
         <button type="button" class="table-row" *ngFor="let item of visibleRecentTransactions" (click)="navigateTo(recentTransactionRoute(item))">
           <div>
             <strong>{{ item.referenceNo }}</strong>
-            <small>{{ item.type }} · {{ item.partyName }}</small>
+            <small>{{ item.type }} - {{ item.partyName }}</small>
           </div>
           <span class="status-pill" [ngClass]="statusClass(item.status)">{{ item.status || 'OPEN' }}</span>
           <strong>{{ formatMoney(item.amount) }}</strong>
         </button>
       </div>
       <ng-template #emptyTransactions><div class="empty-state">No recent transactions for this range.</div></ng-template>
-    </article>
-
-    <article class="dashboard-panel" *ngIf="hasAnyPermission(['EXPENSE_APPROVE', 'EXPENSE_VIEW'])">
-      <div class="panel-head">
-        <div>
-          <h2>Pending Approvals</h2>
-          <p>Requires workflow attention</p>
-        </div>
-        <a *ngIf="pendingApprovalsRoute()" class="panel-link" [routerLink]="pendingApprovalsRoute()">View All</a>
-      </div>
-      <div class="table-shell" *ngIf="visiblePendingApprovals.length; else emptyApprovals">
-        <button type="button" class="table-row" *ngFor="let item of visiblePendingApprovals" (click)="navigateTo(approvalRoute(item))">
-          <div>
-            <strong>{{ item.referenceNo || item.type }}</strong>
-            <small>{{ item.type }} · {{ item.partyName }}</small>
-          </div>
-          <span class="status-pill" [ngClass]="statusClass(item.status)">{{ item.status }}</span>
-          <strong>{{ item.amount ? formatMoney(item.amount) : 'Pending' }}</strong>
-        </button>
-      </div>
-      <ng-template #emptyApprovals><div class="empty-state">No approvals waiting right now.</div></ng-template>
     </article>
 
     <article class="dashboard-panel" *ngIf="hasAnyPermission(['REPORT_VIEW', 'INVENTORY_VIEW'])">
@@ -242,13 +146,34 @@
         <button type="button" class="table-row" *ngFor="let item of visibleLowStockAlerts" (click)="navigateTo(lowStockRoute())">
           <div>
             <strong>{{ item.productName }}</strong>
-            <small>{{ item.warehouseName }} · {{ item.sku || 'No SKU' }}</small>
+            <small>{{ item.warehouseName }} - {{ item.sku || 'No SKU' }}</small>
           </div>
           <span class="status-pill status-bad">Low</span>
           <strong>{{ item.quantity | number:'1.0-2' }} / {{ item.reorderLevel | number:'1.0-2' }}</strong>
         </button>
       </div>
       <ng-template #emptyLowStock><div class="empty-state">No low stock alerts at the moment.</div></ng-template>
+    </article>
+
+    <article class="dashboard-panel" *ngIf="canViewPendingApprovals">
+      <div class="panel-head">
+        <div>
+          <h2>Pending Approvals</h2>
+          <p>Requires workflow attention</p>
+        </div>
+        <a *ngIf="pendingApprovalsRoute()" class="panel-link" [routerLink]="pendingApprovalsRoute()">View All</a>
+      </div>
+      <div class="table-shell" *ngIf="visiblePendingApprovals.length; else emptyApprovals">
+        <button type="button" class="table-row" *ngFor="let item of visiblePendingApprovals" (click)="navigateTo(approvalRoute(item))">
+          <div>
+            <strong>{{ item.referenceNo || item.type }}</strong>
+            <small>{{ item.type }} - {{ item.partyName }}</small>
+          </div>
+          <span class="status-pill" [ngClass]="statusClass(item.status)">{{ item.status }}</span>
+          <strong>{{ item.amount ? formatMoney(item.amount) : 'Pending' }}</strong>
+        </button>
+      </div>
+      <ng-template #emptyApprovals><div class="empty-state">No approvals waiting right now.</div></ng-template>
     </article>
 
     <article class="dashboard-panel" *ngIf="hasAnyPermission(['SALES_INVOICE_VIEW', 'SALES_VIEW'])">

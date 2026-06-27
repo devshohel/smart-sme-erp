@@ -30,4 +30,7 @@ public interface ProductCategoryRepository extends JpaRepository<ProductCategory
     @Modifying
     @Query(value = "UPDATE product_categories SET is_deleted = false, updated_at = CURRENT_TIMESTAMP WHERE id = :id", nativeQuery = true)
     int restoreById(@Param("id") Long id);
+
+    @Query(value = "SELECT COALESCE(MAX(id), 0) FROM product_categories", nativeQuery = true)
+    long findMaxId();
 }

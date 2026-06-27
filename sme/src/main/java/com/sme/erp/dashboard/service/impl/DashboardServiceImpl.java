@@ -72,7 +72,7 @@ import java.util.stream.Collectors;
 public class DashboardServiceImpl implements DashboardService {
 
     private static final int LIST_LIMIT = 6;
-    private static final int CHART_LIMIT = 6;
+    private static final int CHART_LIMIT = 5;
     private static final DateTimeFormatter MONTH_LABEL = DateTimeFormatter.ofPattern("MMM yyyy", Locale.ENGLISH);
     private static final DateTimeFormatter DAY_LABEL = DateTimeFormatter.ofPattern("dd MMM", Locale.ENGLISH);
 
@@ -142,6 +142,11 @@ public class DashboardServiceImpl implements DashboardService {
                 selectedRange.from(), selectedRange.to(), null, null, null, null).getRows();
         List<PurchaseReportRowDTO> purchaseRows = reportService.getPurchaseDetail(
                 selectedRange.from(), selectedRange.to(), null, null, null).getRows();
+        DateRange chartRange = resolveChartRange(selectedRange);
+        List<SalesReportRowDTO> chartSalesRows = reportService.getSalesDetail(
+                chartRange.from(), chartRange.to(), null, null, null, null).getRows();
+        List<PurchaseReportRowDTO> chartPurchaseRows = reportService.getPurchaseDetail(
+                chartRange.from(), chartRange.to(), null, null, null).getRows();
         List<Expense> postedExpenses = expenseRepository.search(selectedRange.from(), selectedRange.to(), null, null).stream()
                 .filter(expense -> expense.getStatus() == ExpenseStatus.POSTED)
                 .toList();
@@ -175,8 +180,8 @@ public class DashboardServiceImpl implements DashboardService {
         summary.setSupplierDue(summary.getSupplierPayable());
         summary.setPendingApprovalExpenses(expenseRepository.approvalQueue(null, null, null, null, null, null).size());
 
-        summary.setMonthlyIncomeExpense(buildIncomeExpenseChart(selectedRange));
-        List<MonthlySalesPurchaseDTO> salesPurchaseTrend = buildSalesPurchaseTrend(selectedRange, salesRows, purchaseRows);
+        summary.setMonthlyIncomeExpense(buildIncomeExpenseChart(chartRange));
+        List<MonthlySalesPurchaseDTO> salesPurchaseTrend = buildSalesPurchaseTrend(chartRange, chartSalesRows, chartPurchaseRows);
         summary.setSalesPurchaseTrend(salesPurchaseTrend);
         summary.setMonthlySalesPurchase(salesPurchaseTrend);
         summary.setTopSellingProducts(buildTopSellingProducts(topSellingProductReport));
@@ -353,6 +358,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     private List<TopSellingProductDTO> buildTopSellingProducts(TopSellingProductReportDTO report) {
         return report.rows().stream()
+                .sorted(Comparator.comparing((TopSellingProductRowDTO row) -> safe(row.netQty())).reversed())
                 .limit(LIST_LIMIT)
                 .map(row -> new TopSellingProductDTO(
                         row.productId(),
@@ -619,6 +625,27 @@ public class DashboardServiceImpl implements DashboardService {
                 yield new DateRange("custom", fromDate, toDate, days <= 31 ? BucketGranularity.DAY : BucketGranularity.MONTH);
             }
             default -> new DateRange("month", today.withDayOfMonth(1), today.withDayOfMonth(today.lengthOfMonth()), BucketGranularity.MONTH);
+        };
+    }
+
+    private DateRange resolveChartRange(DateRange selectedRange) {
+        return switch (selectedRange.period()) {
+            case "today" -> new DateRange(
+                    selectedRange.period(),
+                    selectedRange.to().minusDays(CHART_LIMIT - 1L),
+                    selectedRange.to(),
+                    BucketGranularity.DAY);
+            case "month" -> {
+                YearMonth end = YearMonth.from(selectedRange.to());
+                YearMonth start = end.minusMonths(CHART_LIMIT - 1L);
+                yield new DateRange(selectedRange.period(), start.atDay(1), end.atEndOfMonth(), BucketGranularity.MONTH);
+            }
+            case "year" -> {
+                YearMonth start = YearMonth.from(selectedRange.from());
+                YearMonth end = start.plusMonths(CHART_LIMIT - 1L);
+                yield new DateRange(selectedRange.period(), start.atDay(1), end.atEndOfMonth(), BucketGranularity.MONTH);
+            }
+            default -> selectedRange;
         };
     }
 

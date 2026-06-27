@@ -49,6 +49,7 @@ export class ProductFormComponent implements OnInit, OnChanges, OnDestroy {
   ngOnInit(): void {
     this.loadOptions();
     this.patchFromInput();
+    this.prefillGeneratedIdentifiers();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -126,6 +127,25 @@ export class ProductFormComponent implements OnInit, OnChanges, OnDestroy {
     this.imageError = '';
     this.revokePreviewUrl();
     this.imagePreviewUrl = this.productService.resolveImageUrl(product?.imageUrl);
+  }
+
+  prefillGeneratedIdentifiers(): void {
+    if (this.initialValue) {
+      return;
+    }
+
+    this.productService.getAllProducts().subscribe({
+      next: products => {
+        this.patchGeneratedIdentifiers(
+          this.nextCode('SKU', products.map(product => product.sku)),
+          this.nextCode('BAR', products.map(product => product.barcode || ''))
+        );
+      },
+      error: () => {
+        const fallback = Date.now().toString().slice(-6);
+        this.patchGeneratedIdentifiers(`SKU-${fallback}`, `BAR-${fallback}`);
+      }
+    });
   }
 
   submit(): void {
@@ -211,5 +231,22 @@ export class ProductFormComponent implements OnInit, OnChanges, OnDestroy {
       URL.revokeObjectURL(this.imagePreviewUrl);
     }
     this.imagePreviewUrl = '';
+  }
+
+  private nextCode(prefix: string, values: string[]): string {
+    const next = values.reduce((max, value) => {
+      const match = new RegExp(`^${prefix}-(\\d+)$`, 'i').exec(value || '');
+      return match ? Math.max(max, Number(match[1])) : max;
+    }, 0) + 1;
+    return `${prefix}-${String(next).padStart(4, '0')}`;
+  }
+
+  private patchGeneratedIdentifiers(sku: string, barcode: string): void {
+    if (!this.form.get('sku')?.value) {
+      this.form.patchValue({ sku });
+    }
+    if (!this.form.get('barcode')?.value) {
+      this.form.patchValue({ barcode });
+    }
   }
 }

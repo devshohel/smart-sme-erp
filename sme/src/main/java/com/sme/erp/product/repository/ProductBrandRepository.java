@@ -28,4 +28,7 @@ public interface ProductBrandRepository extends JpaRepository<ProductBrand, Long
     @Modifying
     @Query(value = "UPDATE product_brands SET is_deleted = false, updated_at = CURRENT_TIMESTAMP WHERE id = :id", nativeQuery = true)
     int restoreById(@Param("id") Long id);
+
+    @Query(value = "SELECT COALESCE(MAX(id), 0) FROM product_brands", nativeQuery = true)
+    long findMaxId();
 }

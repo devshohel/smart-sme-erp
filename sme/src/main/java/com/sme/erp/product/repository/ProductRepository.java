@@ -26,6 +26,10 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     // ✅ Check SKU exists (update - excluding current id)
     boolean existsBySkuAndIdNot(String sku, Long id);
 
+    boolean existsByBarcode(String barcode);
+
+    boolean existsByBarcodeAndIdNot(String barcode, Long id);
+
     boolean existsByProductCode(String productCode);
 
     boolean existsByProductCodeAndIdNot(String productCode, Long id);
@@ -42,6 +46,9 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     @Modifying
     @Query(value = "UPDATE products SET is_deleted = false, updated_at = CURRENT_TIMESTAMP WHERE id = :id", nativeQuery = true)
     int restoreById(@Param("id") Long id);
+
+    @Query(value = "SELECT COALESCE(MAX(id), 0) FROM products", nativeQuery = true)
+    long findMaxId();
 
     // ♻️ Optional (future use - deleted data)
     // @Query("SELECT p FROM Product p WHERE p.deleted = true")

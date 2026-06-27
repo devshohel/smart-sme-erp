@@ -70,16 +70,26 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    public ProductDTO saveProduct(ProductDTO dto, MultipartFile image) {
+    public synchronized ProductDTO saveProduct(ProductDTO dto, MultipartFile image) {
         validateProductBusinessRules(dto);
         String normalizedProductCode = RequestValueUtils.normalize(dto.getProductCode());
+        String normalizedSku = RequestValueUtils.normalize(dto.getSku());
+        String normalizedBarcode = RequestValueUtils.normalize(dto.getBarcode());
         dto.setProductCode(normalizedProductCode);
-        dto.setSku(RequestValueUtils.normalizeRequired(dto.getSku(), "SKU"));
         dto.setProductName(RequestValueUtils.normalizeRequired(dto.getProductName(), "Product name"));
         Product product = getProductForSave(dto.getId());
         boolean isCreate = product.getId() == null;
         ProductDTO oldData = isCreate ? null : mapper.toDTO(product);
+        if (isCreate && normalizedSku == null) {
+            normalizedSku = generateCode("SKU", repository.findMaxId(), repository::existsBySku);
+        }
+        if (isCreate && normalizedBarcode == null) {
+            normalizedBarcode = generateCode("BAR", repository.findMaxId(), repository::existsByBarcode);
+        }
+        dto.setSku(RequestValueUtils.normalizeRequired(normalizedSku, "SKU"));
+        dto.setBarcode(normalizedBarcode);
         validateSkuUnique(dto.getSku(), dto.getId());
+        validateBarcodeUnique(dto.getBarcode(), dto.getId());
         if (dto.getId() == null) {
             product.setProductCode(resolveProductCodeForCreate(normalizedProductCode));
         } else if (normalizedProductCode != null) {
@@ -255,12 +265,9 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private String generateProductCode() {
-        String productCode;
-        do {
-            productCode = "PRD-" + System.currentTimeMillis();
-        } while (repository.existsByProductCode(productCode));
-        return productCode;
+        return generateCode("PRD", repository.findMaxId(), repository::existsByProductCode);
     }
+
     private void validateSkuUnique(String sku, Long currentId) {
         boolean exists = currentId == null
                 ? repository.existsBySku(sku)
@@ -269,6 +276,28 @@ public class ProductServiceImpl implements ProductService {
         if (exists) {
             throw new DuplicateResourceException("SKU already exists: " + sku);
         }
+    }
+
+    private void validateBarcodeUnique(String barcode, Long currentId) {
+        if (barcode == null) {
+            return;
+        }
+        boolean exists = currentId == null
+                ? repository.existsByBarcode(barcode)
+                : repository.existsByBarcodeAndIdNot(barcode, currentId);
+
+        if (exists) {
+            throw new DuplicateResourceException("Barcode already exists: " + barcode);
+        }
+    }
+
+    private String generateCode(String prefix, long currentMaxId, java.util.function.Predicate<String> exists) {
+        long sequence = currentMaxId + 1;
+        String code;
+        do {
+            code = prefix + "-" + String.format("%04d", sequence++);
+        } while (exists.test(code));
+        return code;
     }
 
     private void validateProductBusinessRules(ProductDTO dto) {

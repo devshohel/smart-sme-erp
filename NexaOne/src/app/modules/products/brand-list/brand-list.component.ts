@@ -66,7 +66,7 @@ export class BrandListComponent implements OnInit {
     this.submitError = '';
     this.brandForm.reset({
       id: null,
-      code: '',
+      code: this.nextCode('BRD', this.brands.map(brand => brand.code)),
       brandName: '',
       status: 'ACTIVE'
     });
@@ -148,5 +148,13 @@ export class BrandListComponent implements OnInit {
 
   hasPermission(permission: string): boolean {
     return this.authService.hasPermission(permission);
+  }
+
+  private nextCode(prefix: string, values: string[]): string {
+    const next = values.reduce((max, value) => {
+      const match = new RegExp(`^${prefix}-(\\d+)$`, 'i').exec(value || '');
+      return match ? Math.max(max, Number(match[1])) : max;
+    }, 0) + 1;
+    return `${prefix}-${String(next).padStart(4, '0')}`;
   }
 }

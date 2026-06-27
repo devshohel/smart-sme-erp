@@ -30,8 +30,12 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
     // ✅ SAVE
     @Override
     @Transactional
-    public ProductCategoryDTO save(ProductCategoryDTO dto) {
-        dto.setCode(RequestValueUtils.normalizeRequired(dto.getCode(), "Category code"));
+    public synchronized ProductCategoryDTO save(ProductCategoryDTO dto) {
+        String normalizedCode = RequestValueUtils.normalize(dto.getCode());
+        if (dto.getId() == null && normalizedCode == null) {
+            normalizedCode = generateCode();
+        }
+        dto.setCode(RequestValueUtils.normalizeRequired(normalizedCode, "Category code"));
         dto.setCategoryName(RequestValueUtils.normalizeRequired(dto.getCategoryName(), "Category name"));
         dto.setDescription(RequestValueUtils.normalize(dto.getDescription()));
         validateCodeUnique(dto.getCode(), dto.getId());
@@ -103,5 +107,14 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
     private ProductCategory findCategoryById(Long id, String label) {
         return repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(label + " not found with id: " + id));
+    }
+
+    private String generateCode() {
+        long sequence = repository.findMaxId() + 1;
+        String code;
+        do {
+            code = "CAT-" + String.format("%04d", sequence++);
+        } while (repository.existsByCode(code));
+        return code;
     }
 }

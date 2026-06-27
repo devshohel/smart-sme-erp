@@ -68,7 +68,7 @@ export class UomSettingComponent implements OnInit {
     this.submitError = '';
     this.uomForm.reset({
       id: null,
-      code: '',
+      code: this.nextCode('UOM', this.uoms.map(uom => uom.code)),
       name: '',
       type: '',
       conversionFactor: 1,
@@ -154,5 +154,13 @@ export class UomSettingComponent implements OnInit {
 
   hasPermission(permission: string): boolean {
     return this.authService.hasPermission(permission);
+  }
+
+  private nextCode(prefix: string, values: string[]): string {
+    const next = values.reduce((max, value) => {
+      const match = new RegExp(`^${prefix}-(\\d+)$`, 'i').exec(value || '');
+      return match ? Math.max(max, Number(match[1])) : max;
+    }, 0) + 1;
+    return `${prefix}-${String(next).padStart(4, '0')}`;
   }
 }

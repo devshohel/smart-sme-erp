@@ -1,6 +1,7 @@
 .product-list-page {
   background: #f5f8f6;
-  min-height: 100%;
+  min-height: auto;
+  overflow-y: visible;
 }
 
 .page-title-row,
