@@ -1,10 +1,10 @@
 <div class="container-fluid p-4 pos-page">
-  <app-page-header title="Point of Sale" subtitle="Build a quick-sale cart. Totals are previews until backend POS completion is implemented."></app-page-header>
+  <app-page-header title="Point of Sale" subtitle="Build and atomically complete a quick sale using backend-calculated totals."></app-page-header>
 
   <div class="alert alert-warning py-2" *ngIf="warningMessage">{{ warningMessage }}</div>
   <div class="alert alert-info py-2" *ngIf="message">{{ message }}</div>
   <div class="alert alert-secondary py-2 completion-note">
-    <i class="bi bi-info-circle me-1"></i>Phase 2 preview mode: Complete Sale and Complete &amp; Print do not write data.
+    <i class="bi bi-info-circle me-1"></i>Displayed totals are previews. Product prices, taxes, stock, credit limits, and final totals are validated by the backend.
   </div>
 
   <div class="row g-4">
@@ -111,6 +111,14 @@
               <input type="number" min="0" step="0.01" class="form-control text-end" [(ngModel)]="paidAmount" (blur)="normalizePaidAmount()">
               <small class="text-danger" *ngIf="paidAmount < 0">Paid amount cannot be negative.</small>
             </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Payment Reference</label>
+              <input class="form-control" maxlength="255" [(ngModel)]="paymentReferenceNo" placeholder="Optional reference">
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Notes</label>
+              <input class="form-control" maxlength="500" [(ngModel)]="notes" placeholder="Optional sale note">
+            </div>
           </div>
 
           <div class="totals mt-4">
@@ -129,8 +137,8 @@
           <div class="cart-actions mt-4">
             <button type="button" class="btn btn-outline-danger" [disabled]="!cart.length" (click)="clearCart()">Clear Cart</button>
             <button type="button" class="btn btn-outline-secondary" [disabled]="!cart.length" (click)="holdSale()">Hold Sale</button>
-            <button type="button" class="btn btn-success" [disabled]="!posService.completionAvailable || validationErrors.length > 0" title="Phase 3 backend POS endpoint required" (click)="completeSale(false)">Complete Sale</button>
-            <button type="button" class="btn btn-primary" [disabled]="!posService.completionAvailable || validationErrors.length > 0" title="Phase 3 backend POS endpoint required" (click)="completeSale(true)">Complete &amp; Print</button>
+            <button type="button" class="btn btn-success" [disabled]="submitting || validationErrors.length > 0" (click)="completeSale(false)">{{ submitting ? 'Completing...' : 'Complete Sale' }}</button>
+            <button type="button" class="btn btn-primary" [disabled]="submitting || validationErrors.length > 0" (click)="completeSale(true)">Complete &amp; Print</button>
           </div>
         </app-card>
       </div>

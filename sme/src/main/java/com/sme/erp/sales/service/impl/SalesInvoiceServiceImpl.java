@@ -9,6 +9,7 @@ import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.repository.CustomerRepository;
+import com.sme.erp.enums.ProductType;
 import com.sme.erp.inventory.entity.Warehouse;
 import com.sme.erp.inventory.repository.WarehouseRepository;
 import com.sme.erp.inventory.service.StockService;
@@ -292,6 +293,9 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         Long warehouseId = invoice.getWarehouse().getId();
         for (SalesItem item : invoice.getItems()) {
             Product product = requireProduct(item, "Sales invoice contains a deleted product. Edit the invoice and select an active product before posting.");
+            if (product.getType() == ProductType.SERVICE) {
+                continue;
+            }
             stockService.stockOut(
                     product.getId(),
                     warehouseId,
@@ -306,6 +310,9 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         String referenceNo = invoice.getInvoiceNo() + "-REV";
         for (SalesItem item : invoice.getItems()) {
             Product product = requireProduct(item, "Sales invoice contains a deleted product. Stock reversal cannot continue.");
+            if (product.getType() == ProductType.SERVICE) {
+                continue;
+            }
             stockService.stockIn(
                     product.getId(),
                     warehouseId,

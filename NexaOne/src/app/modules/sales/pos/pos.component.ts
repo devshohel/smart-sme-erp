@@ -1,4 +1,5 @@
 import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Router } from '@angular/router';
 import { ProductCategory } from '../../../models/category.model';
 import { InventoryWarehouse } from '../../../models/inventory-warehouse.model';
 import { Product } from '../../../models/product.model';
@@ -10,7 +11,8 @@ import { ProductCategoryService } from '../../../services/product-category.servi
 import { ProductService } from '../../../services/product.service';
 import { SalesCustomerService } from '../../../services/sales-customer.service';
 import { PosPaymentMethod, PosSaleRequest, SalesPosService } from '../../../services/sales-pos.service';
-import { debugApiError } from '../../../shared/utils/api-error.util';
+import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
+import { NotificationService } from '../../../shared/services/notification.service';
 import { AuthService } from '../../auth/auth.service';
 
 interface PosCartLine {
@@ -42,9 +44,12 @@ export class PosComponent implements OnInit, AfterViewInit {
   paymentMethod: PosPaymentMethod = 'CASH';
   paidAmount = 0;
   discountAmount = 0;
+  paymentReferenceNo = '';
+  notes = '';
   message = '';
   warningMessage = '';
   stockAvailable = false;
+  submitting = false;
 
   readonly paymentMethods: Array<{ value: PosPaymentMethod; label: string }> = [
     { value: 'CASH', label: 'Cash' },
@@ -62,6 +67,8 @@ export class PosComponent implements OnInit, AfterViewInit {
     private warehouseService: InventoryWarehouseService,
     private stockService: InventoryStockService,
     private authService: AuthService,
+    private notificationService: NotificationService,
+    private router: Router,
     public posService: SalesPosService
   ) {}
 
@@ -89,11 +96,15 @@ export class PosComponent implements OnInit, AfterViewInit {
   }
 
   get taxAmount(): number {
-    return this.cart.reduce((sum, line) => sum + line.quantity * line.unitPrice * Number(line.product.taxPercentage || 0) / 100, 0);
+    const discounts = this.allocatedDiscounts();
+    return this.cart.reduce((sum, line, index) => {
+      const taxable = Math.max(line.quantity * line.unitPrice - discounts[index], 0);
+      return sum + taxable * Number(line.product.taxPercentage || 0) / 100;
+    }, 0);
   }
 
   get normalizedDiscount(): number {
-    return Math.min(Math.max(Number(this.discountAmount || 0), 0), this.subtotal + this.taxAmount);
+    return Math.min(Math.max(Number(this.discountAmount || 0), 0), this.subtotal);
   }
 
   get grandTotal(): number {
@@ -226,10 +237,7 @@ export class PosComponent implements OnInit, AfterViewInit {
 
   clearCart(): void {
     if (this.cart.length && !window.confirm('Clear all items from the cart?')) return;
-    this.cart = [];
-    this.discountAmount = 0;
-    this.paidAmount = 0;
-    this.message = '';
+    this.resetCart();
   }
 
   onWarehouseChange(): void {
@@ -255,28 +263,42 @@ export class PosComponent implements OnInit, AfterViewInit {
   }
 
   completeSale(printAfterCompletion: boolean): void {
-    if (!this.posService.completionAvailable || this.validationErrors.length) return;
+    if (!this.posService.completionAvailable || this.validationErrors.length || this.submitting) return;
+    const discounts = this.allocatedDiscounts();
     const request: PosSaleRequest = {
-      customerId: this.selectedCustomerId,
-      warehouseId: this.selectedWarehouseId,
-      paymentMethod: this.paymentMethod,
-      paidAmount: Number(this.paidAmount || 0),
-      discountAmount: this.normalizedDiscount,
-      items: this.cart.map(line => ({
-        productId: line.product.id || null,
-        productName: line.product.productName,
-        uomId: line.product.uomId,
-        uomName: line.product.uomName,
+      customerId: Number(this.selectedCustomerId),
+      warehouseId: Number(this.selectedWarehouseId),
+      saleDate: this.localDateTime(),
+      items: this.cart.map((line, index) => ({
+        productId: Number(line.product.id),
         quantity: line.quantity,
         unitPrice: line.unitPrice,
-        discount: 0,
-        tax: line.quantity * line.unitPrice * Number(line.product.taxPercentage || 0) / 100,
-        subtotal: line.quantity * line.unitPrice
-      }))
+        discount: discounts[index],
+        tax: Math.max(line.quantity * line.unitPrice - discounts[index], 0) * Number(line.product.taxPercentage || 0) / 100
+      })),
+      payment: {
+        paymentMethod: this.paymentMethod,
+        paidAmount: Math.min(Math.max(Number(this.paidAmount || 0), 0), this.grandTotal),
+        referenceNo: this.paymentReferenceNo.trim() || undefined
+      },
+      notes: this.notes.trim() || undefined
     };
+    this.submitting = true;
+    this.warningMessage = '';
     this.posService.completeSale(request).subscribe({
-      next: () => { if (printAfterCompletion) window.print(); },
-      error: error => this.warningMessage = error instanceof Error ? error.message : 'POS completion failed.'
+      next: completed => {
+        this.submitting = false;
+        this.notificationService.success(`Sale ${completed.invoiceNo} completed successfully.`);
+        this.resetCart();
+        this.router.navigate(['/sales', completed.invoiceId, 'view'], {
+          queryParams: printAfterCompletion ? { print: true } : undefined
+        });
+      },
+      error: error => {
+        this.submitting = false;
+        this.warningMessage = extractApiErrorMessage(error, 'POS completion failed. No sale was created.');
+        debugApiError('PosComponent.completeSale', error);
+      }
     });
   }
 
@@ -295,5 +317,37 @@ export class PosComponent implements OnInit, AfterViewInit {
 
   private isWalkIn(customer?: SalesCustomer): boolean {
     return !!customer && /walk[\s-]*in/i.test(customer.name || '');
+  }
+
+  private allocatedDiscounts(): number[] {
+    if (!this.cart.length || this.subtotal <= 0 || this.normalizedDiscount <= 0) {
+      return this.cart.map(() => 0);
+    }
+    let allocated = 0;
+    return this.cart.map((line, index) => {
+      if (index === this.cart.length - 1) return this.roundMoney(this.normalizedDiscount - allocated);
+      const share = this.roundMoney(this.normalizedDiscount * (line.quantity * line.unitPrice) / this.subtotal);
+      allocated += share;
+      return share;
+    });
+  }
+
+  private resetCart(): void {
+    this.cart = [];
+    this.discountAmount = 0;
+    this.paidAmount = 0;
+    this.paymentReferenceNo = '';
+    this.notes = '';
+    this.message = '';
+  }
+
+  private localDateTime(): string {
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    return new Date(now.getTime() - offset).toISOString().slice(0, 19);
+  }
+
+  private roundMoney(value: number): number {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
   }
 }
