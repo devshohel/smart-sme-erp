@@ -1,0 +1,139 @@
+<div class="container-fluid p-4 pos-page">
+  <app-page-header title="Point of Sale" subtitle="Build a quick-sale cart. Totals are previews until backend POS completion is implemented."></app-page-header>
+
+  <div class="alert alert-warning py-2" *ngIf="warningMessage">{{ warningMessage }}</div>
+  <div class="alert alert-info py-2" *ngIf="message">{{ message }}</div>
+  <div class="alert alert-secondary py-2 completion-note">
+    <i class="bi bi-info-circle me-1"></i>Phase 2 preview mode: Complete Sale and Complete &amp; Print do not write data.
+  </div>
+
+  <div class="row g-4">
+    <div class="col-12 col-xl-7">
+      <app-card title="Products" subtitle="Search or scan an exact barcode, SKU, or product code.">
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label">Product Search</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input class="form-control" [(ngModel)]="searchTerm" placeholder="Name, SKU, barcode, or code">
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label">Barcode Scanner</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+              <input #barcodeInput class="form-control" [(ngModel)]="barcodeValue" (keyup.enter)="scanBarcode()" placeholder="Scan and press Enter" autocomplete="off">
+              <button type="button" class="btn btn-outline-secondary" (click)="scanBarcode()">Add</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="category-strip mb-3" *ngIf="categories.length">
+          <button type="button" class="btn btn-sm" [class.btn-success]="selectedCategoryId === null" [class.btn-outline-secondary]="selectedCategoryId !== null" (click)="selectedCategoryId = null">All</button>
+          <button type="button" class="btn btn-sm" *ngFor="let category of categories" [class.btn-success]="selectedCategoryId === category.id" [class.btn-outline-secondary]="selectedCategoryId !== category.id" (click)="selectedCategoryId = category.id || null">{{ category.categoryName }}</button>
+        </div>
+
+        <div class="text-center text-muted py-5" *ngIf="loading">Loading products...</div>
+        <div class="product-grid" *ngIf="!loading">
+          <article class="product-card" *ngFor="let product of filteredProducts">
+            <div class="product-image">
+              <img *ngIf="imageUrl(product); else productPlaceholder" [src]="imageUrl(product)" [alt]="product.productName">
+              <ng-template #productPlaceholder><i class="bi bi-box-seam"></i></ng-template>
+              <span *ngIf="stockFor(product) !== null" class="stock-badge" [class.out]="stockFor(product) === 0">
+                {{ stockFor(product) === 0 ? 'Out of stock' : (stockFor(product) | number:'1.0-2') + ' in stock' }}
+              </span>
+            </div>
+            <div class="product-body">
+              <div class="product-category">{{ product.categoryName || 'Uncategorized' }}</div>
+              <h3>{{ product.productName }}</h3>
+              <small>{{ product.sku || product.productCode || product.barcode || 'No SKU' }}</small>
+              <div class="d-flex justify-content-between align-items-center gap-2 mt-auto pt-3">
+                <strong>{{ product.salePrice | currency:'BDT':'code':'1.2-2' }}</strong>
+                <button type="button" class="btn btn-sm btn-success" [disabled]="product.type !== 'SERVICE' && stockFor(product) === 0" (click)="addToCart(product)">
+                  <i class="bi bi-cart-plus me-1"></i>Add
+                </button>
+              </div>
+            </div>
+          </article>
+        </div>
+        <div class="text-center text-muted py-5" *ngIf="!loading && filteredProducts.length === 0">No products match the current search.</div>
+      </app-card>
+    </div>
+
+    <div class="col-12 col-xl-5">
+      <div class="cart-column">
+        <app-card title="Shopping Cart" [subtitle]="cart.length + (cart.length === 1 ? ' product line' : ' product lines')">
+          <div class="empty-cart" *ngIf="!cart.length">
+            <i class="bi bi-cart3"></i>
+            <span>Your cart is empty.</span>
+          </div>
+
+          <div class="cart-lines" *ngIf="cart.length">
+            <div class="cart-line" *ngFor="let line of cart">
+              <div class="cart-line-main">
+                <strong>{{ line.product.productName }}</strong>
+                <small>{{ line.product.sku || line.product.productCode || 'No SKU' }} · {{ line.unitPrice | currency:'BDT':'code':'1.2-2' }}</small>
+              </div>
+              <div class="quantity-control">
+                <button type="button" (click)="changeQuantity(line, -1)" [disabled]="line.quantity <= 1"><i class="bi bi-dash"></i></button>
+                <input type="number" min="0.01" step="0.01" [ngModel]="line.quantity" (ngModelChange)="setQuantity(line, $event)">
+                <button type="button" (click)="changeQuantity(line, 1)"><i class="bi bi-plus"></i></button>
+              </div>
+              <strong class="line-total">{{ line.quantity * line.unitPrice | currency:'BDT':'code':'1.2-2' }}</strong>
+              <button type="button" class="remove-line" title="Remove item" (click)="removeLine(line)"><i class="bi bi-trash"></i></button>
+            </div>
+          </div>
+
+          <div class="row g-3 mt-2">
+            <div class="col-12 col-md-6">
+              <label class="form-label">Customer *</label>
+              <select class="form-select" [(ngModel)]="selectedCustomerId">
+                <option [ngValue]="null">Select customer</option>
+                <option *ngFor="let customer of customers" [ngValue]="customer.id">{{ customer.name }}{{ customer.customerCode ? ' - ' + customer.customerCode : '' }}</option>
+              </select>
+              <small class="text-muted" *ngIf="!selectedCustomerId">Walk-in Customer was not found; no customer was created.</small>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Warehouse *</label>
+              <select class="form-select" [(ngModel)]="selectedWarehouseId" (ngModelChange)="onWarehouseChange()">
+                <option [ngValue]="null">Select warehouse</option>
+                <option *ngFor="let warehouse of warehouses" [ngValue]="warehouse.id">{{ warehouse.name }}</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Payment Method</label>
+              <select class="form-select" [(ngModel)]="paymentMethod" (ngModelChange)="onPaymentMethodChange()">
+                <option *ngFor="let method of paymentMethods" [ngValue]="method.value">{{ method.label }}</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label">Paid Amount</label>
+              <input type="number" min="0" step="0.01" class="form-control text-end" [(ngModel)]="paidAmount" (blur)="normalizePaidAmount()">
+              <small class="text-danger" *ngIf="paidAmount < 0">Paid amount cannot be negative.</small>
+            </div>
+          </div>
+
+          <div class="totals mt-4">
+            <div><span>Subtotal</span><strong>{{ subtotal | currency:'BDT':'code':'1.2-2' }}</strong></div>
+            <div class="editable-total"><label for="posDiscount">Discount</label><input id="posDiscount" type="number" min="0" step="0.01" class="form-control form-control-sm text-end" [(ngModel)]="discountAmount"></div>
+            <div><span>Tax</span><strong>{{ taxAmount | currency:'BDT':'code':'1.2-2' }}</strong></div>
+            <div class="grand-total"><span>Grand Total <small>(preview)</small></span><strong>{{ grandTotal | currency:'BDT':'code':'1.2-2' }}</strong></div>
+            <div *ngIf="paymentMethod === 'CASH'"><span>Change Due</span><strong class="text-success">{{ changeDue | currency:'BDT':'code':'1.2-2' }}</strong></div>
+            <div><span>Due Amount</span><strong [class.text-danger]="dueAmount > 0">{{ dueAmount | currency:'BDT':'code':'1.2-2' }}</strong></div>
+          </div>
+
+          <div class="validation-list mt-3" *ngIf="validationErrors.length">
+            <div *ngFor="let error of validationErrors"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
+          </div>
+
+          <div class="cart-actions mt-4">
+            <button type="button" class="btn btn-outline-danger" [disabled]="!cart.length" (click)="clearCart()">Clear Cart</button>
+            <button type="button" class="btn btn-outline-secondary" [disabled]="!cart.length" (click)="holdSale()">Hold Sale</button>
+            <button type="button" class="btn btn-success" [disabled]="!posService.completionAvailable || validationErrors.length > 0" title="Phase 3 backend POS endpoint required" (click)="completeSale(false)">Complete Sale</button>
+            <button type="button" class="btn btn-primary" [disabled]="!posService.completionAvailable || validationErrors.length > 0" title="Phase 3 backend POS endpoint required" (click)="completeSale(true)">Complete &amp; Print</button>
+          </div>
+        </app-card>
+      </div>
+    </div>
+  </div>
+</div>

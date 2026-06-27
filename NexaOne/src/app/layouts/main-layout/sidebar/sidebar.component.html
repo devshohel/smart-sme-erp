@@ -82,17 +82,20 @@
       </a>
 
       <div class="submenu" [class.show]="isSalesOpen || salesNav.isActive">
-        <a *ngIf="hasPermission('SALES_ORDER_VIEW')" routerLink="/sales/orders" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
-          <i class="bi bi-receipt me-2"></i> Orders
-        </a>
         <a *ngIf="hasPermission('SALES_INVOICE_VIEW')" routerLink="/sales" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-file-earmark-text me-2"></i> All Sales
         </a>
         <a *ngIf="hasPermission('SALES_INVOICE_CREATE')" routerLink="/sales/add" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-plus-circle me-2"></i> Add Sale
         </a>
+        <a *ngIf="hasPermission('SALES_INVOICE_CREATE')" routerLink="/sales/pos" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-cart3 me-2"></i> Point of Sale
+        </a>
+        <a *ngIf="hasPermission('SALES_INVOICE_VIEW')" routerLink="/sales/items" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-list-check me-2"></i> Sale Items
+        </a>
         <a *ngIf="hasPermission('SALES_RETURN_VIEW')" routerLink="/sales/returns" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
-          <i class="bi bi-arrow-return-left me-2"></i> Returns
+          <i class="bi bi-arrow-return-left me-2"></i> Sales Returns
         </a>
       </div>
     </div>

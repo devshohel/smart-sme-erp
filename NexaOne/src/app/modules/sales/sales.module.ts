@@ -10,6 +10,8 @@ import { InvoicesComponent } from './invoices/invoices.component';
 import { ReturnsComponent } from './returns/returns.component';
 import { InvoiceListComponent } from './invoice-list/invoice-list.component';
 import { InvoiceFormComponent } from './invoice-form/invoice-form.component';
+import { PosComponent } from './pos/pos.component';
+import { SaleItemsComponent } from './sale-items/sale-items.component';
 
 
 @NgModule({
@@ -19,7 +21,9 @@ import { InvoiceFormComponent } from './invoice-form/invoice-form.component';
     InvoicesComponent,
     ReturnsComponent,
     InvoiceListComponent,
-    InvoiceFormComponent
+    InvoiceFormComponent,
+    PosComponent,
+    SaleItemsComponent
   ],
   imports: [
     CommonModule,
