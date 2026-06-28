@@ -33,7 +33,7 @@ public class SalesOrderController {
         return ResponseEntity.ok(salesOrderService.getAll());
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('SALES_ORDER_VIEW')")
     public ResponseEntity<SalesOrderDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(salesOrderService.getById(id));
@@ -45,37 +45,37 @@ public class SalesOrderController {
         return ResponseEntity.ok(salesOrderService.create(dto));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id:\\d+}")
     @PreAuthorize("hasAuthority('SALES_ORDER_EDIT')")
     public ResponseEntity<SalesOrderDTO> update(@PathVariable Long id, @Valid @RequestBody SalesOrderDTO dto) {
         return ResponseEntity.ok(salesOrderService.update(id, dto));
     }
 
-    @PostMapping("/{id}/submit")
+    @PostMapping("/{id:\\d+}/submit")
     @PreAuthorize("hasAuthority('SALES_ORDER_SUBMIT')")
     public ResponseEntity<SalesOrderDTO> submit(@PathVariable Long id) {
         return ResponseEntity.ok(salesOrderService.submit(id));
     }
 
-    @PostMapping("/{id}/approve")
+    @PostMapping("/{id:\\d+}/approve")
     @PreAuthorize("hasAuthority('SALES_ORDER_APPROVE')")
     public ResponseEntity<SalesOrderDTO> approve(@PathVariable Long id) {
         return ResponseEntity.ok(salesOrderService.approve(id));
     }
 
-    @PostMapping("/{id}/reject")
+    @PostMapping("/{id:\\d+}/reject")
     @PreAuthorize("hasAuthority('SALES_ORDER_REJECT')")
     public ResponseEntity<SalesOrderDTO> reject(@PathVariable Long id, @Valid @RequestBody SalesActionReasonDTO request) {
         return ResponseEntity.ok(salesOrderService.reject(id, request.getReason()));
     }
 
-    @PostMapping("/{id}/cancel")
+    @PostMapping("/{id:\\d+}/cancel")
     @PreAuthorize("hasAuthority('SALES_ORDER_CANCEL')")
     public ResponseEntity<SalesOrderDTO> cancel(@PathVariable Long id) {
         return ResponseEntity.ok(salesOrderService.cancel(id));
     }
 
-    @PostMapping("/{id}/convert-to-invoice")
+    @PostMapping("/{id:\\d+}/convert-to-invoice")
     @PreAuthorize("hasAuthority('SALES_ORDER_CONVERT')")
     public ResponseEntity<SalesInvoiceDTO> convertToInvoice(@PathVariable Long id) {
         return ResponseEntity.ok(salesOrderService.convertToInvoice(id));

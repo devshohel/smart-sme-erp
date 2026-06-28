@@ -1,8 +1,8 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
+import { finalize, map, shareReplay, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Status } from '../../models/product.model';
 import { ApiResponse, unwrapApiResponse } from '../../shared/utils/api-response.util';
@@ -14,7 +14,9 @@ export class AuthService {
   private readonly usersUrl = `${environment.apiUrl}/users`;
   private readonly auditUrl = `${environment.apiUrl}/audit`;
   private readonly tokenKey = 'sme_access_token';
+  private readonly refreshTokenKey = 'sme_refresh_token';
   private readonly userKey = 'sme_auth_user';
+  private refreshRequest$?: Observable<LoginResponse>;
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -32,8 +34,9 @@ export class AuthService {
   }
 
   logout(): void {
+    const refreshToken = this.getRefreshToken();
     if (this.getToken()) {
-      this.http.post<void>(`${this.authUrl}/logout`, {}).subscribe({ error: () => undefined });
+      this.http.post<void>(`${this.authUrl}/logout`, { refreshToken }).subscribe({ error: () => undefined });
     }
     this.clearSession();
     this.router.navigate(['/login']);
@@ -41,6 +44,7 @@ export class AuthService {
 
   clearSession(): void {
     localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.refreshTokenKey);
     localStorage.removeItem(this.userKey);
   }
 
@@ -50,6 +54,40 @@ export class AuthService {
 
   getToken(): string | null {
     return localStorage.getItem(this.tokenKey);
+  }
+
+  getRefreshToken(): string | null {
+    return localStorage.getItem(this.refreshTokenKey);
+  }
+
+  refreshSession(): Observable<LoginResponse> {
+    if (this.refreshRequest$) {
+      return this.refreshRequest$;
+    }
+
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      return throwError(() => new Error('No refresh token is available'));
+    }
+
+    this.refreshRequest$ = this.http
+      .post<LoginResponse | ApiResponse<LoginResponse>>(`${this.authUrl}/refresh`, { refreshToken })
+      .pipe(
+        map(response => unwrapApiResponse(response)),
+        tap(response => this.storeSession(response)),
+        finalize(() => this.refreshRequest$ = undefined),
+        shareReplay({ bufferSize: 1, refCount: false })
+      );
+    return this.refreshRequest$;
+  }
+
+  expireSession(): boolean {
+    const hadSession = !!(this.getToken() || this.getRefreshToken());
+    this.clearSession();
+    if (this.router.url !== '/login') {
+      this.router.navigate(['/login']);
+    }
+    return hadSession;
   }
 
   getCurrentUser(): Partial<LoginResponse> | null {
@@ -194,6 +232,7 @@ export class AuthService {
 
   private storeSession(response: LoginResponse): void {
     localStorage.setItem(this.tokenKey, response.accessToken);
+    localStorage.setItem(this.refreshTokenKey, response.refreshToken);
     localStorage.setItem(this.userKey, JSON.stringify({
       name: response.name,
       username: response.username,
@@ -243,6 +282,6 @@ export class AuthService {
   }
 
   private normalizeRole(role?: string): string {
-    return (role || '').replace(/^ROLE_/, '').toUpperCase();
+    return (role || '').replace(/^ROLE_/i, '').toUpperCase();
   }
 }

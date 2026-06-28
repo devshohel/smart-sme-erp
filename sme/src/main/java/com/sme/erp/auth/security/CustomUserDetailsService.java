@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
@@ -28,7 +29,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().getRoleName()));
+        authorities.add(new SimpleGrantedAuthority(normalizeRoleAuthority(user.getRole().getRoleName())));
         rolePermissionRepository.findPermissionNamesByRoleId(user.getRole().getId())
                 .forEach(permission -> authorities.add(new SimpleGrantedAuthority(permission)));
 
@@ -40,5 +41,10 @@ public class CustomUserDetailsService implements UserDetailsService {
                 true,
                 true,
                 authorities);
+    }
+
+    private String normalizeRoleAuthority(String roleName) {
+        String normalized = roleName == null ? "" : roleName.trim().toUpperCase(Locale.ROOT);
+        return normalized.startsWith("ROLE_") ? normalized : "ROLE_" + normalized;
     }
 }

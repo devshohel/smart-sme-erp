@@ -13,6 +13,9 @@ export interface ChangePasswordRequest {
 
 export interface LoginResponse {
   accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresInSeconds: number;
   username: string;
   name?: string | null;
   role: string;
@@ -146,9 +149,21 @@ export interface SystemSettings {
   numberFormat: string;
   lowStockAlertEnabled: boolean;
   dashboardRefreshEnabled: boolean;
+  enableControlledSalesMode: boolean;
+  enableSalesOrders: boolean;
+  enableQuotations: boolean;
+  enableDeliveryNotes: boolean;
+  enableSalesApproval: boolean;
+  enableManualAllocation: boolean;
+  enableAdvancedInvoice: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
+
+export type SalesFeatureSettings = Pick<SystemSettings,
+  'enableControlledSalesMode' | 'enableSalesOrders' | 'enableQuotations' |
+  'enableDeliveryNotes' | 'enableSalesApproval' | 'enableManualAllocation' |
+  'enableAdvancedInvoice'>;
 
 export interface User {
   id?: number;

@@ -19,6 +19,8 @@ import com.sme.erp.sales.mapper.SalesOrderMapper;
 import com.sme.erp.sales.repository.SalesInvoiceRepository;
 import com.sme.erp.sales.repository.SalesOrderRepository;
 import com.sme.erp.sales.service.impl.SalesOrderServiceImpl;
+import com.sme.erp.settings.repository.SystemSettingsRepository;
+import com.sme.erp.settings.entity.SystemSettings;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,6 +48,7 @@ class SalesOrderServiceImplTest {
     @Mock private UomRepository uomRepository;
     @Mock private ActivityLogService activityLogService;
     @Mock private AuditLogService auditLogService;
+    @Mock private SystemSettingsRepository systemSettingsRepository;
 
     private SalesOrderServiceImpl service;
 
@@ -61,7 +64,8 @@ class SalesOrderServiceImplTest {
                 new SalesOrderMapper(new SalesItemMapper()),
                 new SalesInvoiceMapper(new SalesItemMapper()),
                 activityLogService,
-                auditLogService);
+                auditLogService,
+                systemSettingsRepository);
     }
 
     @Test
@@ -117,6 +121,48 @@ class SalesOrderServiceImplTest {
 
         assertThatThrownBy(() -> service.approve(9L))
                 .hasMessage("Only submitted sales orders can be approved");
+    }
+
+    @Test
+    void submit_autoApprovesWhenControlledModeApprovalIsDisabled() {
+        SalesOrder existing = new SalesOrder();
+        existing.setId(10L);
+        existing.setOrderNo("SO-0010");
+        existing.setStatus(SalesOrderStatus.DRAFT);
+        SystemSettings settings = new SystemSettings();
+        settings.setEnableControlledSalesMode(true);
+        settings.setEnableSalesApproval(false);
+
+        when(salesOrderRepository.findById(10L)).thenReturn(Optional.of(existing));
+        when(systemSettingsRepository.findById(1L)).thenReturn(Optional.of(settings));
+        when(salesOrderRepository.save(any(SalesOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SalesOrderDTO result = service.submit(10L);
+
+        assertThat(result.getStatus()).isEqualTo(SalesOrderStatus.APPROVED);
+        assertThat(result.getSubmittedAt()).isNotNull();
+        assertThat(result.getApprovedAt()).isNotNull();
+    }
+
+    @Test
+    void submit_keepsSubmittedStatusWhenControlledModeApprovalIsEnabled() {
+        SalesOrder existing = new SalesOrder();
+        existing.setId(11L);
+        existing.setOrderNo("SO-0011");
+        existing.setStatus(SalesOrderStatus.DRAFT);
+        SystemSettings settings = new SystemSettings();
+        settings.setEnableControlledSalesMode(true);
+        settings.setEnableSalesApproval(true);
+
+        when(salesOrderRepository.findById(11L)).thenReturn(Optional.of(existing));
+        when(systemSettingsRepository.findById(1L)).thenReturn(Optional.of(settings));
+        when(salesOrderRepository.save(any(SalesOrder.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        SalesOrderDTO result = service.submit(11L);
+
+        assertThat(result.getStatus()).isEqualTo(SalesOrderStatus.SUBMITTED);
+        assertThat(result.getSubmittedAt()).isNotNull();
+        assertThat(result.getApprovedAt()).isNull();
     }
 
     private SalesOrderDTO orderDto() {

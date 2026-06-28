@@ -6,8 +6,11 @@
 
   <div class="row g-4">
     <div class="col-12">
-      <app-card title="Sales Order List" subtitle="Approved orders can be converted into sales invoices.">
+      <app-card *ngIf="currentMode === 'list' || currentMode === 'approval'" [title]="currentMode === 'approval' ? 'Sales Order Approval Queue' : 'Sales Order List'" subtitle="Approved orders can be converted into sales invoices.">
         <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
+        <div class="d-flex justify-content-end mb-3" *ngIf="currentMode === 'list' && hasPermission('SALES_ORDER_CREATE')">
+          <a class="btn btn-primary" routerLink="/sales/orders/create">Create Sales Order</a>
+        </div>
         <div class="row g-3 mb-3">
           <div class="col-md-4">
             <input class="form-control" [(ngModel)]="searchTerm" [ngModelOptions]="{ standalone: true }" placeholder="Search order, customer, warehouse">
@@ -41,15 +44,19 @@
                 <td class="fw-semibold">{{ order.orderNo || 'Draft' }}</td>
                 <td>{{ order.customerName || 'N/A' }}</td>
                 <td>{{ order.warehouseName || 'N/A' }}</td>
-                <td>{{ order.orderDate }}</td>
+                <td>{{ order.orderDate | date:'mediumDate' }}</td>
                 <td class="text-end">{{ order.grandTotal | number:'1.2-2' }}</td>
                 <td><app-sales-status-badge [label]="order.status"></app-sales-status-badge></td>
                 <td class="text-center">
                   <div class="d-inline-flex flex-wrap gap-1 justify-content-center">
                     <button type="button" class="btn btn-sm btn-outline-secondary" (click)="viewOrder(order)">View</button>
                     <button *ngIf="canEdit(order)" type="button" class="btn btn-sm btn-outline-primary" (click)="editOrder(order)">Edit</button>
-                    <button *ngIf="canCancel(order)" type="button" class="btn btn-sm btn-outline-danger" (click)="selectOrder(order); cancelSelected()">Delete</button>
+                    <button *ngIf="canSubmit(order)" type="button" class="btn btn-sm btn-warning" (click)="selectOrder(order); submitSelected()">Submit</button>
                     <button *ngIf="canApprove(order)" type="button" class="btn btn-sm btn-success" (click)="selectOrder(order); approveSelected()">Approve</button>
+                    <button *ngIf="canReject(order)" type="button" class="btn btn-sm btn-outline-dark" (click)="selectOrder(order); rejectSelected()">Reject</button>
+                    <button *ngIf="canConvert(order)" type="button" class="btn btn-sm btn-primary" (click)="selectOrder(order); convertSelected()">Fulfill &amp; Invoice</button>
+                    <button *ngIf="canCancel(order)" type="button" class="btn btn-sm btn-outline-danger" (click)="selectOrder(order); cancelSelected()">Cancel</button>
+                    <button *ngIf="hasPermission('SALES_ORDER_VIEW')" type="button" class="btn btn-sm btn-outline-secondary" (click)="selectOrder(order); printSelected()">Print</button>
                   </div>
                 </td>
               </tr>
@@ -67,7 +74,7 @@
     </div>
 
     <div class="col-12">
-      <app-card *ngIf="hasPermission(editingOrderId ? 'SALES_ORDER_EDIT' : 'SALES_ORDER_CREATE') || currentMode === 'details'" [title]="currentMode === 'details' ? 'Sales Order Details' : (editingOrderId ? 'Edit Sales Order' : 'Create Sales Order')" subtitle="Create customer order requests before invoice confirmation.">
+      <app-card *ngIf="currentMode === 'details' || currentMode === 'create' || currentMode === 'edit'" [title]="currentMode === 'details' ? 'Sales Order Details' : (editingOrderId ? 'Edit Sales Order' : 'Create Sales Order')" subtitle="Create customer order requests before invoice confirmation.">
         <form [formGroup]="orderForm" (ngSubmit)="saveOrder()" novalidate>
           <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
 
@@ -174,12 +181,19 @@
           <div class="section-title mt-4">Action Buttons</div>
           <div class="d-flex flex-wrap justify-content-end gap-2">
             <button *ngIf="currentMode === 'details'" type="button" class="btn btn-outline-secondary" routerLink="/sales/orders">Back</button>
-            <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">
+            <button *ngIf="currentMode !== 'details'" type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">
               {{ editingOrderId ? 'Cancel Edit' : 'Reset' }}
             </button>
             <button *ngIf="currentMode !== 'details'" type="submit" class="btn btn-success px-4" [disabled]="submitting || !hasPermission(editingOrderId ? 'SALES_ORDER_EDIT' : 'SALES_ORDER_CREATE')">
               {{ submitting ? 'Saving...' : (editingOrderId ? 'Update Order' : 'Save Order') }}
             </button>
+            <button *ngIf="currentMode === 'details' && canEdit(selectedOrder)" type="button" class="btn btn-outline-primary" (click)="editOrder(selectedOrder!)">Edit</button>
+            <button *ngIf="currentMode === 'details' && canSubmit(selectedOrder)" type="button" class="btn btn-warning" (click)="submitSelected()">Submit</button>
+            <button *ngIf="currentMode === 'details' && canApprove(selectedOrder)" type="button" class="btn btn-success" (click)="approveSelected()">Approve</button>
+            <button *ngIf="currentMode === 'details' && canReject(selectedOrder)" type="button" class="btn btn-outline-dark" (click)="rejectSelected()">Reject</button>
+            <button *ngIf="currentMode === 'details' && canConvert(selectedOrder)" type="button" class="btn btn-primary" (click)="convertSelected()">Fulfill &amp; Invoice</button>
+            <button *ngIf="currentMode === 'details' && canCancel(selectedOrder)" type="button" class="btn btn-outline-danger" (click)="cancelSelected()">Cancel</button>
+            <button *ngIf="currentMode === 'details' && hasPermission('SALES_ORDER_VIEW')" type="button" class="btn btn-outline-secondary" (click)="printSelected()">Print</button>
           </div>
         </form>
       </app-card>

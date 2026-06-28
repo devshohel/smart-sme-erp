@@ -1,14 +1,25 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { map, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { ApiResponse, unwrapApiResponse } from '../../shared/utils/api-response.util';
-import { CompanySettings, InvoiceSettings, SystemSettings, TaxSettings } from '../auth/auth.model';
+import { CompanySettings, InvoiceSettings, SalesFeatureSettings, SystemSettings, TaxSettings } from '../auth/auth.model';
 
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
   private readonly settingsUrl = `${environment.apiUrl}/settings`;
+  private readonly defaultSalesFeatures: SalesFeatureSettings = {
+    enableControlledSalesMode: false,
+    enableSalesOrders: false,
+    enableQuotations: false,
+    enableDeliveryNotes: false,
+    enableSalesApproval: false,
+    enableManualAllocation: false,
+    enableAdvancedInvoice: false
+  };
+  private readonly salesFeaturesSubject = new BehaviorSubject<SalesFeatureSettings>(this.defaultSalesFeatures);
+  readonly salesFeatures$ = this.salesFeaturesSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
@@ -51,12 +62,47 @@ export class SettingsService {
   getSystem(): Observable<SystemSettings> {
     return this.http
       .get<SystemSettings | ApiResponse<SystemSettings>>(`${this.settingsUrl}/system`)
-      .pipe(map(response => unwrapApiResponse(response)));
+      .pipe(
+        map(response => unwrapApiResponse(response)),
+        tap(settings => this.publishSalesFeatures(settings))
+      );
   }
 
   updateSystem(settings: SystemSettings): Observable<SystemSettings> {
     return this.http
       .put<SystemSettings | ApiResponse<SystemSettings>>(`${this.settingsUrl}/system`, settings)
-      .pipe(map(response => unwrapApiResponse(response)));
+      .pipe(
+        map(response => unwrapApiResponse(response)),
+        tap(settings => this.publishSalesFeatures(settings))
+      );
+  }
+
+  loadSalesFeatures(): Observable<SalesFeatureSettings> {
+    return this.http
+      .get<SalesFeatureSettings | ApiResponse<SalesFeatureSettings>>(`${this.settingsUrl}/sales-features`)
+      .pipe(
+        map(response => this.normalizeSalesFeatures(unwrapApiResponse(response))),
+        tap(settings => this.salesFeaturesSubject.next(settings))
+      );
+  }
+
+  currentSalesFeatures(): SalesFeatureSettings {
+    return this.salesFeaturesSubject.value;
+  }
+
+  private publishSalesFeatures(settings: SystemSettings): void {
+    this.salesFeaturesSubject.next(this.normalizeSalesFeatures(settings));
+  }
+
+  private normalizeSalesFeatures(settings: Partial<SalesFeatureSettings>): SalesFeatureSettings {
+    return {
+      enableControlledSalesMode: settings.enableControlledSalesMode === true,
+      enableSalesOrders: settings.enableSalesOrders === true,
+      enableQuotations: settings.enableQuotations === true,
+      enableDeliveryNotes: settings.enableDeliveryNotes === true,
+      enableSalesApproval: settings.enableSalesApproval === true,
+      enableManualAllocation: settings.enableManualAllocation === true,
+      enableAdvancedInvoice: settings.enableAdvancedInvoice === true
+    };
   }
 }

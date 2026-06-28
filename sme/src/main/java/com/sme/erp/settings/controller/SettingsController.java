@@ -2,6 +2,7 @@ package com.sme.erp.settings.controller;
 
 import com.sme.erp.settings.dto.CompanySettingsDTO;
 import com.sme.erp.settings.dto.InvoiceSettingsDTO;
+import com.sme.erp.settings.dto.SalesFeatureSettingsDTO;
 import com.sme.erp.settings.dto.SystemSettingsDTO;
 import com.sme.erp.settings.dto.TaxSettingsDTO;
 import com.sme.erp.settings.service.CompanySettingsService;
@@ -74,6 +75,12 @@ public class SettingsController {
     @PreAuthorize("hasAuthority('SETTINGS_VIEW')")
     public SystemSettingsDTO getSystem() {
         return systemSettingsService.get();
+    }
+
+    @GetMapping("/sales-features")
+    @PreAuthorize("isAuthenticated()")
+    public SalesFeatureSettingsDTO getSalesFeatures() {
+        return SalesFeatureSettingsDTO.from(systemSettingsService.get());
     }
 
     @PutMapping("/system")

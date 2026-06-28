@@ -1,5 +1,7 @@
 import { Component, EventEmitter, HostListener, Input, OnInit, Output } from '@angular/core';
 import { AuthService } from '../../../modules/auth/auth.service';
+import { SalesFeatureSettings } from '../../../modules/auth/auth.model';
+import { SettingsService } from '../../../modules/settings/settings.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -23,13 +25,24 @@ export class SidebarComponent implements OnInit {
   isAccountingOpen = true;
   isReportsOpen = true;
   isSettingsOpen = true;
+  salesFeatures: SalesFeatureSettings = {
+    enableControlledSalesMode: false,
+    enableSalesOrders: false,
+    enableQuotations: false,
+    enableDeliveryNotes: false,
+    enableSalesApproval: false,
+    enableManualAllocation: false,
+    enableAdvancedInvoice: false
+  };
 
-  constructor(private authService: AuthService) {
+  constructor(private authService: AuthService, private settingsService: SettingsService) {
     this.checkScreenSize();
   }
 
   ngOnInit(): void {
     this.restoreMenuState();
+    this.settingsService.salesFeatures$.subscribe(settings => this.salesFeatures = settings);
+    this.settingsService.loadSalesFeatures().subscribe({ error: () => undefined });
   }
 
   @HostListener('window:resize')
@@ -92,6 +105,10 @@ export class SidebarComponent implements OnInit {
 
   hasAnyPermission(permissions: string[]): boolean {
     return this.authService.hasAnyPermission(permissions);
+  }
+
+  controlledSalesEnabled(feature: keyof SalesFeatureSettings): boolean {
+    return this.salesFeatures.enableControlledSalesMode && this.salesFeatures[feature];
   }
 
   canViewSettingsMenu(): boolean {

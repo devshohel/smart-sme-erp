@@ -46,17 +46,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             if (accessTokenBlacklistService.isBlacklisted(token)) {
                 SecurityContextHolder.clearContext();
-                filterChain.doFilter(request, response);
-                return;
-            }
-            String username = jwtService.extractUsername(token);
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                if (jwtService.isValid(token, username) && tokenVersionMatches(token, username)) {
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities());
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else {
+                String username = jwtService.extractUsername(token);
+                if (username == null || !jwtService.isValid(token, username) || !tokenVersionMatches(token, username)) {
+                    SecurityContextHolder.clearContext();
+                } else if (SecurityContextHolder.getContext().getAuthentication() == null) {
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                    if (!userDetails.isEnabled()) {
+                        SecurityContextHolder.clearContext();
+                    } else {
+                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                userDetails, null, userDetails.getAuthorities());
+                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    }
                 }
             }
         } catch (RuntimeException ignored) {

@@ -11,6 +11,8 @@ import { SalesCustomerService } from '../../../services/sales-customer.service';
 import { SalesOrderService } from '../../../services/sales-order.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 import { AuthService } from '../../auth/auth.service';
+import { SalesFeatureSettings } from '../../auth/auth.model';
+import { SettingsService } from '../../settings/settings.service';
 
 @Component({
   selector: 'app-orders',
@@ -29,11 +31,20 @@ export class OrdersComponent implements OnInit {
   errorMessage = '';
   selectedOrder: SalesOrder | null = null;
   editingOrderId: number | null = null;
-  currentMode: 'list' | 'create' | 'edit' | 'details' = 'list';
+  currentMode: 'list' | 'approval' | 'create' | 'edit' | 'details' = 'list';
   searchTerm = '';
   statusFilter = '';
   dateFilter = '';
   customerSearchTerm = '';
+  salesFeatures: SalesFeatureSettings = {
+    enableControlledSalesMode: false,
+    enableSalesOrders: false,
+    enableQuotations: false,
+    enableDeliveryNotes: false,
+    enableSalesApproval: false,
+    enableManualAllocation: false,
+    enableAdvancedInvoice: false
+  };
 
   readonly statuses: SalesOrderStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'CONVERTED', 'CANCELLED'];
 
@@ -44,6 +55,7 @@ export class OrdersComponent implements OnInit {
     private productService: ProductService,
     private warehouseService: InventoryWarehouseService,
     private authService: AuthService,
+    private settingsService: SettingsService,
     private route: ActivatedRoute,
     private router: Router
   ) {
@@ -59,6 +71,8 @@ export class OrdersComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.settingsService.salesFeatures$.subscribe(settings => this.salesFeatures = settings);
+    this.settingsService.loadSalesFeatures().subscribe({ error: () => undefined });
     this.loadOrders();
     this.loadReferenceData();
     this.route.data.subscribe(data => {
@@ -210,7 +224,8 @@ export class OrdersComponent implements OnInit {
         || (order.warehouseName || '').toLowerCase().includes(keyword);
       const matchesStatus = !this.statusFilter || order.status === this.statusFilter;
       const matchesDate = !this.dateFilter || (order.orderDate || '').slice(0, 10) === this.dateFilter;
-      return matchesKeyword && matchesStatus && matchesDate;
+      const matchesQueue = this.currentMode !== 'approval' || ['SUBMITTED', 'PENDING'].includes(order.status);
+      return matchesKeyword && matchesStatus && matchesDate && matchesQueue;
     }).sort((left, right) => this.sortNewestFirst(left.id, right.id, left['createdAt'], right['createdAt']));
   }
 
@@ -395,11 +410,11 @@ export class OrdersComponent implements OnInit {
   }
 
   canApprove(order: SalesOrder | null): boolean {
-    return !!order && !!order.id && ['SUBMITTED', 'PENDING'].includes(order.status) && this.hasPermission('SALES_ORDER_APPROVE');
+    return this.approvalRequired() && !!order && !!order.id && ['SUBMITTED', 'PENDING'].includes(order.status) && this.hasPermission('SALES_ORDER_APPROVE');
   }
 
   canReject(order: SalesOrder | null): boolean {
-    return !!order && !!order.id && ['SUBMITTED', 'PENDING'].includes(order.status) && this.hasPermission('SALES_ORDER_REJECT');
+    return this.approvalRequired() && !!order && !!order.id && ['SUBMITTED', 'PENDING'].includes(order.status) && this.hasPermission('SALES_ORDER_REJECT');
   }
 
   canCancel(order: SalesOrder | null): boolean {
@@ -408,6 +423,10 @@ export class OrdersComponent implements OnInit {
 
   canConvert(order: SalesOrder | null): boolean {
     return !!order && !!order.id && order.status === 'APPROVED' && this.hasPermission('SALES_ORDER_CONVERT');
+  }
+
+  approvalRequired(): boolean {
+    return !this.salesFeatures.enableControlledSalesMode || this.salesFeatures.enableSalesApproval;
   }
 
   printSelected(): void {
@@ -453,6 +472,9 @@ export class OrdersComponent implements OnInit {
 
   cancelSelected(): void {
     if (!this.selectedOrder?.id) {
+      return;
+    }
+    if (!window.confirm(`Cancel sales order ${this.selectedOrder.orderNo || ''}?`)) {
       return;
     }
     this.submitting = true;

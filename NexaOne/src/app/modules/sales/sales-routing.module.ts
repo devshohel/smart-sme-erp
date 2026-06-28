@@ -17,6 +17,7 @@ const routes: Routes = [
       { path: 'pos', component: PosComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_INVOICE_CREATE'], breadcrumb: 'Point of Sale' } },
       { path: 'items', component: SaleItemsComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_INVOICE_VIEW'], breadcrumb: 'Sale Items' } },
       { path: 'orders', component: OrdersComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_ORDER_VIEW'], mode: 'list', breadcrumb: 'Sales Orders' } },
+      { path: 'orders/approval', component: OrdersComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['SALES_ORDER_APPROVE', 'SALES_ORDER_REJECT'], mode: 'approval', breadcrumb: 'Approval Queue' } },
       { path: 'orders/create', component: OrdersComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_ORDER_CREATE'], mode: 'create', breadcrumb: 'Create' } },
       { path: 'orders/edit/:id', component: OrdersComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_ORDER_EDIT'], mode: 'edit', breadcrumb: 'Edit' } },
       { path: 'orders/details/:id', component: OrdersComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_ORDER_VIEW'], mode: 'details', breadcrumb: 'Details' } },

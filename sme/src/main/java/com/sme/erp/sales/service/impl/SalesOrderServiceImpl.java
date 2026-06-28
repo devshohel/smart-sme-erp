@@ -28,6 +28,7 @@ import com.sme.erp.sales.mapper.SalesOrderMapper;
 import com.sme.erp.sales.repository.SalesInvoiceRepository;
 import com.sme.erp.sales.repository.SalesOrderRepository;
 import com.sme.erp.sales.service.SalesOrderService;
+import com.sme.erp.settings.repository.SystemSettingsRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -52,6 +53,7 @@ public class SalesOrderServiceImpl implements SalesOrderService {
     private final SalesInvoiceMapper salesInvoiceMapper;
     private final ActivityLogService activityLogService;
     private final AuditLogService auditLogService;
+    private final SystemSettingsRepository systemSettingsRepository;
 
     public SalesOrderServiceImpl(
             SalesOrderRepository salesOrderRepository,
@@ -63,7 +65,8 @@ public class SalesOrderServiceImpl implements SalesOrderService {
             SalesOrderMapper salesOrderMapper,
             SalesInvoiceMapper salesInvoiceMapper,
             ActivityLogService activityLogService,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService,
+            SystemSettingsRepository systemSettingsRepository) {
         this.salesOrderRepository = salesOrderRepository;
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.customerRepository = customerRepository;
@@ -74,6 +77,7 @@ public class SalesOrderServiceImpl implements SalesOrderService {
         this.salesInvoiceMapper = salesInvoiceMapper;
         this.activityLogService = activityLogService;
         this.auditLogService = auditLogService;
+        this.systemSettingsRepository = systemSettingsRepository;
     }
 
     @Override
@@ -124,9 +128,14 @@ public class SalesOrderServiceImpl implements SalesOrderService {
             throw new BadRequestException("Only draft or rejected sales orders can be submitted");
         }
         SalesOrderDTO oldData = salesOrderMapper.toDTO(entity);
-        entity.setStatus(SalesOrderStatus.SUBMITTED);
+        boolean approvalRequired = salesApprovalRequired();
+        entity.setStatus(approvalRequired ? SalesOrderStatus.SUBMITTED : SalesOrderStatus.APPROVED);
         entity.setSubmittedAt(LocalDateTime.now());
         entity.setSubmittedBy(currentUsername());
+        if (!approvalRequired) {
+            entity.setApprovedAt(LocalDateTime.now());
+            entity.setApprovedBy(currentUsername());
+        }
         SalesOrderDTO saved = salesOrderMapper.toDTO(salesOrderRepository.save(entity));
         activityLogService.log("SALES_ORDER_SUBMIT", "SALES", "sales_orders", saved.getId(), "Submitted sales order " + saved.getOrderNo());
         auditLogService.log("sales_orders", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "SUBMIT");
@@ -136,6 +145,9 @@ public class SalesOrderServiceImpl implements SalesOrderService {
     @Override
     @Transactional
     public SalesOrderDTO approve(Long id) {
+        if (!salesApprovalRequired()) {
+            throw new BadRequestException("Sales order approval is disabled by the controlled sales configuration");
+        }
         SalesOrder entity = findOrderById(id);
         if (normalizeStatus(entity.getStatus()) != SalesOrderStatus.SUBMITTED) {
             throw new BadRequestException("Only submitted sales orders can be approved");
@@ -153,6 +165,9 @@ public class SalesOrderServiceImpl implements SalesOrderService {
     @Override
     @Transactional
     public SalesOrderDTO reject(Long id, String reason) {
+        if (!salesApprovalRequired()) {
+            throw new BadRequestException("Sales order approval is disabled by the controlled sales configuration");
+        }
         SalesOrder entity = findOrderById(id);
         if (normalizeStatus(entity.getStatus()) != SalesOrderStatus.SUBMITTED) {
             throw new BadRequestException("Only submitted sales orders can be rejected");
@@ -246,6 +261,13 @@ public class SalesOrderServiceImpl implements SalesOrderService {
         auditLogService.log("sales_orders", order.getId(), auditLogService.toJson(oldOrder), auditLogService.toJson(savedOrder), "CONVERT");
         auditLogService.log("sales_invoices", savedInvoice.getId(), null, auditLogService.toJson(salesInvoiceMapper.toDTO(savedInvoice)), "CREATE");
         return salesInvoiceMapper.toDTO(savedInvoice);
+    }
+
+    private boolean salesApprovalRequired() {
+        return systemSettingsRepository.findById(1L)
+                .map(settings -> !Boolean.TRUE.equals(settings.getEnableControlledSalesMode())
+                        || Boolean.TRUE.equals(settings.getEnableSalesApproval()))
+                .orElse(true);
     }
 
     private SalesOrderDTO save(SalesOrderDTO dto, SalesOrder entity, boolean creating) {

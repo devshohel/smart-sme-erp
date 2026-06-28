@@ -23,7 +23,7 @@ public class JwtService {
 
     public JwtService(
             @Value("${app.jwt.secret:${JWT_SECRET:}}") String secret,
-            @Value("${app.jwt.expiration-ms:900000}") long expirationMs,
+            @Value("${app.jwt.expiration-ms:3600000}") long expirationMs,
             @Value("${app.jwt.clock-skew-seconds:60}") long allowedClockSkewSeconds) {
         byte[] keyBytes = resolveKeyBytes(secret);
         if (keyBytes.length < 32) {

@@ -68,7 +68,14 @@ export class SystemSettingsComponent implements OnInit {
       dateFormat: 'yyyy-MM-dd',
       numberFormat: '#,##0.00',
       lowStockAlertEnabled: true,
-      dashboardRefreshEnabled: true
+      dashboardRefreshEnabled: true,
+      enableControlledSalesMode: false,
+      enableSalesOrders: false,
+      enableQuotations: false,
+      enableDeliveryNotes: false,
+      enableSalesApproval: false,
+      enableManualAllocation: false,
+      enableAdvancedInvoice: false
     };
   }
 }
