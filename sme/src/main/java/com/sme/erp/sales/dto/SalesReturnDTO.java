@@ -1,6 +1,7 @@
 package com.sme.erp.sales.dto;
 
 import com.sme.erp.sales.enums.SalesReturnStatus;
+import com.sme.erp.sales.enums.SalesReturnRefundMethod;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -35,6 +36,7 @@ public class SalesReturnDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String notes;
+    private SalesReturnRefundMethod refundMethod;
     private SalesReturnStatus status;
     private LocalDateTime submittedAt;
     private String submittedBy;
@@ -47,6 +49,7 @@ public class SalesReturnDTO {
     private String postedBy;
     private LocalDateTime cancelledAt;
     private String cancelledBy;
+    private String cancellationReason;
     private LocalDateTime reversedAt;
     private String reversedBy;
     private String reversalReason;
@@ -90,6 +93,8 @@ public class SalesReturnDTO {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+    public SalesReturnRefundMethod getRefundMethod() { return refundMethod; }
+    public void setRefundMethod(SalesReturnRefundMethod refundMethod) { this.refundMethod = refundMethod; }
 
     public SalesReturnStatus getStatus() { return status; }
     public void setStatus(SalesReturnStatus status) { this.status = status; }
@@ -126,6 +131,8 @@ public class SalesReturnDTO {
 
     public String getCancelledBy() { return cancelledBy; }
     public void setCancelledBy(String cancelledBy) { this.cancelledBy = cancelledBy; }
+    public String getCancellationReason() { return cancellationReason; }
+    public void setCancellationReason(String cancellationReason) { this.cancellationReason = cancellationReason; }
 
     public LocalDateTime getReversedAt() { return reversedAt; }
     public void setReversedAt(LocalDateTime reversedAt) { this.reversedAt = reversedAt; }

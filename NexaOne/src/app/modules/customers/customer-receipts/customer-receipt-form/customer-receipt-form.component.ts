@@ -30,6 +30,10 @@ export class CustomerReceiptFormComponent implements OnInit {
   customerSuggestions: CustomerOption[] = [];
   unpaidInvoices: UnpaidSalesInvoice[] = [];
   selectedCustomerLabel = '';
+  contextInvoiceId: number | null = null;
+  contextInvoiceNo = '';
+  contextDueAmount: number | null = null;
+  contextCustomerName = '';
 
   readonly paymentMethods: CustomerReceiptPaymentMethod[] = ['CASH', 'BANK', 'MOBILE_BANKING', 'CHEQUE', 'OTHER'];
   readonly allocationModes: CustomerReceiptAllocationMode[] = ['AUTO', 'MANUAL'];
@@ -56,6 +60,11 @@ export class CustomerReceiptFormComponent implements OnInit {
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');
     const customerIdParam = this.route.snapshot.queryParamMap.get('customerId');
+    this.contextInvoiceId = Number(this.route.snapshot.queryParamMap.get('invoiceId') || 0) || null;
+    this.contextInvoiceNo = this.route.snapshot.queryParamMap.get('invoiceNo') || '';
+    this.contextCustomerName = this.route.snapshot.queryParamMap.get('customerName') || '';
+    const dueAmountParam = Number(this.route.snapshot.queryParamMap.get('dueAmount'));
+    this.contextDueAmount = Number.isFinite(dueAmountParam) && dueAmountParam > 0 ? dueAmountParam : null;
 
     if (idParam) {
       this.isEditMode = true;
@@ -66,8 +75,9 @@ export class CustomerReceiptFormComponent implements OnInit {
 
     this.form.patchValue({
       receiptDate: this.todayValue(),
-      allocationMode: 'AUTO',
-      paymentMethod: 'CASH'
+      allocationMode: this.contextInvoiceId ? 'MANUAL' : 'AUTO',
+      paymentMethod: 'CASH',
+      amount: this.contextDueAmount
     });
 
     if (customerIdParam) {
@@ -108,6 +118,9 @@ export class CustomerReceiptFormComponent implements OnInit {
   }
 
   searchCustomers(term: string): void {
+    if (this.contextInvoiceId) {
+      return;
+    }
     this.customerSearchTerm = term;
     this.form.patchValue({ customerId: null });
     this.selectedCustomerLabel = '';
@@ -162,6 +175,11 @@ export class CustomerReceiptFormComponent implements OnInit {
       this.errorMessage = 'Allocation cannot exceed receipt amount.';
       return;
     }
+    if (this.contextInvoiceId && this.contextDueAmount !== null
+        && Number(this.form.get('amount')?.value || 0) > this.contextDueAmount) {
+      this.errorMessage = 'Payment cannot exceed the selected invoice due amount.';
+      return;
+    }
 
     const payload = this.buildPayload();
     this.submitting = true;
@@ -207,6 +225,14 @@ export class CustomerReceiptFormComponent implements OnInit {
 
   isManualAllocationMode(): boolean {
     return this.form.get('allocationMode')?.value === 'MANUAL';
+  }
+
+  syncContextAllocation(): void {
+    if (!this.contextInvoiceId || this.contextDueAmount === null) return;
+    const row = this.allocationControls.controls.find(control => Number(control.get('salesInvoiceId')?.value) === this.contextInvoiceId);
+    if (row) {
+      row.get('allocatedAmount')?.setValue(Math.min(Number(this.form.get('amount')?.value || 0), this.contextDueAmount));
+    }
   }
 
   private finishSave(id?: number | null): void {
@@ -294,6 +320,7 @@ export class CustomerReceiptFormComponent implements OnInit {
         });
         this.unpaidInvoices = mergedInvoices;
         this.rebuildAllocationRows(existingAllocations);
+        this.applyInvoiceContext();
       },
       error: error => debugApiError('CustomerReceiptFormComponent.loadUnpaidInvoices', error)
     });
@@ -327,6 +354,19 @@ export class CustomerReceiptFormComponent implements OnInit {
     while (this.allocationControls.length > 0) {
       this.allocationControls.removeAt(0);
     }
+  }
+
+  private applyInvoiceContext(): void {
+    if (!this.contextInvoiceId) return;
+    const invoice = this.unpaidInvoices.find(item => Number(item.id) === this.contextInvoiceId);
+    if (!invoice || Number(invoice.dueAmount || 0) <= 0) {
+      this.errorMessage = 'The selected invoice is not unpaid for this customer.';
+      return;
+    }
+    this.contextInvoiceNo = invoice.invoiceNo || this.contextInvoiceNo;
+    this.contextDueAmount = Number(invoice.dueAmount || 0);
+    this.form.patchValue({ amount: this.contextDueAmount, allocationMode: 'MANUAL' });
+    this.syncContextAllocation();
   }
 
   private optionalTextValue(value: string): string | null {

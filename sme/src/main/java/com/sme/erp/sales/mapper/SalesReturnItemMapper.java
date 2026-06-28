@@ -17,8 +17,14 @@ public class SalesReturnItemMapper {
         SalesReturnItemDTO dto = new SalesReturnItemDTO();
         dto.setId(entity.getId());
         mapProduct(entity, dto);
+        dto.setInvoiceItemId(entity.getInvoiceItemId());
         dto.setQuantity(entity.getQuantity());
         dto.setUnitPrice(entity.getUnitPrice());
+        dto.setDiscount(entity.getDiscount());
+        dto.setTax(entity.getTax());
+        dto.setReturnReason(entity.getReturnReason());
+        dto.setCondition(entity.getCondition());
+        dto.setRestock(entity.getRestock());
         dto.setTotal(entity.getTotal());
         return dto;
     }

@@ -15,6 +15,7 @@ const routes: Routes = [
     children: [
       { path: 'list', component: CustomerListComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['CUSTOMER_VIEW', 'CUSTOMER_LEDGER_VIEW', 'CUSTOMER_EDIT'], breadcrumb: 'Customer List' } },
       { path: 'aging', component: CustomerAgingComponent, canActivate: [PermissionGuard], data: { permissions: ['CUSTOMER_AGING_VIEW'], breadcrumb: 'Customer Aging' } },
+      { path: 'dues', component: CustomerAgingComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['CUSTOMER_AGING_VIEW', 'CUSTOMER_RECEIPT_CREATE'], mode: 'dues', breadcrumb: 'Customer Dues' } },
       { path: 'create', component: CustomerFormComponent, canActivate: [PermissionGuard], data: { permissions: ['CUSTOMER_CREATE'], breadcrumb: 'Create Customer' } },
       { path: 'edit/:id', component: CustomerFormComponent, canActivate: [PermissionGuard], data: { permissions: ['CUSTOMER_EDIT'], breadcrumb: 'Edit Customer' } },
       { path: 'details/:id', component: CustomerDetailsComponent, canActivate: [PermissionGuard], data: { anyPermissions: ['CUSTOMER_VIEW', 'CUSTOMER_LEDGER_VIEW'], breadcrumb: 'Details' } },

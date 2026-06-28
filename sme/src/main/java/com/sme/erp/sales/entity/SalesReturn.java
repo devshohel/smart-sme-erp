@@ -2,6 +2,7 @@ package com.sme.erp.sales.entity;
 
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.sales.enums.SalesReturnStatus;
+import com.sme.erp.sales.enums.SalesReturnRefundMethod;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -52,6 +53,10 @@ public class SalesReturn {
     @Column(length = 500)
     private String notes;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "refund_method", nullable = false, length = 40)
+    private SalesReturnRefundMethod refundMethod = SalesReturnRefundMethod.ADJUST_DUE;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -94,6 +99,9 @@ public class SalesReturn {
 
     @Column(name = "cancelled_by", length = 120)
     private String cancelledBy;
+
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;
 
     @Column(name = "reversed_at")
     private LocalDateTime reversedAt;
@@ -140,6 +148,8 @@ public class SalesReturn {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+    public SalesReturnRefundMethod getRefundMethod() { return refundMethod; }
+    public void setRefundMethod(SalesReturnRefundMethod refundMethod) { this.refundMethod = refundMethod; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
@@ -182,6 +192,8 @@ public class SalesReturn {
 
     public String getCancelledBy() { return cancelledBy; }
     public void setCancelledBy(String cancelledBy) { this.cancelledBy = cancelledBy; }
+    public String getCancellationReason() { return cancellationReason; }
+    public void setCancellationReason(String cancellationReason) { this.cancellationReason = cancellationReason; }
 
     public LocalDateTime getReversedAt() { return reversedAt; }
     public void setReversedAt(LocalDateTime reversedAt) { this.reversedAt = reversedAt; }

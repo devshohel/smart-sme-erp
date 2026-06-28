@@ -128,13 +128,19 @@ export class InvoiceListComponent implements OnInit {
 
   receivePayment(invoice: SalesInvoice): void {
     if (this.canReceivePayment(invoice) && invoice.customerId) {
-      this.router.navigate(['/customers/receipts/create'], { queryParams: { customerId: invoice.customerId } });
+      this.router.navigate(['/customers/receipts/create'], { queryParams: {
+        customerId: invoice.customerId,
+        invoiceId: invoice.id,
+        invoiceNo: invoice.invoiceNo,
+        dueAmount: invoice.dueAmount,
+        customerName: invoice.customerName
+      } });
     }
   }
 
   createReturn(invoice: SalesInvoice): void {
     if (this.canReturn(invoice)) {
-      this.router.navigate(['/sales/returns/create'], { queryParams: { invoiceId: invoice.id } });
+      this.router.navigate(['/sales/returns/add'], { queryParams: { invoiceId: invoice.id } });
     }
   }
 

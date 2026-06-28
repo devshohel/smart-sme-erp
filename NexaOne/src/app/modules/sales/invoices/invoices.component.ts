@@ -548,7 +548,7 @@ export class InvoicesComponent implements OnInit {
     if (!this.selectedInvoice?.id || !this.hasPermission('SALES_RETURN_CREATE')) {
       return;
     }
-    this.router.navigate(['/sales/returns/create']);
+    this.router.navigate(['/sales/returns/add']);
   }
 
   printSelected(): void {

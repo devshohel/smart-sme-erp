@@ -147,12 +147,18 @@ export class InvoiceFormComponent implements OnInit {
 
   receivePayment(): void {
     if (this.canReceivePayment() && this.invoice?.customerId) {
-      this.router.navigate(['/customers/receipts/create'], { queryParams: { customerId: this.invoice.customerId } });
+      this.router.navigate(['/customers/receipts/create'], { queryParams: {
+        customerId: this.invoice.customerId,
+        invoiceId: this.invoice.id,
+        invoiceNo: this.invoice.invoiceNo,
+        dueAmount: this.invoice.dueAmount,
+        customerName: this.invoice.customerName
+      } });
     }
   }
 
   createReturn(): void {
-    if (this.canReturn()) this.router.navigate(['/sales/returns/create'], { queryParams: { invoiceId: this.invoice?.id } });
+    if (this.canReturn()) this.router.navigate(['/sales/returns/add'], { queryParams: { invoiceId: this.invoice?.id } });
   }
 
   print(): void { window.print(); }

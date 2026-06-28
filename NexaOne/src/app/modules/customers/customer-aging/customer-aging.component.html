@@ -1,8 +1,8 @@
 <div class="container-fluid p-4 customer-aging-page">
   <div class="page-title-row">
     <div>
-      <h4 class="fw-bold mb-0">Customer Aging</h4>
-      <p class="text-muted mb-0">Review outstanding customer dues by invoice age.</p>
+      <h4 class="fw-bold mb-0">{{ duesMode ? 'Customer Dues' : 'Customer Aging' }}</h4>
+      <p class="text-muted mb-0">{{ duesMode ? 'Review balances and receive customer payments.' : 'Review outstanding customer dues by invoice age.' }}</p>
     </div>
     <div class="toolbar-actions">
       <button class="btn btn-outline-secondary btn-sm" type="button" (click)="backToCustomers()">
@@ -59,12 +59,16 @@
         <thead class="table-light text-uppercase small fw-bold">
           <tr>
             <th class="ps-4">Customer</th>
-            <th class="text-end">Current</th>
-            <th class="text-end">1-30 Days</th>
-            <th class="text-end">31-60 Days</th>
-            <th class="text-end">61-90 Days</th>
-            <th class="text-end">90+ Days</th>
-            <th class="text-end pe-4">Total Due</th>
+            <th *ngIf="duesMode">Phone</th>
+            <th *ngIf="!duesMode" class="text-end">Current</th>
+            <th *ngIf="!duesMode" class="text-end">1-30 Days</th>
+            <th *ngIf="!duesMode" class="text-end">31-60 Days</th>
+            <th *ngIf="!duesMode" class="text-end">61-90 Days</th>
+            <th *ngIf="!duesMode" class="text-end">90+ Days</th>
+            <th class="text-end">Total Due</th>
+            <th *ngIf="duesMode" class="text-end">Overdue</th>
+            <th *ngIf="duesMode">Last Payment</th>
+            <th *ngIf="duesMode" class="text-end pe-4">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -73,12 +77,21 @@
               <div class="fw-semibold">{{ row.customerName }}</div>
               <div class="text-muted small">{{ row.customerCode }}</div>
             </td>
-            <td class="text-end">{{ row.current | number:'1.2-2' }}</td>
-            <td class="text-end">{{ row.days1To30 | number:'1.2-2' }}</td>
-            <td class="text-end">{{ row.days31To60 | number:'1.2-2' }}</td>
-            <td class="text-end">{{ row.days61To90 | number:'1.2-2' }}</td>
-            <td class="text-end">{{ row.days90Plus | number:'1.2-2' }}</td>
-            <td class="text-end pe-4 fw-semibold">{{ row.totalDue | number:'1.2-2' }}</td>
+            <td *ngIf="duesMode">{{ row.phone || 'N/A' }}</td>
+            <td *ngIf="!duesMode" class="text-end">{{ row.current | number:'1.2-2' }}</td>
+            <td *ngIf="!duesMode" class="text-end">{{ row.days1To30 | number:'1.2-2' }}</td>
+            <td *ngIf="!duesMode" class="text-end">{{ row.days31To60 | number:'1.2-2' }}</td>
+            <td *ngIf="!duesMode" class="text-end">{{ row.days61To90 | number:'1.2-2' }}</td>
+            <td *ngIf="!duesMode" class="text-end">{{ row.days90Plus | number:'1.2-2' }}</td>
+            <td class="text-end fw-semibold">{{ row.totalDue | currency:'BDT':'code':'1.2-2' }}</td>
+            <td *ngIf="duesMode" class="text-end text-danger">{{ overdueAmount(row) | currency:'BDT':'code':'1.2-2' }}</td>
+            <td *ngIf="duesMode">{{ row.lastPaymentDate ? (row.lastPaymentDate | date:'mediumDate') : 'No payment' }}</td>
+            <td *ngIf="duesMode" class="text-end pe-4">
+              <div class="d-inline-flex gap-1">
+                <button *ngIf="hasPermission('CUSTOMER_RECEIPT_CREATE')" type="button" class="btn btn-sm btn-success" (click)="receivePayment(row)">Receive Payment</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="viewLedger(row)">View Ledger</button>
+              </div>
+            </td>
           </tr>
         </tbody>
       </table>

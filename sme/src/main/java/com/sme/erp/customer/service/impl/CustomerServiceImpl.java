@@ -216,13 +216,20 @@ public class CustomerServiceImpl implements CustomerService {
                 continue;
             }
             AgingAccumulator accumulator = rows.computeIfAbsent(customer.getId(), ignored ->
-                    new AgingAccumulator(customer.getId(), customer.getCustomerCode(), customer.getName()));
+                    new AgingAccumulator(customer.getId(), customer.getCustomerCode(), customer.getName(), customer.getPhone()));
             accumulator.add(safe(invoice.getDueAmount()), daysBetween(invoice.getSaleDate(), asOfDate));
         }
 
         List<CustomerAgingRowDTO> resultRows = rows.values().stream()
                 .map(AgingAccumulator::toDTO)
                 .collect(Collectors.toList());
+        if (!resultRows.isEmpty()) {
+            Map<Long, LocalDate> lastPaymentDates = customerReceiptRepository
+                    .findLastPostedDatesByCustomerIds(resultRows.stream().map(CustomerAgingRowDTO::getCustomerId).toList())
+                    .stream()
+                    .collect(Collectors.toMap(row -> (Long) row[0], row -> (LocalDate) row[1]));
+            resultRows.forEach(row -> row.setLastPaymentDate(lastPaymentDates.get(row.getCustomerId())));
+        }
         BigDecimal totalDue = resultRows.stream()
                 .map(CustomerAgingRowDTO::getTotalDue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -588,16 +595,18 @@ public class CustomerServiceImpl implements CustomerService {
         private final Long customerId;
         private final String customerCode;
         private final String customerName;
+        private final String phone;
         private BigDecimal current = BigDecimal.ZERO;
         private BigDecimal days1To30 = BigDecimal.ZERO;
         private BigDecimal days31To60 = BigDecimal.ZERO;
         private BigDecimal days61To90 = BigDecimal.ZERO;
         private BigDecimal days90Plus = BigDecimal.ZERO;
 
-        private AgingAccumulator(Long customerId, String customerCode, String customerName) {
+        private AgingAccumulator(Long customerId, String customerCode, String customerName, String phone) {
             this.customerId = customerId;
             this.customerCode = customerCode;
             this.customerName = customerName;
+            this.phone = phone;
         }
 
         private void add(BigDecimal amount, long ageDays) {
@@ -616,7 +625,7 @@ public class CustomerServiceImpl implements CustomerService {
 
         private CustomerAgingRowDTO toDTO() {
             BigDecimal totalDue = current.add(days1To30).add(days31To60).add(days61To90).add(days90Plus);
-            return new CustomerAgingRowDTO(customerId, customerCode, customerName,
+            return new CustomerAgingRowDTO(customerId, customerCode, customerName, phone,
                     current, days1To30, days31To60, days61To90, days90Plus, totalDue);
         }
     }

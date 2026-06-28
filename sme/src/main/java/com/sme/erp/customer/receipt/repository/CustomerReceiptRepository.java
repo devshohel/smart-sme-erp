@@ -24,6 +24,15 @@ public interface CustomerReceiptRepository extends JpaRepository<CustomerReceipt
     List<CustomerReceipt> findByCustomerIdOrderByReceiptDateDescIdDesc(Long customerId, Pageable pageable);
 
     @Query("""
+            select r.customer.id, max(r.receiptDate)
+            from CustomerReceipt r
+            where r.status = com.sme.erp.customer.receipt.enums.CustomerReceiptStatus.POSTED
+              and r.customer.id in :customerIds
+            group by r.customer.id
+            """)
+    List<Object[]> findLastPostedDatesByCustomerIds(@Param("customerIds") List<Long> customerIds);
+
+    @Query("""
             select r
             from CustomerReceipt r
             where r.customer.id = :customerId

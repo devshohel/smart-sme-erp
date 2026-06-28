@@ -18,6 +18,7 @@ import com.sme.erp.sales.entity.SalesReturnItem;
 import com.sme.erp.sales.enums.SalesInvoiceStatus;
 import com.sme.erp.sales.enums.SalesPaymentStatus;
 import com.sme.erp.sales.enums.SalesReturnStatus;
+import com.sme.erp.sales.enums.SalesReturnCondition;
 import com.sme.erp.sales.mapper.SalesReturnItemMapper;
 import com.sme.erp.sales.mapper.SalesReturnMapper;
 import com.sme.erp.sales.repository.SalesInvoiceRepository;
@@ -76,7 +77,6 @@ class SalesReturnServiceImplTest {
 
         when(salesInvoiceRepository.findById(9L)).thenReturn(Optional.of(invoice(customer)));
         when(customerRepository.findById(2L)).thenReturn(Optional.of(customer));
-        when(productRepository.findById(4L)).thenReturn(Optional.of(product()));
         when(salesReturnRepository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
         when(salesReturnRepository.existsByReturnCode("SR-0001")).thenReturn(false);
         when(salesReturnRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -109,6 +109,26 @@ class SalesReturnServiceImplTest {
         verify(accountingPostingService).postSalesReturn(entity);
         assertThat(entity.getStatus()).isEqualTo(SalesReturnStatus.POSTED);
         assertThat(invoice.getDueAmount()).isEqualByComparingTo("88.00");
+    }
+
+    @Test
+    void post_damagedReturnDoesNotRestoreSellableStock() {
+        Customer customer = customer();
+        SalesInvoice invoice = invoice(customer);
+        SalesReturn entity = returnEntity(invoice, customer, 4L, "1.00", "6.00");
+        entity.getItems().get(0).setCondition(SalesReturnCondition.DAMAGED);
+        entity.getItems().get(0).setRestock(false);
+
+        when(salesReturnRepository.findById(15L)).thenReturn(Optional.of(entity));
+        when(salesReturnRepository.findPostedByInvoiceIdExcluding(9L, 15L)).thenReturn(List.of());
+        when(salesReturnRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(salesInvoiceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.post(15L);
+
+        verify(stockService, never()).stockIn(any(), any(), any(), any(), any(), any());
+        verify(accountingPostingService).postSalesReturn(entity);
+        assertThat(invoice.getDueAmount()).isEqualByComparingTo("94.00");
     }
 
     @Test

@@ -37,6 +37,7 @@ public class SalesReturnMapper {
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setUpdatedAt(entity.getUpdatedAt());
         dto.setNotes(entity.getNotes());
+        dto.setRefundMethod(entity.getRefundMethod());
         dto.setStatus(entity.getStatus());
         dto.setSubmittedAt(entity.getSubmittedAt());
         dto.setSubmittedBy(entity.getSubmittedBy());
@@ -49,6 +50,7 @@ public class SalesReturnMapper {
         dto.setPostedBy(entity.getPostedBy());
         dto.setCancelledAt(entity.getCancelledAt());
         dto.setCancelledBy(entity.getCancelledBy());
+        dto.setCancellationReason(entity.getCancellationReason());
         dto.setReversedAt(entity.getReversedAt());
         dto.setReversedBy(entity.getReversedBy());
         dto.setReversalReason(entity.getReversalReason());

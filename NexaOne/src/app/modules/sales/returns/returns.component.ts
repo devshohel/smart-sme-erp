@@ -1,405 +1,197 @@
 import { Component, OnInit } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Product } from '../../../models/product.model';
-import { SalesCustomer, SalesReturnLineItem, SalesReturnStatus } from '../../../models/sales-common.model';
+import { SalesReturnCondition, SalesReturnLineItem, SalesReturnStatus } from '../../../models/sales-common.model';
 import { SalesInvoice } from '../../../models/sales-invoice.model';
-import { SalesReturn } from '../../../models/sales-return.model';
-import { ProductService } from '../../../services/product.service';
-import { SalesCustomerService } from '../../../services/sales-customer.service';
+import { SalesReturn, SalesReturnContext, SalesReturnContextItem } from '../../../models/sales-return.model';
 import { SalesInvoiceService } from '../../../services/sales-invoice.service';
 import { SalesReturnService } from '../../../services/sales-return.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 import { AuthService } from '../../auth/auth.service';
 
-@Component({
-  selector: 'app-returns',
-  templateUrl: './returns.component.html',
-  styleUrls: ['./returns.component.css']
-})
+@Component({ selector: 'app-returns', templateUrl: './returns.component.html', styleUrls: ['./returns.component.css'] })
 export class ReturnsComponent implements OnInit {
   returnForm: FormGroup;
   returns: SalesReturn[] = [];
   invoices: SalesInvoice[] = [];
-  customers: SalesCustomer[] = [];
-  products: Product[] = [];
+  returnContext: SalesReturnContext | null = null;
+  selectedReturn: SalesReturn | null = null;
+  editingReturnId: number | null = null;
+  currentMode: 'list' | 'create' | 'edit' | 'details' = 'list';
   loading = false;
   submitting = false;
   successMessage = '';
   errorMessage = '';
-  selectedReturn: SalesReturn | null = null;
-  editingReturnId: number | null = null;
-  currentMode: 'list' | 'create' | 'edit' | 'details' = 'list';
   searchTerm = '';
   statusFilter = '';
   dateFilter = '';
+  readonly statuses: SalesReturnStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'POSTED', 'CANCELLED', 'REVERSED'];
+  readonly conditions: SalesReturnCondition[] = ['RESELLABLE', 'DAMAGED', 'EXPIRED'];
 
-  readonly statuses: SalesReturnStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'POSTED', 'CANCELLED'];
-
-  constructor(
-    private fb: FormBuilder,
-    private returnService: SalesReturnService,
-    private invoiceService: SalesInvoiceService,
-    private customerService: SalesCustomerService,
-    private productService: ProductService,
-    private authService: AuthService,
-    private route: ActivatedRoute,
-    private router: Router
-  ) {
+  constructor(private fb: FormBuilder, private returnService: SalesReturnService,
+    private invoiceService: SalesInvoiceService, private authService: AuthService,
+    private route: ActivatedRoute, private router: Router) {
     this.returnForm = this.fb.group({
       invoiceId: [null, Validators.required],
-      customerId: [null, Validators.required],
+      customerId: [{ value: null, disabled: true }, Validators.required],
       returnDate: [this.today(), Validators.required],
-      notes: ['', [Validators.maxLength(500)]],
+      refundMethod: ['ADJUST_DUE', Validators.required],
+      notes: ['', Validators.maxLength(500)],
       items: this.fb.array([])
     });
-    this.addItem();
   }
 
   ngOnInit(): void {
-    this.loadReturns();
-    this.loadReferenceData();
-    this.route.data.subscribe(data => {
-      this.currentMode = data['mode'] || 'list';
-      if (this.currentMode === 'create') {
-        this.resetForm();
-      }
-    });
-    this.route.paramMap.subscribe(params => {
-      const id = Number(params.get('id') || 0);
-      if (id > 0) {
-        this.loadReturns(id);
-      }
-    });
+    this.currentMode = this.route.snapshot.data['mode'] || 'list';
+    this.loadInvoices();
+    const id = Number(this.route.snapshot.paramMap.get('id') || 0);
+    if (this.currentMode !== 'create') this.loadReturns(id || undefined);
+    if (this.currentMode === 'create') {
+      const invoiceId = Number(this.route.snapshot.queryParamMap.get('invoiceId') || 0);
+      if (invoiceId > 0) { this.returnForm.patchValue({ invoiceId }); this.loadContext(invoiceId); }
+    }
   }
 
-  get items(): FormArray {
-    return this.returnForm.get('items') as FormArray;
-  }
-
-  get totalAmount(): number {
-    return this.items.controls.reduce((sum, control) => sum + Number(control.get('total')?.value || 0), 0);
-  }
-
+  get items(): FormArray { return this.returnForm.get('items') as FormArray; }
+  get totalAmount(): number { return this.items.controls.reduce((sum, c) => sum + Number(c.get('total')?.value || 0), 0); }
   get filteredReturns(): SalesReturn[] {
     const keyword = this.searchTerm.trim().toLowerCase();
     return this.returns.filter(item => {
-      const matchesKeyword = !keyword
-        || (item.returnNo || item.returnCode || '').toLowerCase().includes(keyword)
-        || (item.invoiceNo || '').toLowerCase().includes(keyword)
-        || (item.customerName || '').toLowerCase().includes(keyword);
-      const matchesStatus = !this.statusFilter || item.status === this.statusFilter;
-      const matchesDate = !this.dateFilter || (item.returnDate || '').slice(0, 10) === this.dateFilter;
-      return matchesKeyword && matchesStatus && matchesDate;
+      const matches = !keyword || (item.returnNo || item.returnCode || '').toLowerCase().includes(keyword)
+        || (item.invoiceNo || '').toLowerCase().includes(keyword) || (item.customerName || '').toLowerCase().includes(keyword);
+      return matches && (!this.statusFilter || item.status === this.statusFilter)
+        && (!this.dateFilter || (item.returnDate || '').slice(0, 10) === this.dateFilter);
     });
   }
 
   loadReturns(selectedId?: number): void {
     this.loading = true;
     this.returnService.getAllReturns().subscribe({
-      next: (returns) => {
+      next: returns => {
         this.returns = returns;
-        this.selectedReturn = returns.find(item => item.id === selectedId) || returns[0] || null;
-        if (selectedId && this.currentMode === 'edit' && this.selectedReturn) {
-          this.editReturn(this.selectedReturn);
+        this.selectedReturn = selectedId ? returns.find(item => item.id === selectedId) || null : null;
+        this.loading = false;
+        if (selectedId && !this.selectedReturn) this.errorMessage = 'Sales return was not found.';
+        if (this.currentMode === 'edit' && this.selectedReturn?.invoiceId) {
+          this.editingReturnId = this.selectedReturn.id || null;
+          this.loadContext(this.selectedReturn.invoiceId, this.selectedReturn);
         }
-        this.loading = false;
       },
-      error: (error) => {
-        this.returns = [];
-        this.loading = false;
-        this.errorMessage = extractApiErrorMessage(error, 'Sales returns could not be loaded.');
-        debugApiError('ReturnsComponent.loadReturns', error);
-      }
+      error: error => { this.loading = false; this.errorMessage = extractApiErrorMessage(error, 'Sales returns could not be loaded.'); }
     });
   }
 
-  loadReferenceData(): void {
+  loadInvoices(): void {
     this.invoiceService.getAllInvoices().subscribe({
-      next: invoices => {
-        this.invoices = invoices;
-        const invoiceId = Number(this.route.snapshot.queryParamMap.get('invoiceId') || 0);
-        if (this.currentMode === 'create' && invoiceId && invoices.some(invoice => invoice.id === invoiceId)) {
-          this.returnForm.patchValue({ invoiceId });
-          this.onInvoiceChange();
-        }
-      },
+      next: invoices => this.invoices = invoices.filter(i => ['POSTED', 'PARTIAL_PAID', 'PAID', 'CONFIRMED', 'COMPLETED'].includes(i.status || '')),
       error: error => debugApiError('ReturnsComponent.loadInvoices', error)
     });
-
-    this.customerService.getAllCustomers().subscribe({
-      next: customers => this.customers = customers,
-      error: error => debugApiError('ReturnsComponent.loadCustomers', error)
-    });
-
-    this.productService.getAllProducts().subscribe({
-      next: products => this.products = products,
-      error: (error) => {
-        this.products = [];
-        debugApiError('ReturnsComponent.loadProducts', error);
-      }
-    });
-  }
-
-  addItem(item?: Partial<SalesReturnLineItem>): void {
-    const group = this.fb.group({
-      productId: [item?.productId ?? null, Validators.required],
-      quantity: [item?.quantity ?? 1, [Validators.required, Validators.min(0.01)]],
-      unitPrice: [item?.unitPrice ?? 0, [Validators.required, Validators.min(0)]],
-      total: [{ value: item?.total ?? 0, disabled: true }]
-    });
-
-    group.get('quantity')?.valueChanges.subscribe(() => this.recalculateRow(group));
-    group.get('unitPrice')?.valueChanges.subscribe(() => this.recalculateRow(group));
-
-    this.items.push(group);
-    this.recalculateRow(group);
-  }
-
-  removeItem(index: number): void {
-    if (this.items.length === 1) {
-      return;
-    }
-
-    this.items.removeAt(index);
   }
 
   onInvoiceChange(): void {
     const invoiceId = Number(this.returnForm.get('invoiceId')?.value || 0);
-    const invoice = this.invoices.find(item => item.id === invoiceId);
-    if (!invoice) {
-      return;
-    }
+    this.returnContext = null; this.clearItems();
+    if (invoiceId > 0) this.loadContext(invoiceId);
+  }
 
-    while (this.items.length > 0) {
-      this.items.removeAt(0);
-    }
-
-    this.returnForm.patchValue({
-      customerId: invoice.customerId
+  loadContext(invoiceId: number, existing?: SalesReturn): void {
+    this.loading = true; this.errorMessage = '';
+    this.returnService.getReturnContext(invoiceId).subscribe({
+      next: context => {
+        this.loading = false; this.returnContext = context;
+        this.returnForm.patchValue({ invoiceId: context.invoiceId, customerId: context.customerId,
+          returnDate: existing ? this.toDateInput(existing.returnDate) : this.today(),
+          refundMethod: existing?.refundMethod || 'ADJUST_DUE', notes: existing?.notes || '' });
+        this.clearItems();
+        context.items.forEach(line => this.addContextItem(line, existing));
+      },
+      error: error => { this.loading = false; this.errorMessage = extractApiErrorMessage(error, 'Invoice return context could not be loaded.'); }
     });
+  }
 
-    if (invoice.items.length === 0) {
-      this.addItem();
-      return;
-    }
-
-    invoice.items.forEach(item => this.addItem({
-      productId: item.productId,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      total: item.quantity * item.unitPrice
-    }));
+  addContextItem(line: SalesReturnContextItem, existing?: SalesReturn): void {
+    const saved = existing?.items.find(item => item.invoiceItemId === line.invoiceItemId);
+    const group = this.fb.group({
+      invoiceItemId: [line.invoiceItemId], productId: [line.productId], productName: [line.productName],
+      soldQuantity: [line.soldQuantity], alreadyReturnedQuantity: [line.returnedQuantity], remainingQuantity: [line.remainingQuantity],
+      quantity: [saved?.quantity || 0, [Validators.min(0), Validators.max(line.remainingQuantity)]],
+      unitPrice: [line.unitPrice], discount: [line.discount], tax: [line.tax],
+      returnReason: [saved?.returnReason || '', Validators.maxLength(500)],
+      condition: [saved?.condition || 'RESELLABLE'], restock: [saved?.restock !== false], total: [{ value: 0, disabled: true }]
+    });
+    group.get('quantity')?.valueChanges.subscribe(() => this.recalculateRow(group));
+    group.get('condition')?.valueChanges.subscribe(value => { if (value !== 'RESELLABLE') group.get('restock')?.setValue(false); });
+    this.items.push(group); this.recalculateRow(group);
   }
 
   recalculateRow(group: FormGroup): void {
-    const quantity = Number(group.get('quantity')?.value || 0);
-    const unitPrice = Number(group.get('unitPrice')?.value || 0);
-    const total = quantity * unitPrice;
-    group.get('total')?.setValue(total, { emitEvent: false });
+    const quantity = Number(group.get('quantity')?.value || 0), sold = Number(group.get('soldQuantity')?.value || 0);
+    const gross = quantity * Number(group.get('unitPrice')?.value || 0);
+    const discount = sold > 0 ? Number(group.get('discount')?.value || 0) * quantity / sold : 0;
+    const tax = sold > 0 ? Number(group.get('tax')?.value || 0) * quantity / sold : 0;
+    group.get('total')?.setValue(Math.max(0, gross - discount + tax), { emitEvent: false });
   }
 
   saveReturn(): void {
-    this.successMessage = '';
-    this.errorMessage = '';
-
-    if (this.returnForm.invalid || this.items.length === 0) {
+    this.successMessage = ''; this.errorMessage = '';
+    const selected = this.items.controls.filter(c => Number(c.get('quantity')?.value || 0) > 0);
+    if (this.returnForm.invalid || selected.length === 0 || !this.returnContext) {
       this.returnForm.markAllAsTouched();
+      if (selected.length === 0) this.errorMessage = 'Enter a return quantity for at least one invoice item.';
       return;
     }
-
-    this.submitting = true;
-    const payload = this.buildReturnPayload();
-
-    this.returnService.saveReturn(payload).subscribe({
-      next: (saved) => {
-        this.submitting = false;
-        this.successMessage = this.editingReturnId ? 'Sales return updated successfully.' : 'Sales return saved successfully.';
-        this.selectedReturn = saved;
-        this.resetForm();
-        this.loadReturns(saved.id);
-      },
-      error: (error) => {
-        this.submitting = false;
-        this.errorMessage = extractApiErrorMessage(error, 'Sales return could not be saved.');
-        debugApiError('ReturnsComponent.saveReturn', error);
-      }
-    });
-  }
-
-  resetForm(): void {
-    this.editingReturnId = null;
-    while (this.items.length > 0) {
-      this.items.removeAt(0);
-    }
-
-    this.returnForm.reset({
-      invoiceId: null,
-      customerId: null,
-      returnDate: this.today(),
-      notes: ''
-    });
-    this.addItem();
-    if (this.currentMode !== 'create') {
-      this.router.navigate(['/sales/returns']);
-    }
-  }
-
-  hasError(path: string, errorName: string): boolean {
-    const control = this.returnForm.get(path);
-    return !!control && control.touched && control.hasError(errorName);
-  }
-
-  editReturn(salesReturn: SalesReturn): void {
-    this.editingReturnId = salesReturn.id || null;
-    this.selectedReturn = salesReturn;
-    while (this.items.length > 0) {
-      this.items.removeAt(0);
-    }
-    this.returnForm.patchValue({
-      invoiceId: salesReturn.invoiceId,
-      customerId: salesReturn.customerId,
-      returnDate: this.toDateInput(salesReturn.returnDate),
-      notes: salesReturn.notes || ''
-    });
-    (salesReturn.items || []).forEach(item => this.addItem(item));
-  }
-
-  hasPermission(permission: string): boolean {
-    return this.authService.hasPermission(permission);
-  }
-
-  canEdit(salesReturn: SalesReturn | null): boolean {
-    return !!salesReturn && !!salesReturn.id && ['DRAFT', 'REJECTED'].includes(salesReturn.status || '') && this.hasPermission('SALES_RETURN_EDIT');
-  }
-
-  canSubmit(salesReturn: SalesReturn | null): boolean {
-    return !!salesReturn && !!salesReturn.id && ['DRAFT', 'REJECTED'].includes(salesReturn.status || '') && this.hasPermission('SALES_RETURN_SUBMIT');
-  }
-
-  canApprove(salesReturn: SalesReturn | null): boolean {
-    return !!salesReturn && !!salesReturn.id && salesReturn.status === 'SUBMITTED' && this.hasPermission('SALES_RETURN_APPROVE');
-  }
-
-  canReject(salesReturn: SalesReturn | null): boolean {
-    return !!salesReturn && !!salesReturn.id && salesReturn.status === 'SUBMITTED' && this.hasPermission('SALES_RETURN_REJECT');
-  }
-
-  canPost(salesReturn: SalesReturn | null): boolean {
-    return !!salesReturn && !!salesReturn.id && salesReturn.status === 'APPROVED' && this.hasPermission('SALES_RETURN_POST');
-  }
-
-  canCancel(salesReturn: SalesReturn | null): boolean {
-    return !!salesReturn && !!salesReturn.id && !['POSTED', 'CANCELLED'].includes(salesReturn.status || '') && this.hasPermission('SALES_RETURN_CANCEL');
-  }
-
-  submitSelected(): void {
-    if (!this.selectedReturn?.id) {
+    if (!this.returnContext.paidRefundSupported) { this.errorMessage = this.returnContext.limitationMessage || 'Fully paid invoice refunds are not supported.'; return; }
+    if (this.totalAmount > Number(this.returnContext.dueAmount || 0)) {
+      this.errorMessage = 'Return total exceeds the invoice due. Refund or credit-note processing is not implemented.';
       return;
     }
     this.submitting = true;
-    this.returnService.submitReturn(this.selectedReturn.id).subscribe({
-      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales return submitted successfully.'),
-      error: (error) => this.handleWorkflowError(error, 'Return submit failed.')
+    this.returnService.saveReturn(this.buildReturnPayload()).subscribe({
+      next: saved => { this.submitting = false; this.router.navigate(['/sales/returns', saved.id, 'view']); },
+      error: error => { this.submitting = false; this.errorMessage = extractApiErrorMessage(error, 'Sales return could not be saved.'); }
     });
   }
 
-  approveSelected(): void {
-    if (!this.selectedReturn?.id) {
-      return;
-    }
+  editSelected(): void { if (this.selectedReturn?.id) this.router.navigate(['/sales/returns/edit', this.selectedReturn.id]); }
+  viewReturn(value: SalesReturn): void { if (value.id) this.router.navigate(['/sales/returns', value.id, 'view']); }
+  hasPermission(permission: string): boolean { return this.authService.hasPermission(permission); }
+  canEdit(v: SalesReturn | null): boolean { return !!v?.id && ['DRAFT', 'REJECTED'].includes(v.status || '') && this.hasPermission('SALES_RETURN_EDIT'); }
+  canSubmit(v: SalesReturn | null): boolean { return !!v?.id && ['DRAFT', 'REJECTED'].includes(v.status || '') && this.hasPermission('SALES_RETURN_SUBMIT'); }
+  canApprove(v: SalesReturn | null): boolean { return !!v?.id && v.status === 'SUBMITTED' && this.hasPermission('SALES_RETURN_APPROVE'); }
+  canReject(v: SalesReturn | null): boolean { return !!v?.id && v.status === 'SUBMITTED' && this.hasPermission('SALES_RETURN_REJECT'); }
+  canPost(v: SalesReturn | null): boolean { return !!v?.id && v.status === 'APPROVED' && this.hasPermission('SALES_RETURN_POST'); }
+  canCancel(v: SalesReturn | null): boolean { return !!v?.id && !['POSTED', 'CANCELLED'].includes(v.status || '') && this.hasPermission('SALES_RETURN_CANCEL'); }
+  submitSelected(): void { this.runAction('submit', 'Sales return submitted successfully.'); }
+  approveSelected(): void { this.runAction('approve', 'Sales return approved successfully.'); }
+  postSelected(): void { this.runAction('post', 'Sales return posted successfully.'); }
+  rejectSelected(): void { const reason = window.prompt('Enter rejection reason'); if (reason?.trim() && this.selectedReturn?.id) this.runRequest(this.returnService.rejectReturn(this.selectedReturn.id, reason.trim()), 'Sales return rejected successfully.'); }
+  cancelSelected(): void { const reason = window.prompt('Enter cancellation reason'); if (reason?.trim() && this.selectedReturn?.id) this.runRequest(this.returnService.cancelReturn(this.selectedReturn.id, reason.trim()), 'Sales return cancelled successfully.'); }
+  printSelected(): void { window.print(); }
+  backToList(): void { this.router.navigate(['/sales/returns']); }
+
+  private runAction(action: 'submit' | 'approve' | 'post', message: string): void {
+    if (!this.selectedReturn?.id) return;
+    const request = action === 'submit' ? this.returnService.submitReturn(this.selectedReturn.id)
+      : action === 'approve' ? this.returnService.approveReturn(this.selectedReturn.id) : this.returnService.postReturn(this.selectedReturn.id);
+    this.runRequest(request, message);
+  }
+  private runRequest(request: ReturnType<SalesReturnService['submitReturn']>, message: string): void {
     this.submitting = true;
-    this.returnService.approveReturn(this.selectedReturn.id).subscribe({
-      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales return approved successfully.'),
-      error: (error) => this.handleWorkflowError(error, 'Return approval failed.')
-    });
+    request.subscribe({ next: saved => { this.submitting = false; this.selectedReturn = saved; this.successMessage = message; },
+      error: error => { this.submitting = false; this.errorMessage = extractApiErrorMessage(error, 'Return action failed.'); } });
   }
-
-  rejectSelected(): void {
-    if (!this.selectedReturn?.id) {
-      return;
-    }
-    const reason = window.prompt('Rejection reason');
-    if (!reason) {
-      return;
-    }
-    this.submitting = true;
-    this.returnService.rejectReturn(this.selectedReturn.id, reason).subscribe({
-      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales return rejected successfully.'),
-      error: (error) => this.handleWorkflowError(error, 'Return rejection failed.')
-    });
-  }
-
-  postSelected(): void {
-    if (!this.selectedReturn?.id) {
-      return;
-    }
-    this.submitting = true;
-    this.returnService.postReturn(this.selectedReturn.id).subscribe({
-      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales return posted successfully.'),
-      error: (error) => this.handleWorkflowError(error, 'Return posting failed.')
-    });
-  }
-
-  cancelSelected(): void {
-    if (!this.selectedReturn?.id) {
-      return;
-    }
-    this.submitting = true;
-    this.returnService.cancelReturn(this.selectedReturn.id).subscribe({
-      next: (saved) => this.handleWorkflowSuccess(saved, 'Sales return cancelled successfully.'),
-      error: (error) => this.handleWorkflowError(error, 'Return cancellation failed.')
-    });
-  }
-
-  printSelected(): void {
-    window.print();
-  }
-
   private buildReturnPayload(): SalesReturn {
     const value = this.returnForm.getRawValue();
-    const invoice = this.invoices.find(item => item.id === Number(value.invoiceId));
-    const customer = this.customers.find(item => item.id === Number(value.customerId));
-    const items: SalesReturnLineItem[] = value.items.map((item: any) => ({
-      productId: item.productId !== null ? Number(item.productId) : null,
-      productName: this.products.find(product => product.id === Number(item.productId))?.productName || 'N/A',
-      quantity: Number(item.quantity || 0),
-      unitPrice: Number(item.unitPrice || 0),
-      total: Number(item.total || 0)
-    }));
-
-    return {
-      id: this.editingReturnId || undefined,
-      invoiceId: value.invoiceId !== null ? Number(value.invoiceId) : null,
-      invoiceNo: invoice?.invoiceNo || '',
-      customerId: value.customerId !== null ? Number(value.customerId) : null,
-      customerName: customer?.name || '',
-      returnDate: value.returnDate,
-      notes: value.notes || '',
-      status: 'DRAFT',
-      items,
-      totalAmount: items.reduce((sum, item) => sum + item.total, 0)
-    };
+    const items: SalesReturnLineItem[] = value.items.filter((i: SalesReturnLineItem) => Number(i.quantity) > 0)
+      .map((i: SalesReturnLineItem) => ({ ...i, productId: Number(i.productId), invoiceItemId: Number(i.invoiceItemId),
+        quantity: Number(i.quantity), unitPrice: Number(i.unitPrice), total: Number(i.total || 0) }));
+    return { id: this.editingReturnId || undefined, invoiceId: this.returnContext!.invoiceId, invoiceNo: this.returnContext!.invoiceNo,
+      customerId: this.returnContext!.customerId, customerName: this.returnContext!.customerName,
+      warehouseId: this.returnContext!.warehouseId, warehouseName: this.returnContext!.warehouseName,
+      returnDate: value.returnDate, refundMethod: 'ADJUST_DUE', notes: value.notes || '', status: 'DRAFT', items,
+      totalAmount: items.reduce((sum, item) => sum + item.total, 0) };
   }
-
-  private today(): string {
-    return new Date().toISOString().slice(0, 10);
-  }
-
-  private toDateInput(value?: string): string {
-    return value ? value.slice(0, 10) : this.today();
-  }
-
-  private handleWorkflowSuccess(saved: SalesReturn, message: string): void {
-    this.submitting = false;
-    this.successMessage = message;
-    this.selectedReturn = saved;
-    this.loadReturns(saved.id);
-  }
-
-  private handleWorkflowError(error: unknown, fallbackMessage: string): void {
-    this.submitting = false;
-    this.errorMessage = extractApiErrorMessage(error, fallbackMessage);
-    debugApiError('ReturnsComponent.workflow', error);
-  }
+  private clearItems(): void { while (this.items.length) this.items.removeAt(0); }
+  private today(): string { return new Date().toISOString().slice(0, 10); }
+  private toDateInput(value?: string): string { return value ? value.slice(0, 10) : this.today(); }
 }

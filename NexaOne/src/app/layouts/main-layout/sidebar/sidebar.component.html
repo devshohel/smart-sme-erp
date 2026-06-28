@@ -123,6 +123,9 @@
         <a *ngIf="hasAnyPermission(['CUSTOMER_RECEIPT_VIEW', 'CUSTOMER_RECEIPT_CREATE', 'CUSTOMER_RECEIPT_EDIT'])" routerLink="/customers/receipts" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
           <i class="bi bi-receipt me-2"></i> Customer Receipts
         </a>
+        <a *ngIf="hasAnyPermission(['CUSTOMER_AGING_VIEW', 'CUSTOMER_RECEIPT_CREATE'])" routerLink="/customers/dues" routerLinkActive="active" class="side-link small py-1 my-1 d-block" (click)="closeSidebar()">
+          <i class="bi bi-wallet2 me-2"></i> Customer Dues
+        </a>
       </div>
     </div>
 

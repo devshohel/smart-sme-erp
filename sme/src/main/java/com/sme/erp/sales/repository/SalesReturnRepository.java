@@ -20,10 +20,10 @@ public interface SalesReturnRepository extends JpaRepository<SalesReturn, Long> 
     List<SalesReturn> findByCustomerIdOrderByReturnDateDescIdDesc(Long customerId, Pageable pageable);
 
     @Query("""
-            select r
+            select distinct r
             from SalesReturn r
             join fetch r.items item
-            join fetch item.product
+            left join fetch item.product
             where r.invoice.id = :invoiceId
               and r.status = com.sme.erp.sales.enums.SalesReturnStatus.POSTED
               and (:excludeId is null or r.id <> :excludeId)

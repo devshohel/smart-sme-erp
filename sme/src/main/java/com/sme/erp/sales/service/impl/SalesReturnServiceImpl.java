@@ -9,17 +9,23 @@ import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.repository.CustomerRepository;
+import com.sme.erp.enums.ProductType;
 import com.sme.erp.inventory.service.StockService;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.repository.ProductRepository;
 import com.sme.erp.sales.dto.SalesReturnDTO;
+import com.sme.erp.sales.dto.SalesReturnContextDTO;
+import com.sme.erp.sales.dto.SalesReturnContextItemDTO;
 import com.sme.erp.sales.dto.SalesReturnItemDTO;
 import com.sme.erp.sales.entity.SalesInvoice;
+import com.sme.erp.sales.entity.SalesItem;
 import com.sme.erp.sales.entity.SalesReturn;
 import com.sme.erp.sales.entity.SalesReturnItem;
 import com.sme.erp.sales.enums.SalesInvoiceStatus;
 import com.sme.erp.sales.enums.SalesPaymentStatus;
 import com.sme.erp.sales.enums.SalesReturnStatus;
+import com.sme.erp.sales.enums.SalesReturnCondition;
+import com.sme.erp.sales.enums.SalesReturnRefundMethod;
 import com.sme.erp.sales.mapper.SalesReturnMapper;
 import com.sme.erp.sales.repository.SalesInvoiceRepository;
 import com.sme.erp.sales.repository.SalesReturnRepository;
@@ -30,10 +36,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -82,6 +92,62 @@ public class SalesReturnServiceImpl implements SalesReturnService {
     @Transactional(readOnly = true)
     public SalesReturnDTO getById(Long id) {
         return salesReturnMapper.toDTO(findReturnById(id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SalesReturnContextDTO getContext(Long invoiceId) {
+        SalesInvoice invoice = findInvoiceById(invoiceId);
+        if (!isPostedInvoice(invoice.getStatus())) {
+            throw new BadRequestException("Sales returns require a posted invoice");
+        }
+
+        ReturnQuantitySnapshot returned = returnedQuantities(invoiceId, null);
+        Map<Long, BigDecimal> legacyRemainingByProduct = new HashMap<>(returned.legacyByProduct());
+        List<SalesReturnContextItemDTO> contextItems = new ArrayList<>();
+        for (SalesItem line : invoice.getItems()) {
+            if (line.getProduct() == null || line.getProduct().getId() == null) continue;
+            BigDecimal sold = safe(line.getQuantity());
+            BigDecimal lineReturned = returned.byInvoiceItem().getOrDefault(line.getId(), BigDecimal.ZERO);
+            BigDecimal legacyAvailable = legacyRemainingByProduct.getOrDefault(line.getProduct().getId(), BigDecimal.ZERO);
+            BigDecimal legacyApplied = legacyAvailable.min(sold.subtract(lineReturned).max(BigDecimal.ZERO));
+            legacyRemainingByProduct.put(line.getProduct().getId(), legacyAvailable.subtract(legacyApplied));
+            BigDecimal totalReturned = lineReturned.add(legacyApplied);
+
+            SalesReturnContextItemDTO item = new SalesReturnContextItemDTO();
+            item.setInvoiceItemId(line.getId());
+            item.setProductId(line.getProduct().getId());
+            item.setProductName(line.getProduct().getProductName());
+            item.setSoldQuantity(sold);
+            item.setReturnedQuantity(totalReturned);
+            item.setRemainingQuantity(sold.subtract(totalReturned).max(BigDecimal.ZERO));
+            item.setUnitPrice(safe(line.getUnitPrice()));
+            item.setDiscount(safe(line.getDiscount()));
+            item.setTax(safe(line.getTax()));
+            contextItems.add(item);
+        }
+
+        SalesReturnContextDTO context = new SalesReturnContextDTO();
+        context.setInvoiceId(invoice.getId());
+        context.setInvoiceNo(invoice.getInvoiceNo());
+        if (invoice.getCustomer() != null) {
+            context.setCustomerId(invoice.getCustomer().getId());
+            context.setCustomerName(invoice.getCustomer().getName());
+        }
+        if (invoice.getWarehouse() != null) {
+            context.setWarehouseId(invoice.getWarehouse().getId());
+            context.setWarehouseName(invoice.getWarehouse().getName());
+        }
+        context.setSaleDate(invoice.getSaleDate());
+        context.setStatus(invoice.getStatus());
+        context.setPaidAmount(safe(invoice.getPaidAmount()));
+        context.setDueAmount(safe(invoice.getDueAmount()));
+        context.setPaidRefundSupported(safe(invoice.getDueAmount()).signum() > 0);
+        if (!context.isPaidRefundSupported()) {
+            context.setLimitationMessage("This invoice is fully paid. Cash/bank refunds and credit notes are not implemented, so posting this return is blocked.");
+        }
+        context.setItems(contextItems);
+        return context;
     }
 
     @Override
@@ -170,6 +236,9 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         if (invoice == null || !isPostedInvoice(invoice.getStatus())) {
             throw new BadRequestException("Sales return can only be posted against a posted sales invoice");
         }
+        if (normalizeRefundMethod(entity.getRefundMethod()) != SalesReturnRefundMethod.ADJUST_DUE) {
+            throw new BadRequestException("Only Adjust Due is supported until the refund/credit note flow is implemented");
+        }
         validateReturnQuantities(entity);
         if (safe(entity.getTotalAmount()).compareTo(safe(invoice.getDueAmount())) > 0) {
             throw new BadRequestException("Posted return amount cannot exceed current invoice due until credit memo support is added");
@@ -215,7 +284,7 @@ public class SalesReturnServiceImpl implements SalesReturnService {
 
     @Override
     @Transactional
-    public SalesReturnDTO cancel(Long id) {
+    public SalesReturnDTO cancel(Long id, String reason) {
         SalesReturn entity = findReturnById(id);
         SalesReturnStatus normalizedStatus = normalizeStatus(entity.getStatus());
         if (normalizedStatus == SalesReturnStatus.POSTED) {
@@ -228,6 +297,7 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         entity.setStatus(SalesReturnStatus.CANCELLED);
         entity.setCancelledAt(LocalDateTime.now());
         entity.setCancelledBy(currentUsername());
+        entity.setCancellationReason(RequestValueUtils.normalizeRequired(reason, "Cancellation reason"));
         SalesReturnDTO saved = salesReturnMapper.toDTO(salesReturnRepository.save(entity));
         activityLogService.log("SALES_RETURN_CANCEL", "SALES", "sales_returns", saved.getId(), "Cancelled sales return " + saved.getReturnCode());
         auditLogService.log("sales_returns", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "CANCEL");
@@ -250,6 +320,10 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         entity.setCreatedBy(dto.getCreatedBy());
         entity.setNotes(RequestValueUtils.normalize(dto.getNotes()));
         entity.setStatus(resolveDraftStatus(dto.getStatus(), entity.getStatus(), creating));
+        entity.setRefundMethod(normalizeRefundMethod(dto.getRefundMethod()));
+        if (entity.getRefundMethod() != SalesReturnRefundMethod.ADJUST_DUE) {
+            throw new BadRequestException("Only Adjust Due is currently supported for sales returns");
+        }
 
         CalculationResult calculation = buildItems(entity, dto.getItems());
         entity.getItems().clear();
@@ -262,6 +336,7 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         Long warehouseId = salesReturn.getInvoice().getWarehouse().getId();
         for (SalesReturnItem item : salesReturn.getItems()) {
             Product product = requireProduct(item, "Sales return contains a deleted product. Edit the return and select an active product before posting.");
+            if (!shouldRestock(item, product)) continue;
             stockService.stockIn(
                     product.getId(),
                     warehouseId,
@@ -277,6 +352,7 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         String referenceNo = salesReturn.getReturnCode() + "-REV";
         for (SalesReturnItem item : salesReturn.getItems()) {
             Product product = requireProduct(item, "Sales return contains a deleted product. Stock reversal cannot continue.");
+            if (!shouldRestock(item, product)) continue;
             stockService.stockOut(
                     product.getId(),
                     warehouseId,
@@ -305,26 +381,53 @@ public class SalesReturnServiceImpl implements SalesReturnService {
     private CalculationResult buildItems(SalesReturn salesReturn, List<SalesReturnItemDTO> itemDTOs) {
         List<SalesReturnItem> items = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
-        Map<Long, BigDecimal> soldQtyByProduct = invoiceSoldQtyByProduct(salesReturn.getInvoice());
+        SalesInvoice invoice = salesReturn.getInvoice();
+        ReturnQuantitySnapshot returned = returnedQuantities(invoice.getId(), salesReturn.getId());
+        Set<Long> selectedInvoiceItems = new HashSet<>();
+        Map<Long, BigDecimal> requestedByProduct = new HashMap<>();
 
         for (SalesReturnItemDTO itemDTO : itemDTOs) {
-            Product product = findProductById(itemDTO.getProductId());
+            SalesItem invoiceLine = resolveInvoiceLine(invoice, itemDTO);
+            Product product = invoiceLine.getProduct();
+            if (invoiceLine.getId() != null && !selectedInvoiceItems.add(invoiceLine.getId())) {
+                throw new BadRequestException("An invoice line can only be selected once");
+            }
             BigDecimal quantity = positive(itemDTO.getQuantity(), "Quantity must be positive");
-            BigDecimal unitPrice = nonNegative(itemDTO.getUnitPrice(), "Unit price cannot be negative");
-            BigDecimal total = quantity.multiply(unitPrice);
-            BigDecimal soldQty = soldQtyByProduct.get(itemDTO.getProductId());
-            if (soldQty == null) {
-                throw new BadRequestException("Returned product does not belong to the invoice");
+            BigDecimal soldQty = safe(invoiceLine.getQuantity());
+            BigDecimal alreadyReturned = returned.byInvoiceItem().getOrDefault(invoiceLine.getId(), BigDecimal.ZERO);
+            BigDecimal remaining = soldQty.subtract(alreadyReturned).max(BigDecimal.ZERO);
+            if (quantity.compareTo(remaining) > 0) {
+                throw new BadRequestException("Return quantity cannot exceed the remaining quantity for " + product.getProductName());
             }
-            if (quantity.compareTo(soldQty) > 0) {
-                throw new BadRequestException("Return quantity cannot exceed sold quantity");
+
+            requestedByProduct.merge(product.getId(), quantity, BigDecimal::add);
+            BigDecimal legacyReturned = returned.legacyByProduct().getOrDefault(product.getId(), BigDecimal.ZERO);
+            BigDecimal productSold = invoiceSoldQtyByProduct(invoice).getOrDefault(product.getId(), BigDecimal.ZERO);
+            if (requestedByProduct.get(product.getId()).compareTo(productSold.subtract(legacyReturned).max(BigDecimal.ZERO)) > 0) {
+                throw new BadRequestException("Return quantity cannot exceed remaining unreturned quantity");
             }
+
+            BigDecimal unitPrice = nonNegative(invoiceLine.getUnitPrice(), "Invoice unit price cannot be negative");
+            BigDecimal discount = prorate(invoiceLine.getDiscount(), quantity, soldQty);
+            BigDecimal tax = prorate(invoiceLine.getTax(), quantity, soldQty);
+            BigDecimal total = quantity.multiply(unitPrice).subtract(discount).add(tax).setScale(2, RoundingMode.HALF_UP);
+            SalesReturnCondition condition = itemDTO.getCondition() == null
+                    ? SalesReturnCondition.RESELLABLE : itemDTO.getCondition();
+            boolean restock = !Boolean.FALSE.equals(itemDTO.getRestock())
+                    && condition == SalesReturnCondition.RESELLABLE
+                    && product.getType() != ProductType.SERVICE;
 
             SalesReturnItem item = new SalesReturnItem();
             item.setReturnEntity(salesReturn);
             item.setProduct(product);
+            item.setInvoiceItemId(invoiceLine.getId());
             item.setQuantity(quantity);
             item.setUnitPrice(unitPrice);
+            item.setDiscount(discount);
+            item.setTax(tax);
+            item.setReturnReason(RequestValueUtils.normalize(itemDTO.getReturnReason()));
+            item.setCondition(condition);
+            item.setRestock(restock);
             item.setTotal(total);
             items.add(item);
 
@@ -332,6 +435,53 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         }
 
         return new CalculationResult(items, totalAmount);
+    }
+
+    private SalesItem resolveInvoiceLine(SalesInvoice invoice, SalesReturnItemDTO itemDTO) {
+        List<SalesItem> matches = invoice.getItems().stream()
+                .filter(line -> line.getProduct() != null && line.getProduct().getId() != null)
+                .filter(line -> itemDTO.getInvoiceItemId() != null
+                        ? itemDTO.getInvoiceItemId().equals(line.getId())
+                        : itemDTO.getProductId().equals(line.getProduct().getId()))
+                .toList();
+        if (matches.isEmpty()) {
+            throw new BadRequestException("Returned product does not belong to the selected invoice");
+        }
+        if (itemDTO.getInvoiceItemId() == null && matches.size() > 1) {
+            throw new BadRequestException("Invoice item id is required when a product appears on multiple invoice lines");
+        }
+        SalesItem line = matches.get(0);
+        if (!itemDTO.getProductId().equals(line.getProduct().getId())) {
+            throw new BadRequestException("Returned product does not match the selected invoice line");
+        }
+        return line;
+    }
+
+    private ReturnQuantitySnapshot returnedQuantities(Long invoiceId, Long excludedReturnId) {
+        Map<Long, BigDecimal> byInvoiceItem = new HashMap<>();
+        Map<Long, BigDecimal> legacyByProduct = new HashMap<>();
+        for (SalesReturn previous : salesReturnRepository.findPostedByInvoiceIdExcluding(invoiceId, excludedReturnId)) {
+            for (SalesReturnItem item : previous.getItems()) {
+                if (item.getInvoiceItemId() != null) {
+                    byInvoiceItem.merge(item.getInvoiceItemId(), safe(item.getQuantity()), BigDecimal::add);
+                } else if (item.getProduct() != null && item.getProduct().getId() != null) {
+                    legacyByProduct.merge(item.getProduct().getId(), safe(item.getQuantity()), BigDecimal::add);
+                }
+            }
+        }
+        return new ReturnQuantitySnapshot(byInvoiceItem, legacyByProduct);
+    }
+
+    private BigDecimal prorate(BigDecimal lineAmount, BigDecimal returnQuantity, BigDecimal soldQuantity) {
+        if (safe(lineAmount).signum() == 0 || safe(soldQuantity).signum() == 0) return BigDecimal.ZERO;
+        return safe(lineAmount).multiply(returnQuantity)
+                .divide(soldQuantity, 2, RoundingMode.HALF_UP);
+    }
+
+    private boolean shouldRestock(SalesReturnItem item, Product product) {
+        return Boolean.TRUE.equals(item.getRestock())
+                && item.getCondition() == SalesReturnCondition.RESELLABLE
+                && product.getType() != ProductType.SERVICE;
     }
 
     private void validateReturnQuantities(SalesReturn salesReturn) {
@@ -428,6 +578,10 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         return status == null ? SalesReturnStatus.DRAFT : status;
     }
 
+    private SalesReturnRefundMethod normalizeRefundMethod(SalesReturnRefundMethod method) {
+        return method == null ? SalesReturnRefundMethod.ADJUST_DUE : method;
+    }
+
     private boolean isPostedInvoice(SalesInvoiceStatus status) {
         SalesInvoiceStatus normalized = status == SalesInvoiceStatus.CONFIRMED || status == SalesInvoiceStatus.COMPLETED
                 ? SalesInvoiceStatus.POSTED : status;
@@ -509,5 +663,9 @@ public class SalesReturnServiceImpl implements SalesReturnService {
     }
 
     private record CalculationResult(List<SalesReturnItem> items, BigDecimal totalAmount) {
+    }
+
+    private record ReturnQuantitySnapshot(Map<Long, BigDecimal> byInvoiceItem,
+                                          Map<Long, BigDecimal> legacyByProduct) {
     }
 }

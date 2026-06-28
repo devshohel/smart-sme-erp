@@ -95,6 +95,8 @@ export interface CustomerAgingRow {
   customerId: number;
   customerCode: string;
   customerName: string;
+  phone?: string | null;
+  lastPaymentDate?: string | null;
   current: number;
   days1To30: number;
   days31To60: number;

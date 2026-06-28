@@ -7,7 +7,7 @@
         <i class="bi bi-arrow-left me-1"></i> Back
       </button>
       <button type="button" class="btn btn-outline-success" *ngIf="detail && hasPermission('CUSTOMER_RECEIPT_CREATE')" (click)="newReceipt()">
-        <i class="bi bi-receipt me-1"></i> New Receipt
+        <i class="bi bi-cash-coin me-1"></i> Receive Payment
       </button>
       <button type="button" class="btn btn-outline-secondary" *ngIf="detail && hasPermission('CUSTOMER_AGING_VIEW')" (click)="openAgingReport()">
         <i class="bi bi-hourglass-split me-1"></i> Aging
@@ -116,6 +116,7 @@
                   <th class="text-end">Paid</th>
                   <th class="text-end">Due</th>
                   <th>Status</th>
+                  <th class="text-end">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -126,6 +127,7 @@
                   <td class="text-end">{{ invoice.paid | number:'1.2-2' }}</td>
                   <td class="text-end fw-semibold">{{ invoice.due | number:'1.2-2' }}</td>
                   <td>{{ invoice.status || 'N/A' }}</td>
+                  <td class="text-end"><button *ngIf="invoice.due > 0 && hasPermission('CUSTOMER_RECEIPT_CREATE')" type="button" class="btn btn-sm btn-success" (click)="receiveInvoicePayment(invoice)">Receive Payment</button></td>
                 </tr>
               </tbody>
             </table>

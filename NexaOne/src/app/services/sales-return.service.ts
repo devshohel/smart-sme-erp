@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
-import { SalesReturn } from '../models/sales-return.model';
+import { SalesReturn, SalesReturnContext } from '../models/sales-return.model';
 import { ApiResponse, unwrapApiResponse } from '../shared/utils/api-response.util';
 
 @Injectable({
@@ -18,6 +18,11 @@ export class SalesReturnService {
     return this.http
       .get<SalesReturn[] | ApiResponse<SalesReturn[]>>(this.baseUrl)
       .pipe(map(response => unwrapApiResponse(response).map(item => this.normalizeReturn(item))));
+  }
+
+  getReturnContext(invoiceId: number): Observable<SalesReturnContext> {
+    return this.http.get<SalesReturnContext | ApiResponse<SalesReturnContext>>(`${this.baseUrl}/context/${invoiceId}`)
+      .pipe(map(response => unwrapApiResponse(response)));
   }
 
   saveReturn(salesReturn: SalesReturn): Observable<SalesReturn> {
@@ -51,8 +56,8 @@ export class SalesReturnService {
       .pipe(map(response => this.normalizeReturn(unwrapApiResponse(response))));
   }
 
-  cancelReturn(id: number): Observable<SalesReturn> {
-    return this.http.post<SalesReturn | ApiResponse<SalesReturn>>(`${this.baseUrl}/${id}/cancel`, {})
+  cancelReturn(id: number, reason: string): Observable<SalesReturn> {
+    return this.http.post<SalesReturn | ApiResponse<SalesReturn>>(`${this.baseUrl}/${id}/cancel`, { reason })
       .pipe(map(response => this.normalizeReturn(unwrapApiResponse(response))));
   }
 
@@ -69,8 +74,13 @@ export class SalesReturnService {
       items: (salesReturn.items || []).map(item => ({
         ...item,
         productId: item.productId ?? null,
+        invoiceItemId: item.invoiceItemId ?? null,
         quantity: Number(item.quantity || 0),
         unitPrice: Number(item.unitPrice || 0),
+        discount: Number(item.discount || 0),
+        tax: Number(item.tax || 0),
+        condition: item.condition || 'RESELLABLE',
+        restock: item.restock !== false,
         total: Number(item.total || 0)
       }))
     };

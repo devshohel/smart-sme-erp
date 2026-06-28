@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CustomerAgingReport, CustomerAgingRow, CustomerOption } from '../../../models/customer.model';
 import { CustomerService } from '../../../services/customer.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
+import { AuthService } from '../../auth/auth.service';
 
 @Component({
   selector: 'app-customer-aging',
@@ -23,14 +24,17 @@ export class CustomerAgingComponent implements OnInit {
   page = 0;
   size = 10;
   readonly pageSizes = [10, 25, 50];
+  duesMode = false;
 
   constructor(
     private customerService: CustomerService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
+    this.duesMode = this.route.snapshot.data['mode'] === 'dues';
     const customerId = Number(this.route.snapshot.queryParamMap.get('customerId') || 0);
     if (customerId) {
       this.filters.customerId = customerId;
@@ -72,6 +76,30 @@ export class CustomerAgingComponent implements OnInit {
 
   backToCustomers(): void {
     this.router.navigate(['/customers/list']);
+  }
+
+  receivePayment(row: CustomerAgingRow): void {
+    if (!this.hasPermission('CUSTOMER_RECEIPT_CREATE')) return;
+    this.router.navigate(['/customers/receipts/create'], {
+      queryParams: {
+        customerId: row.customerId,
+        dueAmount: row.totalDue,
+        customerName: row.customerName
+      }
+    });
+  }
+
+  viewLedger(row: CustomerAgingRow): void {
+    this.router.navigate(['/customers/details', row.customerId], { queryParams: { tab: 'ledger' } });
+  }
+
+  overdueAmount(row: CustomerAgingRow): number {
+    return Number(row.days1To30 || 0) + Number(row.days31To60 || 0)
+      + Number(row.days61To90 || 0) + Number(row.days90Plus || 0);
+  }
+
+  hasPermission(permission: string): boolean {
+    return this.authService.hasPermission(permission);
   }
 
   get rows(): CustomerAgingRow[] {

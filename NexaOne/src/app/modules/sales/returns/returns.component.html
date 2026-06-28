@@ -1,186 +1,88 @@
 <div class="container-fluid p-4">
-  <app-page-header
-    title="Sales Returns"
-    subtitle="Capture returned invoice items with quick totals and return summary.">
-  </app-page-header>
+  <app-page-header title="Sales Returns" subtitle="Create and process invoice-linked sales returns."></app-page-header>
+  <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
+  <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
 
-  <div class="row g-4">
-    <div class="col-12">
-      <app-card title="Sales Return List" subtitle="Return history from saved sales invoices.">
-        <div class="alert alert-danger mb-3" *ngIf="errorMessage">{{ errorMessage }}</div>
-        <div class="row g-3 mb-3">
-          <div class="col-md-4">
-            <input class="form-control" [(ngModel)]="searchTerm" [ngModelOptions]="{ standalone: true }" placeholder="Search return, invoice, customer">
-          </div>
-          <div class="col-md-4">
-            <select class="form-select" [(ngModel)]="statusFilter" [ngModelOptions]="{ standalone: true }">
-              <option value="">All statuses</option>
-              <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
-            </select>
-          </div>
-          <div class="col-md-4">
-            <input class="form-control" type="date" [(ngModel)]="dateFilter" [ngModelOptions]="{ standalone: true }">
-          </div>
-        </div>
-
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>Return No</th>
-                <th>Invoice</th>
-                <th>Customer</th>
-                <th>Date</th>
-                <th class="text-end">Total</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let salesReturn of filteredReturns" class="cursor-pointer" [class.table-active]="selectedReturn?.id === salesReturn.id" (click)="selectedReturn = salesReturn">
-                <td class="fw-semibold">{{ salesReturn.returnNo || 'Draft' }}</td>
-                <td>{{ salesReturn.invoiceNo || 'N/A' }}</td>
-                <td>{{ salesReturn.customerName || 'N/A' }}</td>
-                <td>{{ salesReturn.returnDate }}</td>
-                <td class="text-end">{{ salesReturn.totalAmount | number:'1.2-2' }}</td>
-                <td><app-sales-status-badge [label]="salesReturn.status || 'DRAFT'"></app-sales-status-badge></td>
-              </tr>
-              <tr *ngIf="!loading && filteredReturns.length === 0">
-                <td colspan="6" class="text-center text-muted py-5">No sales returns found.</td>
-              </tr>
-              <tr *ngIf="loading">
-                <td colspan="6" class="text-center text-muted py-5">Loading sales returns...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </app-card>
-
-      <app-card *ngIf="selectedReturn" title="Selected Return" subtitle="Saved return snapshot.">
-        <div class="row g-3">
-          <div class="col-md-6"><strong>Return No:</strong> {{ selectedReturn.returnNo || 'Draft' }}</div>
-          <div class="col-md-6"><strong>Invoice:</strong> {{ selectedReturn.invoiceNo || 'N/A' }}</div>
-          <div class="col-md-6"><strong>Customer:</strong> {{ selectedReturn.customerName || 'N/A' }}</div>
-          <div class="col-md-6"><strong>Total:</strong> {{ selectedReturn.totalAmount | number:'1.2-2' }}</div>
-        </div>
-        <div class="d-flex flex-wrap gap-2 mt-3">
-          <button *ngIf="canEdit(selectedReturn)" type="button" class="btn btn-outline-primary btn-sm" (click)="editReturn(selectedReturn)">
-            Edit Draft
-          </button>
-          <button *ngIf="canSubmit(selectedReturn)" type="button" class="btn btn-warning btn-sm" (click)="submitSelected()">
-            Submit
-          </button>
-          <button *ngIf="canApprove(selectedReturn)" type="button" class="btn btn-success btn-sm" (click)="approveSelected()">
-            Approve
-          </button>
-          <button *ngIf="canReject(selectedReturn)" type="button" class="btn btn-outline-dark btn-sm" (click)="rejectSelected()">
-            Reject
-          </button>
-          <button *ngIf="canPost(selectedReturn)" type="button" class="btn btn-primary btn-sm" (click)="postSelected()">
-            Post
-          </button>
-          <button *ngIf="canCancel(selectedReturn)" type="button" class="btn btn-outline-danger btn-sm" (click)="cancelSelected()">
-            Cancel
-          </button>
-          <button *ngIf="hasPermission('SALES_RETURN_PRINT')" type="button" class="btn btn-outline-secondary btn-sm" (click)="printSelected()">
-            Print
-          </button>
-        </div>
-      </app-card>
+  <app-card *ngIf="currentMode === 'list'" title="Sales Return List" subtitle="Return history from posted sales invoices.">
+    <div class="d-flex justify-content-end mb-3" *ngIf="hasPermission('SALES_RETURN_CREATE')">
+      <a class="btn btn-primary" routerLink="/sales/returns/add">Create Return</a>
     </div>
-
-    <div class="col-12">
-      <app-card *ngIf="hasPermission(editingReturnId ? 'SALES_RETURN_EDIT' : 'SALES_RETURN_CREATE')" [title]="editingReturnId ? 'Edit Sales Return' : 'Create Sales Return'" subtitle="Select invoice items and compute return totals automatically.">
-        <form [formGroup]="returnForm" (ngSubmit)="saveReturn()" novalidate>
-          <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>
-
-          <div class="section-title">Header Information</div>
-          <div class="row g-3">
-            <div class="col-12 col-md-6 col-xl-3">
-              <label class="form-label">Invoice *</label>
-              <select class="form-select" formControlName="invoiceId" (change)="onInvoiceChange()">
-                <option [ngValue]="null">Select Invoice</option>
-                <option *ngFor="let invoice of invoices" [ngValue]="invoice.id">{{ invoice.invoiceNo || ('Invoice #' + invoice.id) }}</option>
-              </select>
-              <div class="invalid-feedback d-block" *ngIf="hasError('invoiceId', 'required')">Invoice is required.</div>
-            </div>
-
-            <div class="col-12 col-md-6 col-xl-3">
-              <label class="form-label">Customer *</label>
-              <select class="form-select" formControlName="customerId">
-                <option [ngValue]="null">Select Customer</option>
-                <option *ngFor="let customer of customers" [ngValue]="customer.id">{{ customer.name }}</option>
-              </select>
-              <div class="invalid-feedback d-block" *ngIf="hasError('customerId', 'required')">Customer is required.</div>
-            </div>
-
-            <div class="col-12 col-md-6 col-xl-3">
-              <label class="form-label">Return Date *</label>
-              <input type="date" class="form-control" formControlName="returnDate">
-              <div class="invalid-feedback d-block" *ngIf="hasError('returnDate', 'required')">Return date is required.</div>
-            </div>
-
-            <div class="col-12">
-              <label class="form-label">Notes</label>
-              <textarea class="form-control" rows="3" formControlName="notes" placeholder="Optional return remarks"></textarea>
-            </div>
-          </div>
-
-          <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
-            <div class="section-title mb-0">Item Table</div>
-            <button type="button" class="btn btn-sm btn-outline-success" (click)="addItem()">
-              <i class="bi bi-plus-lg me-1"></i>Add Row
-            </button>
-          </div>
-
-          <div class="table-responsive return-items-wrap">
-            <table class="table table-sm align-middle return-items-table">
-              <thead class="table-light">
-                <tr>
-                  <th>Product</th>
-                  <th class="text-end">Qty</th>
-                  <th class="text-end">Unit Price</th>
-                  <th class="text-end">Total</th>
-                  <th class="text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody formArrayName="items">
-                <tr *ngFor="let group of items.controls; let i = index" [formGroupName]="i">
-                  <td>
-                    <select class="form-select form-select-sm" formControlName="productId">
-                      <option [ngValue]="null">Select Product</option>
-                      <option *ngFor="let product of products" [ngValue]="product.id">{{ product.productName }}</option>
-                    </select>
-                  </td>
-                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="quantity" min="0.01" step="0.01"></td>
-                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="unitPrice" min="0" step="0.01"></td>
-                  <td><input type="number" class="form-control form-control-sm text-end" formControlName="total" readonly></td>
-                  <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-light border" (click)="removeItem(i)" [disabled]="items.length === 1">
-                      <i class="bi bi-trash text-danger"></i>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="section-title mt-4">Summary</div>
-          <div class="summary-panel">
-            <div class="d-flex justify-content-between">
-              <span>Return Total</span>
-              <strong>{{ totalAmount | number:'1.2-2' }}</strong>
-            </div>
-          </div>
-
-          <div class="section-title mt-4">Action Buttons</div>
-          <div class="d-flex flex-wrap justify-content-end gap-2">
-            <button type="button" class="btn btn-outline-secondary" (click)="resetForm()" [disabled]="submitting">Reset</button>
-            <button type="submit" class="btn btn-success px-4" [disabled]="submitting">
-              {{ submitting ? 'Saving...' : (editingReturnId ? 'Update Return' : 'Save Return') }}
-            </button>
-          </div>
-        </form>
-      </app-card>
+    <div class="row g-3 mb-3">
+      <div class="col-md-4"><input class="form-control" [(ngModel)]="searchTerm" placeholder="Search return, invoice, customer"></div>
+      <div class="col-md-4"><select class="form-select" [(ngModel)]="statusFilter"><option value="">All statuses</option><option *ngFor="let status of statuses" [value]="status">{{ status }}</option></select></div>
+      <div class="col-md-4"><input class="form-control" type="date" [(ngModel)]="dateFilter"></div>
     </div>
-  </div>
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>Return No</th><th>Invoice</th><th>Customer</th><th>Date</th><th class="text-end">Total</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let salesReturn of filteredReturns">
+            <td class="fw-semibold">{{ salesReturn.returnNo || salesReturn.returnCode || 'Draft' }}</td>
+            <td>{{ salesReturn.invoiceNo || 'N/A' }}</td><td>{{ salesReturn.customerName || 'N/A' }}</td>
+            <td>{{ salesReturn.returnDate | date:'mediumDate' }}</td>
+            <td class="text-end">{{ salesReturn.totalAmount | number:'1.2-2' }}</td>
+            <td><app-sales-status-badge [label]="salesReturn.status || 'DRAFT'"></app-sales-status-badge></td>
+            <td><button type="button" class="btn btn-sm btn-outline-primary" (click)="viewReturn(salesReturn)">View</button></td>
+          </tr>
+          <tr *ngIf="!loading && filteredReturns.length === 0"><td colspan="7" class="text-center text-muted py-5">No sales returns found.</td></tr>
+          <tr *ngIf="loading"><td colspan="7" class="text-center text-muted py-5">Loading sales returns...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </app-card>
+
+  <app-card *ngIf="currentMode === 'details' && selectedReturn" title="Sales Return Details" subtitle="Saved return and workflow status.">
+    <div class="row g-3">
+      <div class="col-md-4"><strong>Return:</strong> {{ selectedReturn.returnNo || selectedReturn.returnCode }}</div>
+      <div class="col-md-4"><strong>Invoice:</strong> {{ selectedReturn.invoiceNo }}</div>
+      <div class="col-md-4"><strong>Status:</strong> <app-sales-status-badge [label]="selectedReturn.status || 'DRAFT'"></app-sales-status-badge></div>
+      <div class="col-md-4"><strong>Customer:</strong> {{ selectedReturn.customerName }}</div>
+      <div class="col-md-4"><strong>Date:</strong> {{ selectedReturn.returnDate | date:'medium' }}</div>
+      <div class="col-md-4 text-md-end"><strong>Total:</strong> {{ selectedReturn.totalAmount | number:'1.2-2' }}</div>
+      <div class="col-12" *ngIf="selectedReturn.rejectionReason"><strong>Rejection reason:</strong> {{ selectedReturn.rejectionReason }}</div>
+      <div class="col-12" *ngIf="selectedReturn.cancellationReason"><strong>Cancellation reason:</strong> {{ selectedReturn.cancellationReason }}</div>
+    </div>
+    <div class="table-responsive mt-4"><table class="table table-sm align-middle"><thead><tr><th>Product</th><th class="text-end">Qty</th><th>Condition</th><th>Restock</th><th>Reason</th><th class="text-end">Total</th></tr></thead>
+      <tbody><tr *ngFor="let item of selectedReturn.items"><td>{{ item.productName }}</td><td class="text-end">{{ item.quantity }}</td><td>{{ item.condition || 'RESELLABLE' }}</td><td>{{ item.restock === false ? 'No' : 'Yes' }}</td><td>{{ item.returnReason || '—' }}</td><td class="text-end">{{ item.total | number:'1.2-2' }}</td></tr></tbody></table></div>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <button type="button" class="btn btn-outline-secondary" (click)="backToList()">Back</button>
+      <button *ngIf="canEdit(selectedReturn)" type="button" class="btn btn-outline-primary" (click)="editSelected()">Edit</button>
+      <button *ngIf="canSubmit(selectedReturn)" type="button" class="btn btn-warning" (click)="submitSelected()">Submit</button>
+      <button *ngIf="canApprove(selectedReturn)" type="button" class="btn btn-success" (click)="approveSelected()">Approve</button>
+      <button *ngIf="canReject(selectedReturn)" type="button" class="btn btn-outline-dark" (click)="rejectSelected()">Reject</button>
+      <button *ngIf="canPost(selectedReturn)" type="button" class="btn btn-primary" (click)="postSelected()">Post</button>
+      <button *ngIf="canCancel(selectedReturn)" type="button" class="btn btn-outline-danger" (click)="cancelSelected()">Cancel</button>
+      <button *ngIf="hasPermission('SALES_RETURN_PRINT')" type="button" class="btn btn-outline-secondary" (click)="printSelected()">Print Return Note</button>
+    </div>
+  </app-card>
+
+  <app-card *ngIf="currentMode === 'create' || currentMode === 'edit'" [title]="editingReturnId ? 'Edit Sales Return' : 'Create Sales Return'" subtitle="Select return quantities from the original invoice lines.">
+    <form [formGroup]="returnForm" (ngSubmit)="saveReturn()" novalidate>
+      <div class="row g-3">
+        <div class="col-md-4"><label class="form-label">Invoice *</label><select class="form-select" formControlName="invoiceId" (change)="onInvoiceChange()" [attr.disabled]="editingReturnId ? true : null"><option [ngValue]="null">Select posted invoice</option><option *ngFor="let invoice of invoices" [ngValue]="invoice.id">{{ invoice.invoiceNo || ('Invoice #' + invoice.id) }}</option></select></div>
+        <div class="col-md-4"><label class="form-label">Customer</label><input class="form-control" [value]="returnContext?.customerName || ''" readonly></div>
+        <div class="col-md-4"><label class="form-label">Warehouse</label><input class="form-control" [value]="returnContext?.warehouseName || ''" readonly></div>
+        <div class="col-md-4"><label class="form-label">Return Date *</label><input type="date" class="form-control" formControlName="returnDate"></div>
+        <div class="col-md-4"><label class="form-label">Refund Method</label><select class="form-select" formControlName="refundMethod"><option value="ADJUST_DUE">Adjust Due</option><option value="CASH" disabled>Cash — not available</option><option value="MOBILE_BANKING" disabled>Mobile Banking — not available</option><option value="BANK" disabled>Bank — not available</option><option value="CREDIT_NOTE" disabled>Credit Note — future support</option><option value="EXCHANGE" disabled>Exchange — future support</option></select></div>
+        <div class="col-12"><label class="form-label">Notes</label><textarea class="form-control" rows="2" formControlName="notes"></textarea></div>
+      </div>
+
+      <div class="alert alert-warning mt-3" *ngIf="returnContext && !returnContext.paidRefundSupported">{{ returnContext.limitationMessage }}</div>
+      <div class="alert alert-info mt-3" *ngIf="loading">Loading invoice lines...</div>
+      <div class="table-responsive mt-4" *ngIf="items.length">
+        <table class="table table-sm align-middle">
+          <thead class="table-light"><tr><th>Product</th><th class="text-end">Sold</th><th class="text-end">Returned</th><th class="text-end">Remaining</th><th class="text-end">Return Qty</th><th class="text-end">Unit Price</th><th>Reason</th><th>Condition</th><th>Restock</th><th class="text-end">Total</th></tr></thead>
+          <tbody formArrayName="items"><tr *ngFor="let group of items.controls; let i = index" [formGroupName]="i">
+            <td>{{ group.get('productName')?.value }}</td><td class="text-end">{{ group.get('soldQuantity')?.value }}</td><td class="text-end">{{ group.get('alreadyReturnedQuantity')?.value }}</td><td class="text-end">{{ group.get('remainingQuantity')?.value }}</td>
+            <td><input type="number" class="form-control form-control-sm text-end" formControlName="quantity" min="0" [max]="group.get('remainingQuantity')?.value" step="0.01"></td>
+            <td class="text-end">{{ group.get('unitPrice')?.value | number:'1.2-2' }}</td><td><input class="form-control form-control-sm" formControlName="returnReason" placeholder="Reason"></td>
+            <td><select class="form-select form-select-sm" formControlName="condition"><option *ngFor="let condition of conditions" [value]="condition">{{ condition }}</option></select></td>
+            <td class="text-center"><input type="checkbox" class="form-check-input" formControlName="restock" [attr.disabled]="group.get('condition')?.value !== 'RESELLABLE' ? true : null"></td>
+            <td class="text-end">{{ group.get('total')?.value | number:'1.2-2' }}</td>
+          </tr></tbody>
+        </table>
+      </div>
+      <div class="d-flex justify-content-between align-items-center mt-4"><strong>Return Total: {{ totalAmount | number:'1.2-2' }}</strong><div class="d-flex gap-2"><button type="button" class="btn btn-outline-secondary" (click)="backToList()">Cancel</button><button type="submit" class="btn btn-success" [disabled]="submitting || loading || !returnContext || !returnContext.paidRefundSupported">{{ submitting ? 'Saving...' : (editingReturnId ? 'Update Return' : 'Save Return') }}</button></div></div>
+    </form>
+  </app-card>
 </div>

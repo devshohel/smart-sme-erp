@@ -25,6 +25,8 @@ const routes: Routes = [
       { path: 'invoices/edit/:id', redirectTo: ':id/edit', pathMatch: 'full' },
       { path: 'invoices/details/:id', redirectTo: ':id/view', pathMatch: 'full' },
       { path: 'returns', component: ReturnsComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_RETURN_VIEW'], mode: 'list', breadcrumb: 'Sales Returns' } },
+      { path: 'returns/add', component: ReturnsComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_RETURN_CREATE'], mode: 'create', breadcrumb: 'Create Return' } },
+      { path: 'returns/:id/view', component: ReturnsComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_RETURN_VIEW'], mode: 'details', breadcrumb: 'Return Details' } },
       { path: 'returns/create', component: ReturnsComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_RETURN_CREATE'], mode: 'create', breadcrumb: 'Create' } },
       { path: 'returns/edit/:id', component: ReturnsComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_RETURN_EDIT'], mode: 'edit', breadcrumb: 'Edit' } },
       { path: 'returns/details/:id', component: ReturnsComponent, canActivate: [PermissionGuard], data: { permissions: ['SALES_RETURN_VIEW'], mode: 'details', breadcrumb: 'Details' } },

@@ -32,6 +32,10 @@ export class CustomerDetailsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    const requestedTab = this.route.snapshot.queryParamMap.get('tab');
+    if (requestedTab && ['overview', 'invoices', 'receipts', 'ledger', 'statement'].includes(requestedTab)) {
+      this.activeTab = requestedTab as 'overview' | 'invoices' | 'receipts' | 'ledger' | 'statement';
+    }
     const id = Number(this.route.snapshot.paramMap.get('id'));
     if (!id) {
       this.errorMessage = 'Customer id is missing.';
@@ -70,9 +74,24 @@ export class CustomerDetailsComponent implements OnInit {
   newReceipt(): void {
     if (this.detail?.customer.id) {
       this.router.navigate(['/customers/receipts/create'], {
-        queryParams: { customerId: this.detail.customer.id }
+        queryParams: {
+          customerId: this.detail.customer.id,
+          customerName: this.detail.customer.name,
+          dueAmount: this.detail.totalDue
+        }
       });
     }
+  }
+
+  receiveInvoicePayment(invoice: CustomerTransaction): void {
+    if (!this.detail?.customer.id || invoice.due <= 0 || !this.hasPermission('CUSTOMER_RECEIPT_CREATE')) return;
+    this.router.navigate(['/customers/receipts/create'], { queryParams: {
+      customerId: this.detail.customer.id,
+      customerName: this.detail.customer.name,
+      invoiceId: invoice.id,
+      invoiceNo: invoice.documentNo,
+      dueAmount: invoice.due
+    } });
   }
 
   openAgingReport(): void {
