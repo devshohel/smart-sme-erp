@@ -2,12 +2,17 @@
   <app-page-header title="Sale Items" subtitle="Invoice line items from the existing sales service."></app-page-header>
   <div class="alert alert-danger" *ngIf="errorMessage">{{ errorMessage }}</div>
   <app-card title="All Sale Items" subtitle="Search by invoice, customer, or product.">
-    <div class="row mb-3"><div class="col-12 col-md-6 col-xl-4"><input class="form-control" [(ngModel)]="searchTerm" placeholder="Search sale items"></div></div>
+    <div class="row g-3 mb-3 align-items-end">
+      <div class="col-12 col-lg-4"><label class="form-label">Search</label><input class="form-control" [(ngModel)]="searchTerm" (ngModelChange)="filtersChanged()" placeholder="Invoice, customer, or product"></div>
+      <div class="col-6 col-lg-2"><label class="form-label">Status</label><select class="form-select" [(ngModel)]="statusFilter" (ngModelChange)="filtersChanged()"><option value="">All statuses</option><option *ngFor="let status of statuses" [value]="status">{{ status }}</option></select></div>
+      <div class="col-6 col-lg-3"><label class="form-label">From</label><input type="date" class="form-control" [(ngModel)]="dateFrom" (ngModelChange)="filtersChanged()"></div>
+      <div class="col-6 col-lg-3"><label class="form-label">To</label><input type="date" class="form-control" [(ngModel)]="dateTo" (ngModelChange)="filtersChanged()"></div>
+    </div>
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
+      <table class="table table-hover align-middle mb-0 sales-table">
         <thead class="table-light"><tr><th>Invoice</th><th>Date</th><th>Customer</th><th>Product</th><th class="text-end">Quantity</th><th class="text-end">Price</th><th class="text-end">Discount</th><th class="text-end">Tax</th><th class="text-end">Line Total</th><th>Status</th></tr></thead>
         <tbody>
-          <tr *ngFor="let row of filteredRows">
+          <tr *ngFor="let row of paginatedRows">
             <td><a [routerLink]="['/sales', row.invoiceId, 'view']">{{ row.invoiceNo }}</a></td>
             <td>{{ row.saleDate | date:'mediumDate' }}</td>
             <td>{{ row.customerName }}</td>
@@ -23,6 +28,14 @@
           <tr *ngIf="!loading && !filteredRows.length"><td colspan="10" class="text-center text-muted py-5">No sale items found.</td></tr>
         </tbody>
       </table>
+    </div>
+    <div class="sales-pagination" *ngIf="!loading && filteredRows.length">
+      <span>Showing {{ pageStart }}–{{ pageEnd }} of {{ filteredRows.length }}</span>
+      <div class="btn-group btn-group-sm" role="group" aria-label="Sale item pagination">
+        <button type="button" class="btn btn-outline-secondary" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)">Previous</button>
+        <button type="button" class="btn btn-outline-secondary" disabled>Page {{ currentPage > totalPages ? totalPages : currentPage }} of {{ totalPages }}</button>
+        <button type="button" class="btn btn-outline-secondary" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)">Next</button>
+      </div>
     </div>
   </app-card>
 </div>

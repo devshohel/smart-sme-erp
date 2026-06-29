@@ -3,6 +3,8 @@
 .invoice-meta > div { display: flex; flex-direction: column; gap: .3rem; }
 .invoice-meta span { color: #6c757d; font-size: .8rem; }
 .item-table-wrap { border: 1px solid rgba(0,0,0,.08); border-radius: .75rem; }
+.item-table-wrap table { min-width: 850px; }
+.item-table-wrap th, .item-table-wrap td { padding: .75rem; }
 .item-table th:first-child { min-width: 220px; }
 .summary-box { width: min(100%, 430px); padding: 1rem; border: 1px solid rgba(0,0,0,.08); border-radius: .75rem; background: #f8f9fa; }
 .summary-box > div { display: flex; justify-content: space-between; gap: 1rem; padding: .35rem 0; }

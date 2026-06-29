@@ -60,9 +60,9 @@
           <thead class="table-light"><tr><th>Product</th><th class="text-end">Quantity</th><th class="text-end">Price</th><th class="text-end">Discount</th><th class="text-end">Tax</th><th class="text-end">Subtotal</th><th *ngIf="mode !== 'details'" class="text-center">Action</th></tr></thead>
           <tbody formArrayName="items">
             <tr *ngFor="let row of items.controls; let i = index" [formGroupName]="i">
-              <td><select class="form-select form-select-sm" formControlName="productId" (change)="onProductChange(i)"><option [ngValue]="null">Select Product</option><option *ngFor="let product of products" [ngValue]="product.id">{{ product.productName }}</option></select></td>
-              <td><input type="number" min=".01" step=".01" class="form-control form-control-sm text-end" formControlName="quantity"></td>
-              <td><input type="number" min="0" step=".01" class="form-control form-control-sm text-end" formControlName="unitPrice"></td>
+              <td><select class="form-select form-select-sm" formControlName="productId" [class.is-invalid]="row.get('productId')?.touched && row.get('productId')?.invalid" (change)="onProductChange(i)"><option [ngValue]="null">Select Product</option><option *ngFor="let product of products" [ngValue]="product.id">{{ product.productName }}</option></select></td>
+              <td><input type="number" min=".01" step=".01" class="form-control form-control-sm text-end" [class.is-invalid]="row.get('quantity')?.touched && row.get('quantity')?.invalid" formControlName="quantity"></td>
+              <td><input type="number" min="0" step=".01" class="form-control form-control-sm text-end" [class.is-invalid]="row.get('unitPrice')?.touched && row.get('unitPrice')?.invalid" formControlName="unitPrice"></td>
               <td><input type="number" min="0" step=".01" class="form-control form-control-sm text-end" formControlName="discount"></td>
               <td><input type="number" min="0" step=".01" class="form-control form-control-sm text-end" formControlName="tax"></td>
               <td class="text-end text-nowrap">{{ rowSubtotal(i) | currency:'BDT':'code':'1.2-2' }}</td>

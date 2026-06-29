@@ -13,21 +13,28 @@
         </div>
         <div class="row g-3 mb-3">
           <div class="col-md-4">
-            <input class="form-control" [(ngModel)]="searchTerm" [ngModelOptions]="{ standalone: true }" placeholder="Search order, customer, warehouse">
+            <label class="form-label">Search</label>
+            <input class="form-control" [(ngModel)]="searchTerm" (ngModelChange)="filtersChanged()" [ngModelOptions]="{ standalone: true }" placeholder="Order number, customer, warehouse">
           </div>
           <div class="col-md-4">
-            <select class="form-select" [(ngModel)]="statusFilter" [ngModelOptions]="{ standalone: true }">
+            <label class="form-label">Status</label>
+            <select class="form-select" [(ngModel)]="statusFilter" (ngModelChange)="filtersChanged()" [ngModelOptions]="{ standalone: true }">
               <option value="">All statuses</option>
               <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
             </select>
           </div>
-          <div class="col-md-4">
-            <input class="form-control" type="date" [(ngModel)]="dateFilter" [ngModelOptions]="{ standalone: true }">
+          <div class="col-6 col-md-2">
+            <label class="form-label">From</label>
+            <input class="form-control" type="date" [(ngModel)]="dateFrom" (ngModelChange)="filtersChanged()" [ngModelOptions]="{ standalone: true }">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label">To</label>
+            <input class="form-control" type="date" [(ngModel)]="dateTo" (ngModelChange)="filtersChanged()" [ngModelOptions]="{ standalone: true }">
           </div>
         </div>
 
         <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
+          <table class="table table-hover align-middle mb-0 sales-table">
             <thead class="table-light">
               <tr>
                 <th>Order No</th>
@@ -40,23 +47,23 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let order of filteredOrders">
+              <tr *ngFor="let order of paginatedOrders">
                 <td class="fw-semibold">{{ order.orderNo || 'Draft' }}</td>
                 <td>{{ order.customerName || 'N/A' }}</td>
                 <td>{{ order.warehouseName || 'N/A' }}</td>
                 <td>{{ order.orderDate | date:'mediumDate' }}</td>
                 <td class="text-end">{{ order.grandTotal | number:'1.2-2' }}</td>
                 <td><app-sales-status-badge [label]="order.status"></app-sales-status-badge></td>
-                <td class="text-center">
-                  <div class="d-inline-flex flex-wrap gap-1 justify-content-center">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" (click)="viewOrder(order)">View</button>
-                    <button *ngIf="canEdit(order)" type="button" class="btn btn-sm btn-outline-primary" (click)="editOrder(order)">Edit</button>
-                    <button *ngIf="canSubmit(order)" type="button" class="btn btn-sm btn-warning" (click)="selectOrder(order); submitSelected()">Submit</button>
-                    <button *ngIf="canApprove(order)" type="button" class="btn btn-sm btn-success" (click)="selectOrder(order); approveSelected()">Approve</button>
-                    <button *ngIf="canReject(order)" type="button" class="btn btn-sm btn-outline-dark" (click)="selectOrder(order); rejectSelected()">Reject</button>
-                    <button *ngIf="canConvert(order)" type="button" class="btn btn-sm btn-primary" (click)="selectOrder(order); convertSelected()">Fulfill &amp; Invoice</button>
-                    <button *ngIf="canCancel(order)" type="button" class="btn btn-sm btn-outline-danger" (click)="selectOrder(order); cancelSelected()">Cancel</button>
-                    <button *ngIf="hasPermission('SALES_ORDER_VIEW')" type="button" class="btn btn-sm btn-outline-secondary" (click)="selectOrder(order); printSelected()">Print</button>
+                <td class="text-center text-nowrap">
+                  <div class="table-actions">
+                    <button type="button" class="btn-action btn-view" title="View order" aria-label="View order" (click)="viewOrder(order)"><i class="bi bi-eye"></i></button>
+                    <button *ngIf="canEdit(order)" type="button" class="btn-action btn-edit" title="Edit order" aria-label="Edit order" (click)="editOrder(order)"><i class="bi bi-pencil-square"></i></button>
+                    <button *ngIf="canSubmit(order)" type="button" class="btn-action btn-print" title="Submit order" aria-label="Submit order" [disabled]="submitting" (click)="selectOrder(order); submitSelected()"><i class="bi bi-send"></i></button>
+                    <button *ngIf="canApprove(order)" type="button" class="btn-action btn-approve" title="Approve order" aria-label="Approve order" [disabled]="submitting" (click)="selectOrder(order); approveSelected()"><i class="bi bi-check-lg"></i></button>
+                    <button *ngIf="canReject(order)" type="button" class="btn-action btn-cancel" title="Reject order" aria-label="Reject order" [disabled]="submitting" (click)="selectOrder(order); rejectSelected()"><i class="bi bi-x-circle"></i></button>
+                    <button *ngIf="canConvert(order)" type="button" class="btn-action btn-approve" title="Fulfill and create invoice" aria-label="Fulfill and create invoice" [disabled]="submitting" (click)="selectOrder(order); convertSelected()"><i class="bi bi-receipt"></i></button>
+                    <button *ngIf="canCancel(order)" type="button" class="btn-action btn-cancel" title="Cancel order" aria-label="Cancel order" [disabled]="submitting" (click)="selectOrder(order); cancelSelected()"><i class="bi bi-x-lg"></i></button>
+                    <button *ngIf="hasPermission('SALES_ORDER_PRINT')" type="button" class="btn-action btn-print" title="Print order" aria-label="Print order" (click)="selectOrder(order); printSelected()"><i class="bi bi-printer"></i></button>
                   </div>
                 </td>
               </tr>
@@ -68,6 +75,14 @@
               </tr>
             </tbody>
           </table>
+        </div>
+        <div class="sales-pagination" *ngIf="!loading && filteredOrders.length">
+          <span>Showing {{ pageStart }}–{{ pageEnd }} of {{ filteredOrders.length }}</span>
+          <div class="btn-group btn-group-sm" role="group" aria-label="Order pagination">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)">Previous</button>
+            <button type="button" class="btn btn-outline-secondary" disabled>Page {{ currentPage > totalPages ? totalPages : currentPage }} of {{ totalPages }}</button>
+            <button type="button" class="btn btn-outline-secondary" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)">Next</button>
+          </div>
         </div>
       </app-card>
 
@@ -193,7 +208,7 @@
             <button *ngIf="currentMode === 'details' && canReject(selectedOrder)" type="button" class="btn btn-outline-dark" (click)="rejectSelected()">Reject</button>
             <button *ngIf="currentMode === 'details' && canConvert(selectedOrder)" type="button" class="btn btn-primary" (click)="convertSelected()">Fulfill &amp; Invoice</button>
             <button *ngIf="currentMode === 'details' && canCancel(selectedOrder)" type="button" class="btn btn-outline-danger" (click)="cancelSelected()">Cancel</button>
-            <button *ngIf="currentMode === 'details' && hasPermission('SALES_ORDER_VIEW')" type="button" class="btn btn-outline-secondary" (click)="printSelected()">Print</button>
+            <button *ngIf="currentMode === 'details' && hasPermission('SALES_ORDER_PRINT')" type="button" class="btn btn-outline-secondary" (click)="printSelected()">Print</button>
           </div>
         </form>
       </app-card>

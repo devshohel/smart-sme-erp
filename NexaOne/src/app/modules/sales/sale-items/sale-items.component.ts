@@ -27,6 +27,12 @@ export class SaleItemsComponent implements OnInit {
   loading = false;
   errorMessage = '';
   searchTerm = '';
+  statusFilter = '';
+  dateFrom = '';
+  dateTo = '';
+  currentPage = 1;
+  readonly pageSize = 15;
+  readonly statuses: SalesInvoiceStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'POSTED', 'PARTIAL_PAID', 'PAID', 'CANCELLED'];
 
   constructor(private invoiceService: SalesInvoiceService) {}
 
@@ -59,9 +65,22 @@ export class SaleItemsComponent implements OnInit {
 
   get filteredRows(): SaleItemRow[] {
     const keyword = this.searchTerm.trim().toLowerCase();
-    if (!keyword) return this.rows;
-    return this.rows.filter(row => row.invoiceNo.toLowerCase().includes(keyword)
-      || row.customerName.toLowerCase().includes(keyword)
-      || row.productName.toLowerCase().includes(keyword));
+    return this.rows.filter(row => {
+      const saleDate = (row.saleDate || '').slice(0, 10);
+      const matchesKeyword = !keyword || row.invoiceNo.toLowerCase().includes(keyword)
+        || row.customerName.toLowerCase().includes(keyword) || row.productName.toLowerCase().includes(keyword);
+      return matchesKeyword && (!this.statusFilter || row.status === this.statusFilter)
+        && (!this.dateFrom || saleDate >= this.dateFrom) && (!this.dateTo || saleDate <= this.dateTo);
+    });
   }
+
+  get totalPages(): number { return Math.max(1, Math.ceil(this.filteredRows.length / this.pageSize)); }
+  get paginatedRows(): SaleItemRow[] {
+    const page = Math.min(this.currentPage, this.totalPages);
+    return this.filteredRows.slice((page - 1) * this.pageSize, page * this.pageSize);
+  }
+  get pageStart(): number { return this.filteredRows.length ? (Math.min(this.currentPage, this.totalPages) - 1) * this.pageSize + 1 : 0; }
+  get pageEnd(): number { return Math.min(this.pageStart + this.pageSize - 1, this.filteredRows.length); }
+  filtersChanged(): void { this.currentPage = 1; }
+  goToPage(page: number): void { this.currentPage = Math.min(Math.max(page, 1), this.totalPages); }
 }

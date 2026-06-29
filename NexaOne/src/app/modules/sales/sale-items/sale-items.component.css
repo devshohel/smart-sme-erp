@@ -1,3 +1,4 @@
 .sale-items-page a { color: #198754; font-weight: 600; text-decoration: none; }
+.sale-items-page .table-responsive { border: 1px solid rgba(0,0,0,.08); border-radius: .75rem; }
 .sale-items-page a:hover { text-decoration: underline; }
 @media (max-width: 767px) { .sale-items-page { padding: 1rem !important; } }

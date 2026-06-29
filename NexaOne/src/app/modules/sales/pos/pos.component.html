@@ -33,7 +33,7 @@
           <button type="button" class="btn btn-sm" *ngFor="let category of categories" [class.btn-success]="selectedCategoryId === category.id" [class.btn-outline-secondary]="selectedCategoryId !== category.id" (click)="selectedCategoryId = category.id || null">{{ category.categoryName }}</button>
         </div>
 
-        <div class="text-center text-muted py-5" *ngIf="loading">Loading products...</div>
+        <div class="text-center text-muted py-5" *ngIf="loading"><span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Loading products...</div>
         <div class="product-grid" *ngIf="!loading">
           <article class="product-card" *ngFor="let product of filteredProducts">
             <div class="product-image">
@@ -136,7 +136,6 @@
 
           <div class="cart-actions mt-4">
             <button type="button" class="btn btn-outline-danger" [disabled]="!cart.length" (click)="clearCart()">Clear Cart</button>
-            <button type="button" class="btn btn-outline-secondary" [disabled]="!cart.length" (click)="holdSale()">Hold Sale</button>
             <button type="button" class="btn btn-success" [disabled]="submitting || validationErrors.length > 0" (click)="completeSale(false)">{{ submitting ? 'Completing...' : 'Complete Sale' }}</button>
             <button type="button" class="btn btn-primary" [disabled]="submitting || validationErrors.length > 0" (click)="completeSale(true)">Complete &amp; Print</button>
           </div>

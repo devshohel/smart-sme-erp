@@ -110,6 +110,11 @@ export class InvoiceFormComponent implements OnInit {
     this.errorMessage = '';
     if (this.form.invalid || !this.items.length || (this.mode === 'edit' && !this.canEdit())) {
       this.form.markAllAsTouched();
+      this.errorMessage = 'Complete all required fields and enter valid item quantities and prices.';
+      return;
+    }
+    if (this.items.controls.some((_, index) => this.rowSubtotal(index) < 0) || this.netTotal < 0) {
+      this.errorMessage = 'Discount cannot make an item subtotal or invoice total negative.';
       return;
     }
     this.submitting = true;

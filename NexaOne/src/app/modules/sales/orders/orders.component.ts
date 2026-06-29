@@ -34,8 +34,11 @@ export class OrdersComponent implements OnInit {
   currentMode: 'list' | 'approval' | 'create' | 'edit' | 'details' = 'list';
   searchTerm = '';
   statusFilter = '';
-  dateFilter = '';
+  dateFrom = '';
+  dateTo = '';
   customerSearchTerm = '';
+  currentPage = 1;
+  readonly pageSize = 10;
   salesFeatures: SalesFeatureSettings = {
     enableControlledSalesMode: false,
     enableSalesOrders: false,
@@ -73,7 +76,6 @@ export class OrdersComponent implements OnInit {
   ngOnInit(): void {
     this.settingsService.salesFeatures$.subscribe(settings => this.salesFeatures = settings);
     this.settingsService.loadSalesFeatures().subscribe({ error: () => undefined });
-    this.loadOrders();
     this.loadReferenceData();
     this.route.data.subscribe(data => {
       this.currentMode = data['mode'] || 'list';
@@ -83,9 +85,7 @@ export class OrdersComponent implements OnInit {
     });
     this.route.paramMap.subscribe(params => {
       const id = Number(params.get('id') || 0);
-      if (id > 0) {
-        this.loadOrders(id);
-      }
+      this.loadOrders(id || undefined);
     });
   }
 
@@ -223,11 +223,22 @@ export class OrdersComponent implements OnInit {
         || (order.customerName || '').toLowerCase().includes(keyword)
         || (order.warehouseName || '').toLowerCase().includes(keyword);
       const matchesStatus = !this.statusFilter || order.status === this.statusFilter;
-      const matchesDate = !this.dateFilter || (order.orderDate || '').slice(0, 10) === this.dateFilter;
+      const orderDate = (order.orderDate || '').slice(0, 10);
+      const matchesDate = (!this.dateFrom || orderDate >= this.dateFrom) && (!this.dateTo || orderDate <= this.dateTo);
       const matchesQueue = this.currentMode !== 'approval' || ['SUBMITTED', 'PENDING'].includes(order.status);
       return matchesKeyword && matchesStatus && matchesDate && matchesQueue;
     }).sort((left, right) => this.sortNewestFirst(left.id, right.id, left['createdAt'], right['createdAt']));
   }
+
+  get totalPages(): number { return Math.max(1, Math.ceil(this.filteredOrders.length / this.pageSize)); }
+  get paginatedOrders(): SalesOrder[] {
+    const page = Math.min(this.currentPage, this.totalPages);
+    return this.filteredOrders.slice((page - 1) * this.pageSize, page * this.pageSize);
+  }
+  get pageStart(): number { return this.filteredOrders.length ? (Math.min(this.currentPage, this.totalPages) - 1) * this.pageSize + 1 : 0; }
+  get pageEnd(): number { return Math.min(this.pageStart + this.pageSize - 1, this.filteredOrders.length); }
+  filtersChanged(): void { this.currentPage = 1; }
+  goToPage(page: number): void { this.currentPage = Math.min(Math.max(page, 1), this.totalPages); }
 
   saveOrder(): void {
     this.successMessage = '';
@@ -235,6 +246,7 @@ export class OrdersComponent implements OnInit {
 
     if (this.orderForm.invalid || this.items.length === 0) {
       this.orderForm.markAllAsTouched();
+      this.errorMessage = 'Complete all required fields and enter valid item quantities and prices.';
       return;
     }
 
@@ -490,11 +502,11 @@ export class OrdersComponent implements OnInit {
     }
     this.submitting = true;
     this.orderService.convertOrderToInvoice(this.selectedOrder.id).subscribe({
-      next: () => {
+      next: invoice => {
         this.submitting = false;
         this.successMessage = 'Sales order converted to invoice successfully.';
         this.loadOrders(this.selectedOrder?.id);
-        this.router.navigate(['/sales/invoices']);
+        this.router.navigate(invoice.id ? ['/sales', invoice.id, 'view'] : ['/sales']);
       },
       error: (error) => this.handleWorkflowError(error, 'Order conversion failed.')
     });

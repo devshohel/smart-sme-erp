@@ -22,6 +22,8 @@ export class InvoiceListComponent implements OnInit {
   paymentStatusFilter = '';
   dateFrom = '';
   dateTo = '';
+  currentPage = 1;
+  readonly pageSize = 10;
 
   readonly statuses: SalesInvoiceStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'POSTED', 'PARTIAL_PAID', 'PAID', 'CANCELLED'];
   readonly paymentStatuses: PaymentStatus[] = ['PAID', 'PARTIAL', 'DUE'];
@@ -52,6 +54,19 @@ export class InvoiceListComponent implements OnInit {
       return timeDifference || Number(b.id || 0) - Number(a.id || 0);
     });
   }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredInvoices.length / this.pageSize));
+  }
+
+  get paginatedInvoices(): SalesInvoice[] {
+    const page = Math.min(this.currentPage, this.totalPages);
+    const start = (page - 1) * this.pageSize;
+    return this.filteredInvoices.slice(start, start + this.pageSize);
+  }
+
+  get pageStart(): number { return this.filteredInvoices.length ? (Math.min(this.currentPage, this.totalPages) - 1) * this.pageSize + 1 : 0; }
+  get pageEnd(): number { return Math.min(this.pageStart + this.pageSize - 1, this.filteredInvoices.length); }
 
   get totalSales(): number {
     return this.activeInvoices.length;
@@ -92,6 +107,13 @@ export class InvoiceListComponent implements OnInit {
     this.paymentStatusFilter = '';
     this.dateFrom = '';
     this.dateTo = '';
+    this.currentPage = 1;
+  }
+
+  filtersChanged(): void { this.currentPage = 1; }
+
+  goToPage(page: number): void {
+    this.currentPage = Math.min(Math.max(page, 1), this.totalPages);
   }
 
   view(invoice: SalesInvoice): void {

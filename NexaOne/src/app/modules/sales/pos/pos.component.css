@@ -32,6 +32,7 @@
 .totals .grand-total { margin: .45rem 0; padding: .65rem 0; border-top: 1px solid rgba(0,0,0,.12); border-bottom: 1px solid rgba(0,0,0,.12); font-size: 1.1rem; }
 .totals .grand-total small { color: #6c757d; font-size: .7rem; font-weight: 400; }
 .validation-list { color: #842029; font-size: .8rem; }
-.cart-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
+.cart-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: .65rem; }
 @media (max-width: 991px) { .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cart-column { position: static; } }
-@media (max-width: 575px) { .pos-page { padding: 1rem !important; } .product-grid { grid-template-columns: 1fr; } .cart-line { grid-template-columns: 1fr auto; } .line-total { text-align: right; } .cart-actions { grid-template-columns: 1fr; } }
+@media (max-width: 767px) { .cart-actions { grid-template-columns: 1fr; } }
+@media (max-width: 575px) { .pos-page { padding: 1rem !important; } .product-grid { grid-template-columns: 1fr; } .cart-line { grid-template-columns: 1fr auto; } .line-total { text-align: right; } }

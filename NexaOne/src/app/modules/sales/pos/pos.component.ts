@@ -126,10 +126,14 @@ export class PosComponent implements OnInit, AfterViewInit {
   get validationErrors(): string[] {
     const errors: string[] = [];
     if (!this.cart.length) errors.push('Add at least one product to the cart.');
-    if (this.cart.some(line => line.quantity <= 0)) errors.push('Every cart quantity must be positive.');
+    if (this.cart.some(line => !Number.isFinite(Number(line.quantity)) || line.quantity <= 0)) errors.push('Every cart quantity must be positive.');
+    if (this.cart.some(line => !Number.isFinite(Number(line.unitPrice)) || line.unitPrice < 0)) errors.push('Every cart price must be a valid non-negative number.');
     if (!this.selectedWarehouseId) errors.push('Select a warehouse.');
     if (!this.selectedCustomerId) errors.push('Select a customer.');
-    if (Number(this.paidAmount) < 0) errors.push('Paid amount cannot be negative.');
+    if (!Number.isFinite(Number(this.paidAmount)) || Number(this.paidAmount) < 0) errors.push('Paid amount must be a valid non-negative number.');
+    if (!Number.isFinite(Number(this.discountAmount)) || Number(this.discountAmount) < 0 || Number(this.discountAmount) > this.subtotal) {
+      errors.push('Discount must be between zero and the cart subtotal.');
+    }
     if (this.paymentMethod === 'DUE' && (!this.selectedCustomerId || this.isWalkIn(this.selectedCustomer))) {
       errors.push('Due sales require a known non-walk-in customer until the backend business rule is defined.');
     }
