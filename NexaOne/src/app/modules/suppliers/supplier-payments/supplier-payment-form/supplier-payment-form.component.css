@@ -1,4 +1,4 @@
-.supplier-payment-form-page { background: #f7faf8; min-height: calc(100vh - 70px); }
+.supplier-payment-form-page { background: #f7faf8; min-height: calc(100vh - 64px); }
 .payment-card, .allocation-panel { background: #fff; border: 1px solid #dfe8e1; border-radius: 8px; padding: 1rem; box-shadow: 0 4px 14px rgba(16, 86, 44, .04); }
 .allocation-panel { margin-top: 1rem; padding: 0; overflow: hidden; }
 .panel-heading { display: flex; justify-content: space-between; align-items: center; padding: .85rem 1rem; border-bottom: 1px solid #e6eee8; }

@@ -65,6 +65,8 @@ export class CustomerReceiptFormComponent implements OnInit {
     this.contextCustomerName = this.route.snapshot.queryParamMap.get('customerName') || '';
     const dueAmountParam = Number(this.route.snapshot.queryParamMap.get('dueAmount'));
     this.contextDueAmount = Number.isFinite(dueAmountParam) && dueAmountParam > 0 ? dueAmountParam : null;
+    const requestedAmount = Number(this.route.snapshot.queryParamMap.get('amount'));
+    const requestedMethod = this.route.snapshot.queryParamMap.get('paymentMethod') as CustomerReceiptPaymentMethod | null;
 
     if (idParam) {
       this.isEditMode = true;
@@ -76,8 +78,10 @@ export class CustomerReceiptFormComponent implements OnInit {
     this.form.patchValue({
       receiptDate: this.todayValue(),
       allocationMode: this.contextInvoiceId ? 'MANUAL' : 'AUTO',
-      paymentMethod: 'CASH',
-      amount: this.contextDueAmount
+      paymentMethod: requestedMethod && this.paymentMethods.includes(requestedMethod) ? requestedMethod : 'CASH',
+      amount: Number.isFinite(requestedAmount) && requestedAmount > 0 ? requestedAmount : this.contextDueAmount,
+      referenceNo: this.route.snapshot.queryParamMap.get('referenceNo') || '',
+      notes: this.route.snapshot.queryParamMap.get('paymentNotes') || ''
     });
 
     if (customerIdParam) {

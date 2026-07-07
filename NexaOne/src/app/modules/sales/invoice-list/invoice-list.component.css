@@ -3,5 +3,13 @@
 .summary-card strong { font-size: 1.35rem; }
 .summary-card.due { border-left: 4px solid #dc3545; }
 .date-filter { min-width: 145px; }
+.table-actions { display: inline-flex; align-items: center; flex-wrap: nowrap; gap: .3rem; white-space: nowrap; }
+.btn-action { width: 2rem; height: 2rem; display: inline-grid; place-items: center; border: 1px solid #dee2e6; border-radius: .4rem; background: #fff; }
+.btn-action:hover { background: #f8f9fa; }
+.btn-approve { color: #198754; }
+.btn-cancel { color: #dc3545; }
+.skeleton-row td { padding: .85rem; }
+.skeleton-row span { display: block; height: 1rem; border-radius: .35rem; background: linear-gradient(90deg,#edf0f2 25%,#f8f9fa 50%,#edf0f2 75%); background-size: 200% 100%; animation: tableShimmer 1.2s infinite; }
+@keyframes tableShimmer { to { background-position: -200% 0; } }
 @media (max-width: 767px) { .sales-list-page { padding: 1rem !important; } }
 @media print { .sales-list-page { display: none; } }

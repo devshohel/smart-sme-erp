@@ -4,9 +4,8 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { SalesInvoiceLineItem, SalesInvoiceStatus } from '../models/sales-common.model';
+import { ApiPaymentRequest } from '../models/sales-payment.model';
 import { ApiResponse, unwrapApiResponse } from '../shared/utils/api-response.util';
-
-export type PosPaymentMethod = 'CASH' | 'CARD' | 'MOBILE_BANKING' | 'BANK' | 'DUE' | 'OTHER';
 
 export interface PosSaleItemRequest {
   productId: number;
@@ -16,18 +15,12 @@ export interface PosSaleItemRequest {
   tax?: number;
 }
 
-export interface PosPaymentRequest {
-  paymentMethod: PosPaymentMethod;
-  paidAmount: number;
-  referenceNo?: string;
-}
-
 export interface PosSaleRequest {
   customerId: number;
   warehouseId: number;
   saleDate: string;
   items: PosSaleItemRequest[];
-  payment: PosPaymentRequest;
+  payment: ApiPaymentRequest;
   notes?: string;
 }
 
@@ -45,7 +38,7 @@ export interface PosSaleResponse {
   grandTotal: number;
   paidAmount: number;
   dueAmount: number;
-  paymentMethod: PosPaymentMethod;
+  paymentMethod: ApiPaymentRequest['paymentMethod'];
   status: SalesInvoiceStatus;
   saleDate: string;
   receiptId?: number;

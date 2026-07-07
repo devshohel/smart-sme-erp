@@ -15,7 +15,8 @@
             <label class="form-label">Product Search</label>
             <div class="input-group">
               <span class="input-group-text"><i class="bi bi-search"></i></span>
-              <input class="form-control" [(ngModel)]="searchTerm" placeholder="Name, SKU, barcode, or code">
+              <input class="form-control" [(ngModel)]="searchTerm" (keyup.enter)="addSearchMatch()" placeholder="Name, SKU, barcode, or code">
+              <button type="button" class="btn btn-outline-secondary" (click)="addSearchMatch()">Add</button>
             </div>
           </div>
           <div class="col-12 col-md-6">
@@ -87,11 +88,18 @@
           <div class="row g-3 mt-2">
             <div class="col-12 col-md-6">
               <label class="form-label">Customer *</label>
-              <select class="form-select" [(ngModel)]="selectedCustomerId">
-                <option [ngValue]="null">Select customer</option>
-                <option *ngFor="let customer of customers" [ngValue]="customer.id">{{ customer.name }}{{ customer.customerCode ? ' - ' + customer.customerCode : '' }}</option>
-              </select>
-              <small class="text-muted" *ngIf="!selectedCustomerId">Walk-in Customer was not found; no customer was created.</small>
+              <div class="customer-picker">
+                <input class="form-control" [ngModel]="customerSearchTerm" (ngModelChange)="onCustomerInput($event)" (focus)="customerMenuOpen = true" placeholder="Walk-in customer or type a name" autocomplete="off">
+                <div class="customer-menu" *ngIf="customerMenuOpen">
+                  <button type="button" *ngFor="let customer of filteredCustomers" (click)="selectCustomer(customer)">
+                    <strong>{{ customer.name }}</strong><small>{{ customer.customerCode || customer.phone || 'Customer' }}</small>
+                  </button>
+                  <button *ngIf="customerSearchTerm.trim() && filteredCustomers.length === 0 && canCreateCustomer()" type="button" class="create-customer" (click)="createCustomer()">
+                    <i class="bi bi-person-plus me-1"></i>Create New Customer (optional)
+                  </button>
+                </div>
+              </div>
+              <small class="text-muted" *ngIf="!selectedCustomerId">Select a customer. Walk-in requires an existing Walk-in Customer record because the API requires a customer ID.</small>
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Warehouse *</label>
@@ -108,7 +116,7 @@
             </div>
             <div class="col-12 col-md-6">
               <label class="form-label">Paid Amount</label>
-              <input type="number" min="0" step="0.01" class="form-control text-end" [(ngModel)]="paidAmount" (blur)="normalizePaidAmount()">
+              <input type="number" min="0" step="0.01" class="form-control text-end" [(ngModel)]="paidAmount" [readonly]="paymentMethod === 'CREDIT'" (blur)="normalizePaidAmount()">
               <small class="text-danger" *ngIf="paidAmount < 0">Paid amount cannot be negative.</small>
             </div>
             <div class="col-12 col-md-6">
@@ -126,8 +134,9 @@
             <div class="editable-total"><label for="posDiscount">Discount</label><input id="posDiscount" type="number" min="0" step="0.01" class="form-control form-control-sm text-end" [(ngModel)]="discountAmount"></div>
             <div><span>Tax</span><strong>{{ taxAmount | currency:'BDT':'code':'1.2-2' }}</strong></div>
             <div class="grand-total"><span>Grand Total <small>(preview)</small></span><strong>{{ grandTotal | currency:'BDT':'code':'1.2-2' }}</strong></div>
-            <div *ngIf="paymentMethod === 'CASH'"><span>Change Due</span><strong class="text-success">{{ changeDue | currency:'BDT':'code':'1.2-2' }}</strong></div>
-            <div><span>Due Amount</span><strong [class.text-danger]="dueAmount > 0">{{ dueAmount | currency:'BDT':'code':'1.2-2' }}</strong></div>
+            <div><span>Due <small>(preview)</small></span><strong [class.text-danger]="dueAmountPreview > 0">{{ dueAmountPreview | currency:'BDT':'code':'1.2-2' }}</strong></div>
+            <div><span>Payment State <small>(preview)</small></span><app-sales-status-badge [label]="paymentStatusPreview" type="payment"></app-sales-status-badge></div>
+            <small class="text-muted d-block pt-2">Paid, due, and payment status are confirmed from the completed backend response.</small>
           </div>
 
           <div class="validation-list mt-3" *ngIf="validationErrors.length">

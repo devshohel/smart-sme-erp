@@ -1,5 +1,5 @@
 export type SalesOrderStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'CONVERTED' | 'CANCELLED' | 'PENDING';
-export type SalesInvoiceStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'POSTED' | 'PARTIAL_PAID' | 'PAID' | 'CANCELLED' | 'REVERSED' | 'PENDING' | 'CONFIRMED' | 'COMPLETED';
+export type SalesInvoiceStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'POSTED' | 'CLOSED' | 'PARTIAL_PAID' | 'PAID' | 'CANCELLED' | 'REVERSED' | 'PENDING' | 'CONFIRMED' | 'COMPLETED';
 export type SalesReturnStatus = 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED' | 'POSTED' | 'CANCELLED' | 'REVERSED';
 export type SalesReturnCondition = 'RESELLABLE' | 'DAMAGED' | 'EXPIRED';
 export type SalesReturnRefundMethod = 'ADJUST_DUE' | 'CASH' | 'MOBILE_BANKING' | 'BANK' | 'CREDIT_NOTE' | 'EXCHANGE';

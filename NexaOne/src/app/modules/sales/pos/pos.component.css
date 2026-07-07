@@ -1,4 +1,4 @@
-.pos-page { background: #f5f7f8; min-height: 100%; }
+.pos-page { background: #f5f7f8; min-height: 100%; overflow: visible; }
 .completion-note { border-left: 4px solid #6c757d; }
 .category-strip { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .25rem; }
 .category-strip .btn { white-space: nowrap; }
@@ -16,7 +16,7 @@
 .cart-column { position: sticky; top: 1rem; }
 .empty-cart { display: flex; min-height: 140px; flex-direction: column; align-items: center; justify-content: center; gap: .5rem; color: #6c757d; }
 .empty-cart i { font-size: 2rem; }
-.cart-lines { max-height: 310px; overflow-y: auto; border-top: 1px solid rgba(0,0,0,.07); }
+.cart-lines { border-top: 1px solid rgba(0,0,0,.07); }
 .cart-line { display: grid; grid-template-columns: minmax(120px,1fr) auto auto auto; align-items: center; gap: .65rem; padding: .75rem 0; border-bottom: 1px solid rgba(0,0,0,.07); }
 .cart-line-main { display: flex; min-width: 0; flex-direction: column; }
 .cart-line-main strong, .cart-line-main small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -33,6 +33,12 @@
 .totals .grand-total small { color: #6c757d; font-size: .7rem; font-weight: 400; }
 .validation-list { color: #842029; font-size: .8rem; }
 .cart-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: .65rem; }
+.customer-picker { position: relative; }
+.customer-menu { position: absolute; z-index: 20; top: calc(100% + .25rem); left: 0; right: 0; max-height: 240px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: .5rem; background: #fff; box-shadow: 0 .5rem 1rem rgba(0,0,0,.12); }
+.customer-menu button { width: 100%; display: flex; flex-direction: column; align-items: flex-start; padding: .55rem .7rem; border: 0; border-bottom: 1px solid #f0f1f2; background: #fff; text-align: left; }
+.customer-menu button:hover { background: #f8f9fa; }
+.customer-menu small { color: #6c757d; }
+.customer-menu .create-customer { color: #198754; font-weight: 600; }
 @media (max-width: 991px) { .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cart-column { position: static; } }
 @media (max-width: 767px) { .cart-actions { grid-template-columns: 1fr; } }
 @media (max-width: 575px) { .pos-page { padding: 1rem !important; } .product-grid { grid-template-columns: 1fr; } .cart-line { grid-template-columns: 1fr auto; } .line-total { text-align: right; } }

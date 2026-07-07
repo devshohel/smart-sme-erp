@@ -1,4 +1,4 @@
-.ap-reconciliation-page { background: #f7faf8; min-height: calc(100vh - 70px); }
+.ap-reconciliation-page { background: #f7faf8; min-height: calc(100vh - 64px); }
 .filter-card, .report-card, .summary-card { background: #fff; border: 1px solid #dfe8e1; border-radius: 8px; box-shadow: 0 4px 14px rgba(16,86,44,.04); }
 .filter-card, .report-card { margin-bottom: 1rem; }
 .filter-card { padding: 1rem; }

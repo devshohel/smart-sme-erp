@@ -1,7 +1,7 @@
 .layout-wrapper {
   --sidebar-width: 260px;
   --sidebar-collapsed-width: 76px;
-  --navbar-height: 70px;
+  --navbar-height: 64px;
   display: flex;
   min-height: 100vh;
   background: #f2f7f4;
@@ -32,9 +32,9 @@
 }
 
 .page-content {
-  min-height: 100vh;
+  min-height: calc(100vh - var(--navbar-height));
   background: #f2f7f4;
-  padding: calc(var(--navbar-height) + 12px) 18px 18px;
+  padding: calc(var(--navbar-height) + 10px) 16px 16px;
   overflow-x: hidden;
   scroll-behavior: smooth;
   box-sizing: border-box;
@@ -64,6 +64,6 @@
   }
 
   .page-content {
-    padding: calc(var(--navbar-height) + 10px) 12px 16px;
+    padding: calc(var(--navbar-height) + 8px) 10px 14px;
   }
 }

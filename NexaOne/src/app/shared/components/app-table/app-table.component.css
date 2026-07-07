@@ -16,11 +16,12 @@ thead {
 
 th {
   font-weight: 600;
-  padding: 16px;
+  padding: 10px 12px;
+  white-space: nowrap;
 }
 
 td {
-  padding: 16px;
+  padding: 10px 12px;
 }
 
 .table-loading {
@@ -42,7 +43,7 @@ td {
 @media (max-width: 767px) {
   th,
   td {
-    padding: 12px;
+    padding: 9px 10px;
     white-space: nowrap;
   }
 }

@@ -1,4 +1,4 @@
-.supplier-payment-details-page { background: #f7faf8; min-height: calc(100vh - 70px); }
+.supplier-payment-details-page { background: #f7faf8; min-height: calc(100vh - 64px); }
 .voucher-card, .info-grid, .panel { background: #fff; border: 1px solid #dfe8e1; border-radius: 8px; box-shadow: 0 4px 14px rgba(16, 86, 44, .04); }
 .voucher-card { padding: 1rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
 .muted-label, .info-grid span { display: block; color: #6c757d; font-size: .78rem; text-transform: uppercase; font-weight: 700; }

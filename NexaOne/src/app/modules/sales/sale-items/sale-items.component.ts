@@ -32,7 +32,7 @@ export class SaleItemsComponent implements OnInit {
   dateTo = '';
   currentPage = 1;
   readonly pageSize = 15;
-  readonly statuses: SalesInvoiceStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'POSTED', 'PARTIAL_PAID', 'PAID', 'CANCELLED'];
+  readonly statuses: string[] = ['DRAFT', 'CONFIRMED', 'POSTED', 'PAID', 'CANCELLED'];
 
   constructor(private invoiceService: SalesInvoiceService) {}
 
@@ -69,7 +69,7 @@ export class SaleItemsComponent implements OnInit {
       const saleDate = (row.saleDate || '').slice(0, 10);
       const matchesKeyword = !keyword || row.invoiceNo.toLowerCase().includes(keyword)
         || row.customerName.toLowerCase().includes(keyword) || row.productName.toLowerCase().includes(keyword);
-      return matchesKeyword && (!this.statusFilter || row.status === this.statusFilter)
+      return matchesKeyword && (!this.statusFilter || this.statusLabel(row) === this.statusFilter)
         && (!this.dateFrom || saleDate >= this.dateFrom) && (!this.dateTo || saleDate <= this.dateTo);
     });
   }
@@ -83,4 +83,11 @@ export class SaleItemsComponent implements OnInit {
   get pageEnd(): number { return Math.min(this.pageStart + this.pageSize - 1, this.filteredRows.length); }
   filtersChanged(): void { this.currentPage = 1; }
   goToPage(page: number): void { this.currentPage = Math.min(Math.max(page, 1), this.totalPages); }
+  statusLabel(row: SaleItemRow): string {
+    if (row.status === 'CANCELLED' || row.status === 'REVERSED') return 'CANCELLED';
+    if (row.status === 'PAID' || row.status === 'CLOSED' || row.status === 'COMPLETED') return 'PAID';
+    if (['SUBMITTED', 'APPROVED', 'PENDING', 'CONFIRMED'].includes(row.status || '')) return 'CONFIRMED';
+    if (row.status === 'POSTED' || row.status === 'PARTIAL_PAID') return 'POSTED';
+    return 'DRAFT';
+  }
 }

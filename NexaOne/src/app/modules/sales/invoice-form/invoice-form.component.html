@@ -8,13 +8,15 @@
   </div>
 
   <div class="alert alert-danger no-print" *ngIf="errorMessage">{{ errorMessage }}</div>
-  <div class="text-center text-muted py-5" *ngIf="loading">Loading invoice...</div>
+  <div class="invoice-skeleton" *ngIf="loading" aria-label="Loading invoice">
+    <div class="skeleton-line wide"></div><div class="skeleton-line"></div><div class="skeleton-block"></div>
+  </div>
 
   <app-card *ngIf="!loading" [title]="invoice?.invoiceNo || (mode === 'create' ? 'New Invoice' : 'Invoice')">
     <div *ngIf="invoice" class="invoice-meta mb-4">
       <div><span>Invoice</span><strong>{{ invoice.invoiceNo || ('#' + invoice.id) }}</strong></div>
       <div><span>Status</span><app-sales-status-badge [label]="invoice.status || 'DRAFT'"></app-sales-status-badge></div>
-      <div><span>Payment</span><app-sales-status-badge [label]="invoice.paymentStatus || 'DUE'" type="payment"></app-sales-status-badge></div>
+      <div><span>Payment</span><app-sales-status-badge [label]="invoice.paymentStatus" type="payment"></app-sales-status-badge></div>
       <div><span>Created</span><strong>{{ invoice.createdAt | date:'medium' }}</strong></div>
     </div>
 
@@ -30,15 +32,19 @@
         </div>
         <div class="col-12 col-md-6 col-xl-3">
           <label class="form-label">Customer *</label>
-          <select class="form-select" formControlName="customerId">
-            <option [ngValue]="null">Select Customer</option>
-            <option *ngFor="let customer of customers" [ngValue]="customer.id">{{ customer.name }}{{ customer.customerCode ? ' - ' + customer.customerCode : '' }}</option>
-          </select>
+          <div class="customer-picker">
+            <input class="form-control" [ngModel]="customerSearchTerm" [ngModelOptions]="{standalone: true}" (ngModelChange)="onCustomerInput($event)" (focus)="customerMenuOpen = true" [readonly]="mode === 'details'" placeholder="Walk-in customer or type a name" autocomplete="off">
+            <div class="customer-menu" *ngIf="customerMenuOpen && mode !== 'details'">
+              <button type="button" *ngFor="let customer of filteredCustomers" (click)="selectCustomer(customer)"><strong>{{ customer.name }}</strong><small>{{ customer.customerCode || customer.phone || 'Customer' }}</small></button>
+              <button *ngIf="customerSearchTerm.trim() && filteredCustomers.length === 0 && hasPermission('CUSTOMER_CREATE')" type="button" class="create-customer" (click)="createCustomer()"><i class="bi bi-person-plus me-1"></i>Create New Customer (optional)</button>
+            </div>
+          </div>
+          <input type="hidden" formControlName="customerId">
           <small class="text-danger" *ngIf="form.get('customerId')?.touched && form.get('customerId')?.invalid">Customer is required.</small>
         </div>
         <div class="col-12 col-md-6 col-xl-3">
           <label class="form-label">Warehouse *</label>
-          <select class="form-select" formControlName="warehouseId">
+          <select class="form-select" formControlName="warehouseId" (change)="onWarehouseChange()">
             <option [ngValue]="null">Select Warehouse</option>
             <option *ngFor="let warehouse of warehouses" [ngValue]="warehouse.id">{{ warehouse.name }}</option>
           </select>
@@ -55,6 +61,7 @@
         <div class="section-title mb-0">Items</div>
         <button *ngIf="mode !== 'details'" type="button" class="btn btn-sm btn-outline-success" (click)="addItem()"><i class="bi bi-plus-lg me-1"></i>Add Row</button>
       </div>
+      <div class="alert alert-warning mt-3" *ngIf="stockWarning"><i class="bi bi-exclamation-triangle me-1"></i>{{ stockWarning }}</div>
       <div class="table-responsive item-table-wrap">
         <table class="table align-middle mb-0">
           <thead class="table-light"><tr><th>Product</th><th class="text-end">Quantity</th><th class="text-end">Price</th><th class="text-end">Discount</th><th class="text-end">Tax</th><th class="text-end">Subtotal</th><th *ngIf="mode !== 'details'" class="text-center">Action</th></tr></thead>
@@ -77,8 +84,23 @@
         <div><span>Discount</span><strong>{{ discountAmount | currency:'BDT':'code':'1.2-2' }}</strong></div>
         <div><span>Tax</span><strong>{{ taxAmount | currency:'BDT':'code':'1.2-2' }}</strong></div>
         <div class="grand-total"><span>Grand Total</span><strong>{{ netTotal | currency:'BDT':'code':'1.2-2' }}</strong></div>
-        <div><span>Due</span><strong>{{ dueAmount | currency:'BDT':'code':'1.2-2' }}</strong></div>
+        <div *ngIf="invoice"><span>Paid</span><strong>{{ invoice.paidAmount | currency:'BDT':'code':'1.2-2' }}</strong></div>
+        <div><span>Due</span><strong *ngIf="dueAmount !== null; else pendingDue">{{ dueAmount | currency:'BDT':'code':'1.2-2' }}</strong><ng-template #pendingDue><strong class="text-muted">Confirmed after save</strong></ng-template></div>
+        <div *ngIf="invoice"><span>Payment Status</span><app-sales-status-badge [label]="paymentStatus" type="payment"></app-sales-status-badge></div>
       </div>
+
+      <ng-container *ngIf="mode !== 'edit'">
+        <div class="section-title mt-4">Payment</div>
+        <div class="payment-section" formGroupName="payment">
+          <div class="row g-3">
+            <div class="col-12 col-md-6 col-xl-3"><label class="form-label">Paid Amount *</label><input type="number" min="0" step="0.01" class="form-control text-end" formControlName="paidAmount"><small class="text-danger" *ngIf="form.get('payment.paidAmount')?.touched && form.get('payment.paidAmount')?.invalid">Enter a valid non-negative amount.</small></div>
+            <div class="col-12 col-md-6 col-xl-3"><label class="form-label">Payment Method *</label><select class="form-select" formControlName="paymentMethod" (change)="onPaymentMethodChange()"><option *ngFor="let method of paymentMethods" [value]="method.value">{{ method.label }}</option></select></div>
+            <div class="col-12 col-md-6 col-xl-3"><label class="form-label">Payment Reference</label><input class="form-control" maxlength="255" formControlName="reference" placeholder="Optional reference"></div>
+            <div class="col-12 col-md-6 col-xl-3"><label class="form-label">Payment Notes</label><input class="form-control" maxlength="500" formControlName="notes" placeholder="Optional payment note"></div>
+          </div>
+          <div class="payment-hint mt-3"><span>Payment state preview</span><app-sales-status-badge [label]="paymentStatusPreview" type="payment"></app-sales-status-badge><small>Payment is posted separately through the existing receipt workflow; backend totals remain authoritative.</small></div>
+        </div>
+      </ng-container>
 
       <div class="d-flex flex-wrap justify-content-end gap-2 mt-4 no-print">
         <ng-container *ngIf="mode === 'details'">
@@ -93,7 +115,8 @@
         </ng-container>
         <ng-container *ngIf="mode !== 'details'">
           <a class="btn btn-outline-secondary" routerLink="/sales">Cancel</a>
-          <button type="submit" class="btn btn-success px-4" [disabled]="submitting || (mode === 'edit' && !canEdit())">{{ submitting ? 'Saving...' : mode === 'edit' ? 'Update Invoice' : 'Save Invoice' }}</button>
+          <button type="button" class="btn btn-outline-success px-4" [disabled]="submitting || (mode === 'edit' && !canEdit())" (click)="save(false)">{{ submitting ? 'Saving...' : 'Save Draft' }}</button>
+          <button *ngIf="mode === 'create' && hasPermission('SALES_INVOICE_SUBMIT')" type="button" class="btn btn-success px-4" [disabled]="submitting" (click)="save(true)">Save Invoice</button>
         </ng-container>
       </div>
     </form>

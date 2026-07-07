@@ -6,7 +6,6 @@ import { SalesRoutingModule } from './sales-routing.module';
 import { SharedModule } from '../../shared/shared.module';
 import { SalesStatusBadgeComponent } from './components/sales-status-badge/sales-status-badge.component';
 import { OrdersComponent } from './orders/orders.component';
-import { InvoicesComponent } from './invoices/invoices.component';
 import { ReturnsComponent } from './returns/returns.component';
 import { InvoiceListComponent } from './invoice-list/invoice-list.component';
 import { InvoiceFormComponent } from './invoice-form/invoice-form.component';
@@ -18,7 +17,6 @@ import { SaleItemsComponent } from './sale-items/sale-items.component';
   declarations: [
     SalesStatusBadgeComponent,
     OrdersComponent,
-    InvoicesComponent,
     ReturnsComponent,
     InvoiceListComponent,
     InvoiceFormComponent,

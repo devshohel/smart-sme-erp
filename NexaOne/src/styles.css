@@ -34,8 +34,73 @@ body {
   border: none;
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+app-page-header + app-card,
+app-page-header + .nexa-card,
+app-page-header + .filter-card,
+app-page-header + .list-card,
+app-page-header + .table-wrap,
+app-page-header + form,
+app-page-header + div {
+  margin-top: 0;
+}
+
+.page-title-row,
+.list-toolbar,
+.pagination-row,
+.filter-card,
+.list-card,
+.report-card,
+.table-wrap,
+.summary-grid,
+.stats-grid,
+.card-grid,
+.panel-grid,
+.row.mb-4,
+.mb-4 {
+  margin-bottom: 0.75rem !important;
+}
+
+.filter-card,
+.list-card,
+.report-card,
+.table-wrap,
+.detail-panel,
+.expense-form,
+.summary-card,
+.stat-card,
+.kpi-card,
+.dashboard-panel,
+.hero-card,
+.note-panel,
+.loading-panel {
+  border-radius: 10px;
+}
+
+.filter-card,
+.list-card,
+.report-card,
+.detail-panel,
+.expense-form,
+.summary-card,
+.stat-card,
+.kpi-card,
+.dashboard-panel,
+.note-panel,
+.loading-panel {
+  padding: 0.85rem !important;
+}
+
+.table-responsive {
+  margin-bottom: 0;
+}
+
+.table > :not(caption) > * > * {
+  padding: 0.58rem 0.68rem;
+  vertical-align: middle;
 }
 
 .erp-data-table {
@@ -51,14 +116,14 @@ body {
   font-size: .72rem;
   font-weight: 800;
   letter-spacing: 0;
-  padding: .72rem .85rem;
+  padding: .58rem .68rem;
   text-transform: uppercase;
   white-space: nowrap;
 }
 
 .erp-data-table tbody td {
   border-bottom: 1px solid #e7eee9;
-  padding: .82rem .85rem;
+  padding: .58rem .68rem;
   vertical-align: middle;
 }
 
@@ -154,9 +219,20 @@ body {
   white-space: nowrap;
 }
 
+td .table-actions,
+td.actions,
+td:last-child .table-actions {
+  min-width: max-content;
+}
+
+td:last-child .btn,
+td:last-child .btn-action {
+  white-space: nowrap;
+}
+
 .sales-table th,
 .sales-table td {
-  padding: .75rem;
+  padding: .58rem .68rem;
   vertical-align: middle;
 }
 
@@ -174,7 +250,7 @@ body {
 
 app-returns table th,
 app-returns table td {
-  padding: .75rem;
+  padding: .58rem .68rem;
   vertical-align: middle;
 }
 

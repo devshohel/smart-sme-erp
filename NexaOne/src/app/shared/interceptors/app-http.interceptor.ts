@@ -8,7 +8,7 @@ import { NotificationService } from '../services/notification.service';
 
 @Injectable()
 export class AppHttpInterceptor implements HttpInterceptor {
-  private static readonly FORBIDDEN_NOTIFICATION_DEBOUNCE_MS = 3000;
+  private static readonly FORBIDDEN_NOTIFICATION_DEBOUNCE_MS = 10000;
   private lastForbiddenNotificationAt = 0;
 
   constructor(

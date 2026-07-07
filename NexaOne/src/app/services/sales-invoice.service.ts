@@ -17,47 +17,47 @@ export class SalesInvoiceService {
   getAllInvoices(): Observable<SalesInvoice[]> {
     return this.http
       .get<SalesInvoice[] | ApiResponse<SalesInvoice[]>>(this.baseUrl)
-      .pipe(map(response => unwrapApiResponse(response).map(invoice => this.normalizeInvoice(invoice))));
+      .pipe(map(response => unwrapApiResponse(response).map(invoice => this.normalizeResponse(invoice))));
   }
 
   saveInvoice(invoice: SalesInvoice): Observable<SalesInvoice> {
-    const payload = this.normalizeInvoice(invoice);
+    const payload = this.normalizeRequest(invoice);
 
     const request$ = payload.id
       ? this.http.put<SalesInvoice | ApiResponse<SalesInvoice>>(`${this.baseUrl}/${payload.id}`, payload)
       : this.http.post<SalesInvoice | ApiResponse<SalesInvoice>>(this.baseUrl, payload);
 
     return request$
-      .pipe(map(response => this.normalizeInvoice(unwrapApiResponse(response))));
+      .pipe(map(response => this.normalizeResponse(unwrapApiResponse(response))));
   }
 
   getInvoiceById(id: number): Observable<SalesInvoice> {
     return this.http
       .get<SalesInvoice | ApiResponse<SalesInvoice>>(`${this.baseUrl}/${id}`)
-      .pipe(map(response => this.normalizeInvoice(unwrapApiResponse(response))));
+      .pipe(map(response => this.normalizeResponse(unwrapApiResponse(response))));
   }
 
   submitInvoice(id: number): Observable<SalesInvoice> {
     return this.http.post<SalesInvoice | ApiResponse<SalesInvoice>>(`${this.baseUrl}/${id}/submit`, {})
-      .pipe(map(response => this.normalizeInvoice(unwrapApiResponse(response))));
+      .pipe(map(response => this.normalizeResponse(unwrapApiResponse(response))));
   }
 
   approveInvoice(id: number): Observable<SalesInvoice> {
     return this.http.post<SalesInvoice | ApiResponse<SalesInvoice>>(`${this.baseUrl}/${id}/approve`, {})
-      .pipe(map(response => this.normalizeInvoice(unwrapApiResponse(response))));
+      .pipe(map(response => this.normalizeResponse(unwrapApiResponse(response))));
   }
 
   postInvoice(id: number): Observable<SalesInvoice> {
     return this.http.post<SalesInvoice | ApiResponse<SalesInvoice>>(`${this.baseUrl}/${id}/post`, {})
-      .pipe(map(response => this.normalizeInvoice(unwrapApiResponse(response))));
+      .pipe(map(response => this.normalizeResponse(unwrapApiResponse(response))));
   }
 
   cancelInvoice(id: number): Observable<SalesInvoice> {
     return this.http.post<SalesInvoice | ApiResponse<SalesInvoice>>(`${this.baseUrl}/${id}/cancel`, {})
-      .pipe(map(response => this.normalizeInvoice(unwrapApiResponse(response))));
+      .pipe(map(response => this.normalizeResponse(unwrapApiResponse(response))));
   }
 
-  private normalizeInvoice(invoice: SalesInvoice): SalesInvoice {
+  private normalizeRequest(invoice: SalesInvoice): SalesInvoice {
     return {
       ...invoice,
       orderId: invoice.orderId ?? null,
@@ -70,7 +70,7 @@ export class SalesInvoiceService {
       netTotal: Number(invoice.netTotal || 0),
       paidAmount: Number(invoice.paidAmount || 0),
       dueAmount: Number(invoice.dueAmount || 0),
-      paymentStatus: invoice.paymentStatus || 'DUE',
+      paymentStatus: invoice.paymentStatus ?? null,
       status: invoice.status || 'DRAFT',
       items: (invoice.items || []).map(item => ({
         ...item,
@@ -83,6 +83,22 @@ export class SalesInvoiceService {
         subtotal: Number((item as any).subtotal ?? (item as any).subTotal ?? 0),
         subTotal: Number((item as any).subtotal ?? (item as any).subTotal ?? 0)
       }))
+    };
+  }
+
+  private normalizeResponse(invoice: SalesInvoice): SalesInvoice {
+    const normalized = this.normalizeRequest(invoice);
+    const legacyStatus = normalized.status;
+    return {
+      ...normalized,
+      // Compatibility adapter: lifecycle and payment state are separate in the UI.
+      status: legacyStatus === 'PARTIAL_PAID' || legacyStatus === 'CONFIRMED'
+        ? 'POSTED'
+        : legacyStatus === 'PAID' || legacyStatus === 'COMPLETED' ? 'CLOSED' : legacyStatus,
+      paymentStatus: invoice.paymentStatus ?? null,
+      paidAmount: Number(invoice.paidAmount || 0),
+      dueAmount: Number(invoice.dueAmount || 0),
+      netTotal: Number(invoice.netTotal || 0)
     };
   }
 

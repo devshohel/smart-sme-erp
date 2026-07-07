@@ -43,16 +43,17 @@
 
     <div class="table-responsive">
       <table class="table table-hover align-middle mb-0 sales-table">
-        <thead class="table-light"><tr><th>Invoice</th><th>Customer</th><th>Date</th><th class="text-end">Total</th><th class="text-end">Due</th><th>Status</th><th>Payment</th><th class="text-end">Actions</th></tr></thead>
+        <thead class="table-light"><tr><th>Invoice</th><th>Customer</th><th>Date</th><th class="text-end">Total</th><th class="text-end">Paid</th><th class="text-end">Due</th><th>Payment Status</th><th>Invoice Status</th><th class="text-end">Actions</th></tr></thead>
         <tbody>
           <tr *ngFor="let invoice of paginatedInvoices">
             <td class="fw-semibold">{{ invoice.invoiceNo || ('Draft #' + invoice.id) }}</td>
             <td>{{ invoice.customerName || 'N/A' }}</td>
             <td>{{ invoice.saleDate | date:'mediumDate' }}</td>
             <td class="text-end text-nowrap">{{ invoice.netTotal | currency:'BDT':'code':'1.2-2' }}</td>
+            <td class="text-end text-nowrap">{{ invoice.paidAmount | currency:'BDT':'code':'1.2-2' }}</td>
             <td class="text-end text-nowrap">{{ invoice.dueAmount | currency:'BDT':'code':'1.2-2' }}</td>
-            <td><app-sales-status-badge [label]="invoice.status || 'DRAFT'"></app-sales-status-badge></td>
-            <td><app-sales-status-badge [label]="invoice.paymentStatus || 'DUE'" type="payment"></app-sales-status-badge></td>
+            <td><app-sales-status-badge [label]="invoice.paymentStatus" type="payment"></app-sales-status-badge></td>
+            <td><app-sales-status-badge [label]="displayStatus(invoice)"></app-sales-status-badge></td>
             <td class="text-end">
               <div class="table-actions">
                 <button type="button" class="btn-action btn-view" title="View invoice" aria-label="View invoice" (click)="view(invoice)"><i class="bi bi-eye"></i></button>
@@ -62,8 +63,8 @@
               </div>
             </td>
           </tr>
-          <tr *ngIf="loading"><td colspan="8" class="text-center text-muted py-5">Loading sales...</td></tr>
-          <tr *ngIf="!loading && filteredInvoices.length === 0"><td colspan="8" class="text-center text-muted py-5">No sales match the selected filters.</td></tr>
+          <ng-container *ngIf="loading"><tr class="skeleton-row" *ngFor="let row of [1,2,3,4,5]"><td colspan="9"><span></span></td></tr></ng-container>
+          <tr *ngIf="!loading && filteredInvoices.length === 0"><td colspan="9" class="text-center text-muted py-5">No sales match the selected filters.</td></tr>
         </tbody>
       </table>
     </div>

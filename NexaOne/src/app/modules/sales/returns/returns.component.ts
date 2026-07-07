@@ -25,6 +25,7 @@ export class ReturnsComponent implements OnInit {
   searchTerm = '';
   statusFilter = '';
   dateFilter = '';
+  invoiceSearchTerm = '';
   readonly statuses: SalesReturnStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'POSTED', 'CANCELLED', 'REVERSED'];
   readonly conditions: SalesReturnCondition[] = ['RESELLABLE', 'DAMAGED', 'EXPIRED'];
 
@@ -64,6 +65,13 @@ export class ReturnsComponent implements OnInit {
     });
   }
 
+  get filteredInvoices(): SalesInvoice[] {
+    const keyword = this.invoiceSearchTerm.trim().toLowerCase();
+    return this.invoices.filter(invoice => !keyword
+      || (invoice.invoiceNo || '').toLowerCase().includes(keyword)
+      || (invoice.customerName || '').toLowerCase().includes(keyword));
+  }
+
   loadReturns(selectedId?: number): void {
     this.loading = true;
     this.returnService.getAllReturns().subscribe({
@@ -76,6 +84,9 @@ export class ReturnsComponent implements OnInit {
           this.editingReturnId = this.selectedReturn.id || null;
           this.loadContext(this.selectedReturn.invoiceId, this.selectedReturn);
         }
+        if (this.currentMode === 'details' && this.selectedReturn && this.route.snapshot.queryParamMap.get('print') === 'true') {
+          setTimeout(() => window.print());
+        }
       },
       error: error => { this.loading = false; this.errorMessage = extractApiErrorMessage(error, 'Sales returns could not be loaded.'); }
     });
@@ -83,7 +94,7 @@ export class ReturnsComponent implements OnInit {
 
   loadInvoices(): void {
     this.invoiceService.getAllInvoices().subscribe({
-      next: invoices => this.invoices = invoices.filter(i => ['POSTED', 'PARTIAL_PAID', 'PAID', 'CONFIRMED', 'COMPLETED'].includes(i.status || '')),
+      next: invoices => this.invoices = invoices.filter(i => ['POSTED', 'CLOSED', 'PARTIAL_PAID', 'PAID', 'CONFIRMED', 'COMPLETED'].includes(i.status || '')),
       error: error => debugApiError('ReturnsComponent.loadInvoices', error)
     });
   }
@@ -140,21 +151,64 @@ export class ReturnsComponent implements OnInit {
       if (selected.length === 0) this.errorMessage = 'Enter a return quantity for at least one invoice item.';
       return;
     }
-    if (!this.returnContext.paidRefundSupported) { this.errorMessage = this.returnContext.limitationMessage || 'Fully paid invoice refunds are not supported.'; return; }
-    if (this.totalAmount > Number(this.returnContext.dueAmount || 0)) {
-      this.errorMessage = 'Return total exceeds the invoice due. Refund or credit-note processing is not implemented.';
-      return;
-    }
     this.submitting = true;
     this.returnService.saveReturn(this.buildReturnPayload()).subscribe({
-      next: saved => { this.submitting = false; this.router.navigate(['/sales/returns', saved.id, 'view']); },
+      next: saved => {
+        if (saved.id && this.hasPermission('SALES_RETURN_SUBMIT')) {
+          this.returnService.submitReturn(saved.id).subscribe({
+            next: submitted => { this.submitting = false; this.router.navigate(['/sales/returns', submitted.id, 'view']); },
+            error: error => { this.submitting = false; this.errorMessage = extractApiErrorMessage(error, 'Return was saved as draft but could not be submitted.'); }
+          });
+          return;
+        }
+        this.submitting = false;
+        this.router.navigate(['/sales/returns', saved.id, 'view']);
+      },
       error: error => { this.submitting = false; this.errorMessage = extractApiErrorMessage(error, 'Sales return could not be saved.'); }
     });
   }
 
   editSelected(): void { if (this.selectedReturn?.id) this.router.navigate(['/sales/returns/edit', this.selectedReturn.id]); }
   viewReturn(value: SalesReturn): void { if (value.id) this.router.navigate(['/sales/returns', value.id, 'view']); }
+  editReturn(value: SalesReturn): void { if (this.canEdit(value) && value.id) this.router.navigate(['/sales/returns/edit', value.id]); }
+  approveReturn(value: SalesReturn): void {
+    if (!this.canApprove(value) || !value.id) return;
+    this.selectedReturn = value;
+    this.submitting = true;
+    this.returnService.approveReturn(value.id).subscribe({
+      next: approved => this.returnService.postReturn(value.id!).subscribe({
+        next: posted => {
+          this.submitting = false;
+          this.selectedReturn = posted;
+          this.successMessage = 'Sales return approved and posted successfully.';
+          this.loadInvoices();
+          this.loadReturns(posted.id);
+        },
+        error: error => {
+          this.submitting = false;
+          this.selectedReturn = approved;
+          this.errorMessage = extractApiErrorMessage(error, 'Return was approved, but backend posting could not be completed.');
+          this.loadReturns(approved.id);
+        }
+      }),
+      error: error => { this.submitting = false; this.errorMessage = extractApiErrorMessage(error, 'Return approval failed.'); }
+    });
+  }
+  rejectReturn(value: SalesReturn): void {
+    if (!this.canReject(value) || !value.id) return;
+    const reason = window.prompt('Enter rejection reason');
+    if (reason?.trim()) {
+      this.selectedReturn = value;
+      this.runRequest(this.returnService.rejectReturn(value.id, reason.trim()), 'Sales return rejected successfully.');
+    }
+  }
+  printReturn(value: SalesReturn): void {
+    if (value.id && this.hasPermission('SALES_RETURN_PRINT')) {
+      this.router.navigate(['/sales/returns', value.id, 'view'], { queryParams: { print: true } });
+    }
+  }
   hasPermission(permission: string): boolean { return this.authService.hasPermission(permission); }
+  returnStatusLabel(value: SalesReturn): string { return value.status === 'SUBMITTED' ? 'PENDING' : (value.status || 'DRAFT'); }
   canEdit(v: SalesReturn | null): boolean { return !!v?.id && ['DRAFT', 'REJECTED'].includes(v.status || '') && this.hasPermission('SALES_RETURN_EDIT'); }
   canSubmit(v: SalesReturn | null): boolean { return !!v?.id && ['DRAFT', 'REJECTED'].includes(v.status || '') && this.hasPermission('SALES_RETURN_SUBMIT'); }
   canApprove(v: SalesReturn | null): boolean { return !!v?.id && v.status === 'SUBMITTED' && this.hasPermission('SALES_RETURN_APPROVE'); }
@@ -177,7 +231,11 @@ export class ReturnsComponent implements OnInit {
   }
   private runRequest(request: ReturnType<SalesReturnService['submitReturn']>, message: string): void {
     this.submitting = true;
-    request.subscribe({ next: saved => { this.submitting = false; this.selectedReturn = saved; this.successMessage = message; },
+    request.subscribe({ next: saved => {
+        this.submitting = false; this.selectedReturn = saved; this.successMessage = message;
+        this.loadInvoices();
+        this.loadReturns(saved.id);
+      },
       error: error => { this.submitting = false; this.errorMessage = extractApiErrorMessage(error, 'Return action failed.'); } });
   }
   private buildReturnPayload(): SalesReturn {

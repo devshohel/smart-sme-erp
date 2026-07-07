@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { PaymentStatus, SalesInvoiceStatus } from '../../../models/sales-common.model';
+import { PaymentStatus } from '../../../models/sales-common.model';
 import { SalesInvoice } from '../../../models/sales-invoice.model';
 import { SalesInvoiceService } from '../../../services/sales-invoice.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
@@ -25,7 +25,7 @@ export class InvoiceListComponent implements OnInit {
   currentPage = 1;
   readonly pageSize = 10;
 
-  readonly statuses: SalesInvoiceStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'POSTED', 'PARTIAL_PAID', 'PAID', 'CANCELLED'];
+  readonly statuses: string[] = ['DRAFT', 'CONFIRMED', 'POSTED', 'PAID', 'CANCELLED'];
   readonly paymentStatuses: PaymentStatus[] = ['PAID', 'PARTIAL', 'DUE'];
 
   constructor(
@@ -45,7 +45,7 @@ export class InvoiceListComponent implements OnInit {
       return (!keyword
           || (invoice.invoiceNo || '').toLowerCase().includes(keyword)
           || (invoice.customerName || '').toLowerCase().includes(keyword))
-        && (!this.statusFilter || invoice.status === this.statusFilter)
+        && (!this.statusFilter || this.displayStatus(invoice) === this.statusFilter)
         && (!this.paymentStatusFilter || invoice.paymentStatus === this.paymentStatusFilter)
         && (!this.dateFrom || invoiceDate >= this.dateFrom)
         && (!this.dateTo || invoiceDate <= this.dateTo);
@@ -192,11 +192,19 @@ export class InvoiceListComponent implements OnInit {
     return this.authService.hasPermission(permission);
   }
 
+  displayStatus(invoice: SalesInvoice): string {
+    if (invoice.status === 'CANCELLED' || invoice.status === 'REVERSED') return 'CANCELLED';
+    if (invoice.paymentStatus === 'PAID' && ['POSTED', 'CLOSED'].includes(invoice.status || '')) return 'PAID';
+    if (['SUBMITTED', 'APPROVED', 'PENDING', 'CONFIRMED'].includes(invoice.status || '')) return 'CONFIRMED';
+    if (['POSTED', 'CLOSED'].includes(invoice.status || '')) return 'POSTED';
+    return 'DRAFT';
+  }
+
   private get activeInvoices(): SalesInvoice[] {
     return this.invoices.filter(invoice => !['CANCELLED', 'REVERSED'].includes(invoice.status || ''));
   }
 
   private isCompleted(invoice: SalesInvoice): boolean {
-    return ['POSTED', 'PARTIAL_PAID', 'PAID', 'COMPLETED'].includes(invoice.status || '');
+    return ['POSTED', 'CLOSED'].includes(invoice.status || '');
   }
 }

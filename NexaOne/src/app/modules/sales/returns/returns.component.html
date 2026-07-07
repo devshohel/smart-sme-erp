@@ -21,11 +21,16 @@
             <td>{{ salesReturn.invoiceNo || 'N/A' }}</td><td>{{ salesReturn.customerName || 'N/A' }}</td>
             <td>{{ salesReturn.returnDate | date:'mediumDate' }}</td>
             <td class="text-end">{{ salesReturn.totalAmount | number:'1.2-2' }}</td>
-            <td><app-sales-status-badge [label]="salesReturn.status || 'DRAFT'"></app-sales-status-badge></td>
-            <td><button type="button" class="btn btn-sm btn-outline-primary" (click)="viewReturn(salesReturn)">View</button></td>
+            <td><app-sales-status-badge [label]="returnStatusLabel(salesReturn)"></app-sales-status-badge></td>
+            <td><div class="d-inline-flex flex-nowrap gap-1">
+              <button type="button" class="btn btn-sm btn-outline-secondary" title="View return" (click)="viewReturn(salesReturn)"><i class="bi bi-eye"></i></button>
+              <button *ngIf="canApprove(salesReturn)" type="button" class="btn btn-sm btn-outline-success" title="Approve return" [disabled]="submitting" (click)="approveReturn(salesReturn)"><i class="bi bi-check-lg"></i></button>
+              <button *ngIf="canReject(salesReturn)" type="button" class="btn btn-sm btn-outline-danger" title="Reject return" [disabled]="submitting" (click)="rejectReturn(salesReturn)"><i class="bi bi-x-lg"></i></button>
+              <button *ngIf="hasPermission('SALES_RETURN_PRINT')" type="button" class="btn btn-sm btn-outline-secondary" title="Print return" (click)="printReturn(salesReturn)"><i class="bi bi-printer"></i></button>
+            </div></td>
           </tr>
           <tr *ngIf="!loading && filteredReturns.length === 0"><td colspan="7" class="text-center text-muted py-5">No sales returns found.</td></tr>
-          <tr *ngIf="loading"><td colspan="7" class="text-center text-muted py-5">Loading sales returns...</td></tr>
+          <ng-container *ngIf="loading"><tr class="skeleton-row" *ngFor="let row of [1,2,3,4]"><td colspan="7"><span></span></td></tr></ng-container>
         </tbody>
       </table>
     </div>
@@ -59,7 +64,7 @@
   <app-card *ngIf="currentMode === 'create' || currentMode === 'edit'" [title]="editingReturnId ? 'Edit Sales Return' : 'Create Sales Return'" subtitle="Select return quantities from the original invoice lines.">
     <form [formGroup]="returnForm" (ngSubmit)="saveReturn()" novalidate>
       <div class="row g-3">
-        <div class="col-md-4"><label class="form-label">Invoice *</label><select class="form-select" formControlName="invoiceId" (change)="onInvoiceChange()" [attr.disabled]="editingReturnId ? true : null"><option [ngValue]="null">Select posted invoice</option><option *ngFor="let invoice of invoices" [ngValue]="invoice.id">{{ invoice.invoiceNo || ('Invoice #' + invoice.id) }}</option></select></div>
+        <div class="col-md-4"><label class="form-label">Find Invoice</label><input class="form-control mb-2" [(ngModel)]="invoiceSearchTerm" [ngModelOptions]="{standalone: true}" placeholder="Type invoice or customer"><select class="form-select" formControlName="invoiceId" (change)="onInvoiceChange()" [attr.disabled]="editingReturnId ? true : null"><option [ngValue]="null">Select posted invoice</option><option *ngFor="let invoice of filteredInvoices" [ngValue]="invoice.id">{{ invoice.invoiceNo || ('Invoice #' + invoice.id) }} - {{ invoice.customerName || 'Customer' }}</option></select></div>
         <div class="col-md-4"><label class="form-label">Customer</label><input class="form-control" [value]="returnContext?.customerName || ''" readonly></div>
         <div class="col-md-4"><label class="form-label">Warehouse</label><input class="form-control" [value]="returnContext?.warehouseName || ''" readonly></div>
         <div class="col-md-4"><label class="form-label">Return Date *</label><input type="date" class="form-control" formControlName="returnDate"></div>
@@ -67,7 +72,7 @@
         <div class="col-12"><label class="form-label">Notes</label><textarea class="form-control" rows="2" formControlName="notes"></textarea></div>
       </div>
 
-      <div class="alert alert-warning mt-3" *ngIf="returnContext && !returnContext.paidRefundSupported">{{ returnContext.limitationMessage }}</div>
+      <div class="alert alert-warning mt-3" *ngIf="returnContext && !returnContext.paidRefundSupported">This return can be created and approved. Final posting remains blocked by the current backend refund/credit-note limitation.</div>
       <div class="alert alert-info mt-3" *ngIf="loading">Loading invoice lines...</div>
       <div class="table-responsive mt-4" *ngIf="items.length">
         <table class="table table-sm align-middle">
@@ -82,7 +87,7 @@
           </tr></tbody>
         </table>
       </div>
-      <div class="d-flex justify-content-between align-items-center mt-4"><strong>Return Total: {{ totalAmount | number:'1.2-2' }}</strong><div class="d-flex gap-2"><button type="button" class="btn btn-outline-secondary" (click)="backToList()">Cancel</button><button type="submit" class="btn btn-success" [disabled]="submitting || loading || !returnContext || !returnContext.paidRefundSupported">{{ submitting ? 'Saving...' : (editingReturnId ? 'Update Return' : 'Save Return') }}</button></div></div>
+      <div class="d-flex justify-content-between align-items-center mt-4"><strong>Return Total: {{ totalAmount | number:'1.2-2' }}</strong><div class="d-flex gap-2"><button type="button" class="btn btn-outline-secondary" (click)="backToList()">Cancel</button><button type="submit" class="btn btn-success" [disabled]="submitting || loading || !returnContext">{{ submitting ? 'Saving...' : (editingReturnId ? 'Update Return' : 'Create Return') }}</button></div></div>
     </form>
   </app-card>
 </div>

@@ -12,6 +12,7 @@ export interface AppNotification {
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
   private nextId = 1;
+  private readonly lastShownAt = new Map<string, number>();
   private readonly notificationsSubject = new BehaviorSubject<AppNotification[]>([]);
 
   readonly notifications$ = this.notificationsSubject.asObservable();
@@ -33,6 +34,10 @@ export class NotificationService {
   }
 
   private notify(type: NotificationType, message: string): void {
+    const key = `${type}:${message}`;
+    const now = Date.now();
+    if (now - (this.lastShownAt.get(key) || 0) < 4000) return;
+    this.lastShownAt.set(key, now);
     const notification: AppNotification = { id: this.nextId++, type, message };
     this.notificationsSubject.next([...this.notificationsSubject.value, notification]);
     window.setTimeout(() => this.dismiss(notification.id), type === 'error' ? 6000 : 3500);

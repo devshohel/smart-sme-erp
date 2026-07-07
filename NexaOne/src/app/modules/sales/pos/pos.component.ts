@@ -4,13 +4,14 @@ import { ProductCategory } from '../../../models/category.model';
 import { InventoryWarehouse } from '../../../models/inventory-warehouse.model';
 import { Product } from '../../../models/product.model';
 import { SalesCustomer } from '../../../models/sales-common.model';
+import { SALES_PAYMENT_METHODS, SalesPaymentInput, SalesPaymentMethod, previewPaymentStatus, toApiPayment } from '../../../models/sales-payment.model';
 import { Stock } from '../../../models/stock.model';
 import { InventoryStockService } from '../../../services/inventory-stock.service';
 import { InventoryWarehouseService } from '../../../services/inventory-warehouse.service';
 import { ProductCategoryService } from '../../../services/product-category.service';
 import { ProductService } from '../../../services/product.service';
 import { SalesCustomerService } from '../../../services/sales-customer.service';
-import { PosPaymentMethod, PosSaleRequest, SalesPosService } from '../../../services/sales-pos.service';
+import { PosSaleRequest, SalesPosService } from '../../../services/sales-pos.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 import { NotificationService } from '../../../shared/services/notification.service';
 import { AuthService } from '../../auth/auth.service';
@@ -40,8 +41,10 @@ export class PosComponent implements OnInit, AfterViewInit {
   barcodeValue = '';
   selectedCategoryId: number | null = null;
   selectedCustomerId: number | null = null;
+  customerSearchTerm = '';
+  customerMenuOpen = false;
   selectedWarehouseId: number | null = null;
-  paymentMethod: PosPaymentMethod = 'CASH';
+  paymentMethod: SalesPaymentMethod = 'CASH';
   paidAmount = 0;
   discountAmount = 0;
   paymentReferenceNo = '';
@@ -51,14 +54,7 @@ export class PosComponent implements OnInit, AfterViewInit {
   stockAvailable = false;
   submitting = false;
 
-  readonly paymentMethods: Array<{ value: PosPaymentMethod; label: string }> = [
-    { value: 'CASH', label: 'Cash' },
-    { value: 'CARD', label: 'Card' },
-    { value: 'MOBILE_BANKING', label: 'Mobile Banking' },
-    { value: 'BANK', label: 'Bank' },
-    { value: 'DUE', label: 'Due' },
-    { value: 'OTHER', label: 'Other' }
-  ];
+  readonly paymentMethods = SALES_PAYMENT_METHODS.filter(method => method.value !== 'CREDIT');
 
   constructor(
     private productService: ProductService,
@@ -111,16 +107,24 @@ export class PosComponent implements OnInit, AfterViewInit {
     return Math.max(this.subtotal - this.normalizedDiscount + this.taxAmount, 0);
   }
 
-  get changeDue(): number {
-    return this.paymentMethod === 'CASH' ? Math.max(Number(this.paidAmount || 0) - this.grandTotal, 0) : 0;
+  get paymentStatusPreview(): string {
+    return previewPaymentStatus(this.paymentInput, this.grandTotal);
   }
 
-  get dueAmount(): number {
+  get dueAmountPreview(): number {
     return Math.max(this.grandTotal - Math.max(Number(this.paidAmount || 0), 0), 0);
   }
 
   get selectedCustomer(): SalesCustomer | undefined {
     return this.customers.find(customer => customer.id === this.selectedCustomerId);
+  }
+
+  get filteredCustomers(): SalesCustomer[] {
+    const keyword = this.customerSearchTerm.trim().toLowerCase();
+    if (!keyword) return this.customers.slice(0, 8);
+    return this.customers.filter(customer => customer.name.toLowerCase().includes(keyword)
+      || (customer.customerCode || '').toLowerCase().includes(keyword)
+      || (customer.phone || '').toLowerCase().includes(keyword)).slice(0, 8);
   }
 
   get validationErrors(): string[] {
@@ -131,10 +135,12 @@ export class PosComponent implements OnInit, AfterViewInit {
     if (!this.selectedWarehouseId) errors.push('Select a warehouse.');
     if (!this.selectedCustomerId) errors.push('Select a customer.');
     if (!Number.isFinite(Number(this.paidAmount)) || Number(this.paidAmount) < 0) errors.push('Paid amount must be a valid non-negative number.');
+    if (this.paymentMethod === 'CREDIT' && Number(this.paidAmount) !== 0) errors.push('Credit sales must have a zero paid amount.');
     if (!Number.isFinite(Number(this.discountAmount)) || Number(this.discountAmount) < 0 || Number(this.discountAmount) > this.subtotal) {
       errors.push('Discount must be between zero and the cart subtotal.');
     }
-    if (this.paymentMethod === 'DUE' && (!this.selectedCustomerId || this.isWalkIn(this.selectedCustomer))) {
+    if (Number(this.paidAmount) > this.grandTotal) errors.push('Paid amount cannot exceed the preview total. The backend confirms the final total.');
+    if (this.paymentMethod === 'CREDIT' && (!this.selectedCustomerId || this.isWalkIn(this.selectedCustomer))) {
       errors.push('Due sales require a known non-walk-in customer until the backend business rule is defined.');
     }
     return errors;
@@ -156,7 +162,9 @@ export class PosComponent implements OnInit, AfterViewInit {
     this.customerService.getAllCustomers().subscribe({
       next: customers => {
         this.customers = customers;
-        this.selectedCustomerId = customers.find(customer => this.isWalkIn(customer))?.id || null;
+        const walkIn = customers.find(customer => this.isWalkIn(customer));
+        this.selectedCustomerId = walkIn?.id || null;
+        this.customerSearchTerm = walkIn?.name || '';
         done();
       },
       error: error => { debugApiError('PosComponent.customers', error); done(); }
@@ -164,7 +172,9 @@ export class PosComponent implements OnInit, AfterViewInit {
     this.warehouseService.getAllWarehouses().subscribe({
       next: warehouses => {
         this.warehouses = warehouses.filter(warehouse => warehouse.active !== false);
-        this.selectedWarehouseId = this.warehouses[0]?.id || null;
+        const savedId = Number(localStorage.getItem(this.warehouseStorageKey()) || 0);
+        const saved = this.warehouses.find(warehouse => warehouse.id === savedId);
+        this.selectedWarehouseId = (saved || (this.warehouses.length === 1 ? this.warehouses[0] : undefined))?.id || null;
         this.loadStock();
         done();
       },
@@ -192,11 +202,60 @@ export class PosComponent implements OnInit, AfterViewInit {
       this.addToCart(product);
       this.warningMessage = '';
     } else {
-      this.warningMessage = `No active product matched barcode/SKU “${this.barcodeValue.trim()}”.`;
+      this.warningMessage = `No active product matched barcode or SKU "${this.barcodeValue.trim()}".`;
     }
     this.barcodeValue = '';
     this.focusBarcode();
   }
+
+  addSearchMatch(): void {
+    const term = this.searchTerm.trim().toLowerCase();
+    if (!term) return;
+    const active = this.products.filter(product => product.status !== 'INACTIVE');
+    const exact = active.find(product => (product.barcode || '').toLowerCase() === term)
+      || active.find(product => (product.sku || '').toLowerCase() === term)
+      || active.find(product => product.productName.toLowerCase() === term);
+    const partial = active.filter(product => product.productName.toLowerCase().includes(term)
+      || (product.sku || '').toLowerCase().includes(term)
+      || (product.barcode || '').toLowerCase().includes(term));
+    const match = exact || (partial.length === 1 ? partial[0] : undefined);
+    if (match) {
+      this.addToCart(match);
+      this.searchTerm = '';
+      this.warningMessage = '';
+    } else {
+      this.warningMessage = partial.length > 1
+        ? 'Multiple products match. Select the required product below.'
+        : `No product matched "${this.searchTerm.trim()}".`;
+    }
+  }
+
+  onCustomerInput(value: string): void {
+    this.customerSearchTerm = value;
+    this.customerMenuOpen = true;
+    const term = value.trim().toLowerCase();
+    if (!term) {
+      this.selectedCustomerId = this.customers.find(customer => this.isWalkIn(customer))?.id || null;
+      return;
+    }
+    const exact = this.customers.find(customer => customer.name.toLowerCase() === term
+      || (customer.customerCode || '').toLowerCase() === term);
+    this.selectedCustomerId = exact?.id || null;
+  }
+
+  selectCustomer(customer: SalesCustomer): void {
+    this.selectedCustomerId = customer.id;
+    this.customerSearchTerm = customer.name;
+    this.customerMenuOpen = false;
+  }
+
+  createCustomer(): void {
+    const url = this.router.serializeUrl(this.router.createUrlTree(['/customers/create']));
+    window.open(url, '_blank', 'noopener');
+    this.customerMenuOpen = false;
+  }
+
+  canCreateCustomer(): boolean { return this.authService.hasPermission('CUSTOMER_CREATE'); }
 
   addToCart(product: Product): void {
     if (product.status === 'INACTIVE') return;
@@ -246,6 +305,7 @@ export class PosComponent implements OnInit, AfterViewInit {
 
   onWarehouseChange(): void {
     this.warningMessage = '';
+    if (this.selectedWarehouseId) localStorage.setItem(this.warehouseStorageKey(), String(this.selectedWarehouseId));
     this.cart.forEach(line => {
       const knownStock = this.stockFor(line.product);
       if (knownStock !== null && line.quantity > knownStock) {
@@ -255,7 +315,7 @@ export class PosComponent implements OnInit, AfterViewInit {
   }
 
   onPaymentMethodChange(): void {
-    this.paidAmount = this.paymentMethod === 'DUE' ? 0 : this.grandTotal;
+    // Payment remains cashier-controlled; method changes never alter the tendered amount.
   }
 
   normalizePaidAmount(): void {
@@ -280,11 +340,7 @@ export class PosComponent implements OnInit, AfterViewInit {
         discount: discounts[index],
         tax: Math.max(line.quantity * line.unitPrice - discounts[index], 0) * Number(line.product.taxPercentage || 0) / 100
       })),
-      payment: {
-        paymentMethod: this.paymentMethod,
-        paidAmount: Math.min(Math.max(Number(this.paidAmount || 0), 0), this.grandTotal),
-        referenceNo: this.paymentReferenceNo.trim() || undefined
-      },
+      payment: toApiPayment(this.paymentInput),
       notes: this.notes.trim() || undefined
     };
     this.submitting = true;
@@ -323,6 +379,11 @@ export class PosComponent implements OnInit, AfterViewInit {
     return !!customer && /walk[\s-]*in/i.test(customer.name || '');
   }
 
+  private warehouseStorageKey(): string {
+    const user = this.authService.getCurrentUser() as any;
+    return `sales_last_warehouse_${user?.id || user?.username || 'current'}`;
+  }
+
   private allocatedDiscounts(): number[] {
     if (!this.cart.length || this.subtotal <= 0 || this.normalizedDiscount <= 0) {
       return this.cart.map(() => 0);
@@ -343,6 +404,15 @@ export class PosComponent implements OnInit, AfterViewInit {
     this.paymentReferenceNo = '';
     this.notes = '';
     this.message = '';
+  }
+
+  private get paymentInput(): SalesPaymentInput {
+    return {
+      paidAmount: Number(this.paidAmount || 0),
+      paymentMethod: this.paymentMethod,
+      reference: this.paymentReferenceNo,
+      notes: this.notes
+    };
   }
 
   private localDateTime(): string {

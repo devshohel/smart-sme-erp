@@ -1,7 +1,7 @@
 .sidebar {
   --sidebar-width: 260px;
   --sidebar-collapsed-width: 76px;
-  --navbar-height: 70px;
+  --navbar-height: 64px;
   width: var(--sidebar-width);
   background: #ffffff;
   position: fixed;
@@ -20,7 +20,7 @@
 
 .brand-section {
   height: var(--navbar-height);
-  padding: 0 20px;
+  padding: 0 16px;
   flex: 0 0 var(--navbar-height);
   font-size: 22px;
   font-weight: 700;
@@ -59,7 +59,7 @@
 }
 
 .nav-links-wrapper {
-  padding: 15px 10px;
+  padding: 10px 8px;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
 }
@@ -67,11 +67,11 @@
 .side-link {
   display: flex;
   align-items: center;
-  padding: 12px 15px;
+  padding: 9px 12px;
   color: #4b5563;
   text-decoration: none;
   border-radius: 10px;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   transition: all 0.2s ease;
   font-weight: 500;
   font-size: 15px;
@@ -107,7 +107,7 @@
 
 .side-link.small {
   font-size: 0.88rem;
-  padding: 10px 15px 10px 31px;
+  padding: 7px 12px 7px 28px;
   margin-bottom: 2px;
   color: #6b7280;
 }
@@ -134,7 +134,7 @@
 }
 
 .sidebar-footer {
-  padding: 15px;
+  padding: 10px 12px;
   border-top: 1px solid #f0f0f0;
   background: #ffffff;
 }
