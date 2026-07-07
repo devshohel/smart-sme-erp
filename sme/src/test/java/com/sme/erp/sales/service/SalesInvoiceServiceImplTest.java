@@ -4,6 +4,7 @@ import com.sme.erp.accounting.service.AccountingPostingService;
 import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.customer.entity.Customer;
+import com.sme.erp.customer.mapper.CustomerMapper;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.inventory.entity.Warehouse;
 import com.sme.erp.inventory.repository.WarehouseRepository;
@@ -71,6 +72,7 @@ class SalesInvoiceServiceImplTest {
                 warehouseRepository,
                 productRepository,
                 uomRepository,
+                new CustomerMapper(),
                 new SalesInvoiceMapper(new SalesItemMapper()),
                 salesReturnRepository,
                 stockService,

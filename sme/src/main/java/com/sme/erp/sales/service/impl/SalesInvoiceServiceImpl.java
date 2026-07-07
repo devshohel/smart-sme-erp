@@ -7,9 +7,12 @@ import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.DuplicateResourceException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
 import com.sme.erp.common.util.RequestValueUtils;
+import com.sme.erp.customer.dto.CustomerDTO;
 import com.sme.erp.customer.entity.Customer;
+import com.sme.erp.customer.mapper.CustomerMapper;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.enums.ProductType;
+import com.sme.erp.enums.Status;
 import com.sme.erp.inventory.entity.Warehouse;
 import com.sme.erp.inventory.repository.WarehouseRepository;
 import com.sme.erp.inventory.service.StockService;
@@ -55,6 +58,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     private final WarehouseRepository warehouseRepository;
     private final ProductRepository productRepository;
     private final UomRepository uomRepository;
+    private final CustomerMapper customerMapper;
     private final SalesInvoiceMapper salesInvoiceMapper;
     private final SalesReturnRepository salesReturnRepository;
     private final StockService stockService;
@@ -70,6 +74,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
             WarehouseRepository warehouseRepository,
             ProductRepository productRepository,
             UomRepository uomRepository,
+            CustomerMapper customerMapper,
             SalesInvoiceMapper salesInvoiceMapper,
             SalesReturnRepository salesReturnRepository,
             StockService stockService,
@@ -83,6 +88,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         this.warehouseRepository = warehouseRepository;
         this.productRepository = productRepository;
         this.uomRepository = uomRepository;
+        this.customerMapper = customerMapper;
         this.salesInvoiceMapper = salesInvoiceMapper;
         this.salesReturnRepository = salesReturnRepository;
         this.stockService = stockService;
@@ -270,7 +276,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         SalesOrder order = findOrderById(dto.getOrderId());
         validateOrderForInvoice(order);
         entity.setOrder(order);
-        entity.setCustomer(findCustomerById(dto.getCustomerId()));
+        entity.setCustomer(resolveCustomer(dto));
         entity.setWarehouse(findWarehouseById(dto.getWarehouseId()));
         entity.setSaleDate(dto.getSaleDate());
         entity.setCreatedBy(dto.getCreatedBy());
@@ -489,6 +495,75 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     private Customer findCustomerById(Long id) {
         return customerRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
+    }
+
+    private Customer resolveCustomer(SalesInvoiceDTO dto) {
+        if (dto.getCustomerId() != null) {
+            if (dto.getNewCustomer() != null) {
+                throw new BadRequestException("Select an existing customer or provide a new customer, not both.");
+            }
+            return findCustomerById(dto.getCustomerId());
+        }
+        if (dto.getNewCustomer() != null) {
+            return createInlineCustomer(dto.getNewCustomer());
+        }
+        throw new BadRequestException("Customer is required");
+    }
+
+    private Customer createInlineCustomer(CustomerDTO dto) {
+        dto.setCustomerCode(RequestValueUtils.normalize(dto.getCustomerCode()));
+        dto.setName(RequestValueUtils.normalizeRequired(dto.getName(), "Customer name"));
+        dto.normalizeCompanyName(RequestValueUtils.normalize(dto.getCompanyName()));
+        dto.normalizeContactPerson(RequestValueUtils.normalize(dto.getContactPerson()));
+        dto.normalizePhone(RequestValueUtils.normalize(dto.getPhone()));
+        dto.normalizeEmail(RequestValueUtils.normalize(dto.getEmail()));
+        dto.normalizeAddress(RequestValueUtils.normalize(dto.getAddress()));
+        dto.normalizeCity(RequestValueUtils.normalize(dto.getCity()));
+        dto.normalizeCountry(RequestValueUtils.normalize(dto.getCountry()));
+        dto.normalizePostalCode(RequestValueUtils.normalize(dto.getPostalCode()));
+        dto.normalizeTaxNumber(RequestValueUtils.normalize(dto.getTaxNumber()));
+        validateInlineCustomerUnique(dto);
+
+        Customer customer = new Customer();
+        customer.setCustomerCode(resolveCustomerCodeForCreate(dto.getCustomerCode()));
+        customerMapper.updateEntity(dto, customer);
+        customer.setStatus(dto.getStatus() != null ? dto.getStatus() : Status.ACTIVE);
+        customer.setCreditLimit(nonNegative(dto.getCreditLimit(), "Credit limit cannot be negative"));
+        customer.setOpeningBalance(nonNegative(dto.getOpeningBalance(), "Opening balance cannot be negative"));
+        customer.setCurrentBalance(customer.getOpeningBalance());
+        customer.setIsDeleted(false);
+
+        Customer saved = customerRepository.save(customer);
+        CustomerDTO savedDto = customerMapper.toDTO(saved);
+        activityLogService.log("CUSTOMER_CREATE", "CUSTOMER", "customers", saved.getId(), "Created customer " + saved.getName());
+        auditLogService.log("customers", saved.getId(), null, auditLogService.toJson(savedDto), "CREATE");
+        return saved;
+    }
+
+    private void validateInlineCustomerUnique(CustomerDTO dto) {
+        if (dto.getEmail() != null && customerRepository.existsByEmail(dto.getEmail())) {
+            throw new DuplicateResourceException("Customer email already exists: " + dto.getEmail());
+        }
+        if (dto.getPhone() != null && customerRepository.existsByPhone(dto.getPhone())) {
+            throw new DuplicateResourceException("Customer phone already exists: " + dto.getPhone());
+        }
+    }
+
+    private String resolveCustomerCodeForCreate(String requestedCode) {
+        if (requestedCode != null) {
+            if (customerRepository.countByCustomerCodeIncludingDeleted(requestedCode) > 0) {
+                throw new DuplicateResourceException("Customer code already exists: " + requestedCode);
+            }
+            return requestedCode;
+        }
+
+        long nextNumber = customerRepository.findMaxIdIncludingDeleted() + 1;
+        String generated = String.format("CUS-%04d", nextNumber);
+        while (customerRepository.countByCustomerCodeIncludingDeleted(generated) > 0) {
+            nextNumber++;
+            generated = String.format("CUS-%04d", nextNumber);
+        }
+        return generated;
     }
 
     private Warehouse findWarehouseById(Long id) {

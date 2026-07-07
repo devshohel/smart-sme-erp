@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
+import { Result } from '@zxing/library';
 import { InventoryWarehouse } from '../../../models/inventory-warehouse.model';
 import { Product } from '../../../models/product.model';
 import { PaymentStatus, SalesCustomer, SalesInvoiceLineItem } from '../../../models/sales-common.model';
@@ -17,12 +19,15 @@ import { SalesOrderService } from '../../../services/sales-order.service';
 import { debugApiError, extractApiErrorMessage } from '../../../shared/utils/api-error.util';
 import { AuthService } from '../../auth/auth.service';
 
+type DiscountType = 'PERCENTAGE' | 'FIXED';
+
 @Component({
   selector: 'app-sales-invoice-form',
   templateUrl: './invoice-form.component.html',
   styleUrls: ['./invoice-form.component.css']
 })
-export class InvoiceFormComponent implements OnInit {
+export class InvoiceFormComponent implements OnInit, OnDestroy {
+  @ViewChild('scannerVideo') scannerVideo?: ElementRef<HTMLVideoElement>;
   form: FormGroup;
   mode: 'create' | 'edit' | 'details' = 'create';
   invoice: SalesInvoice | null = null;
@@ -35,6 +40,14 @@ export class InvoiceFormComponent implements OnInit {
   stockWarning = '';
   customerSearchTerm = '';
   customerMenuOpen = false;
+  showInlineCustomerForm = false;
+  barcodeScan = '';
+  productSearchTerms: string[] = [];
+  productMenusOpen: boolean[] = [];
+  scannerOpen = false;
+  scannerMessage = '';
+  private scannerReader?: BrowserMultiFormatReader;
+  private scannerControls?: IScannerControls;
   loading = false;
   submitting = false;
   errorMessage = '';
@@ -54,10 +67,20 @@ export class InvoiceFormComponent implements OnInit {
   ) {
     this.form = this.fb.group({
       orderId: [null],
-      customerId: [null, Validators.required],
+      customerId: [null],
       warehouseId: [null, Validators.required],
       saleDate: [this.today(), Validators.required],
       notes: ['', Validators.maxLength(500)],
+      discountType: ['PERCENTAGE', Validators.required],
+      discountValue: [0, [Validators.required, Validators.min(0)]],
+      vatPercentage: [0, [Validators.required, Validators.min(0)]],
+      adjustmentAmount: [0, Validators.required],
+      newCustomer: this.fb.group({
+        name: ['', Validators.maxLength(255)],
+        phone: ['', Validators.maxLength(100)],
+        email: ['', [Validators.email, Validators.maxLength(255)]],
+        address: ['']
+      }),
       payment: this.fb.group({
         paidAmount: [0, [Validators.required, Validators.min(0)]],
         paymentMethod: ['CASH', Validators.required],
@@ -84,12 +107,28 @@ export class InvoiceFormComponent implements OnInit {
     if (id) this.loadInvoice(id);
   }
 
+  ngOnDestroy(): void {
+    this.stopScanner();
+  }
+
   get items(): FormArray { return this.form.get('items') as FormArray; }
-  get totalAmount(): number { return this.items.controls.reduce((sum, row) => sum + Number(row.get('quantity')?.value || 0) * Number(row.get('unitPrice')?.value || 0), 0); }
-  get discountAmount(): number { return this.items.controls.reduce((sum, row) => sum + Number(row.get('discount')?.value || 0), 0); }
-  get taxAmount(): number { return this.items.controls.reduce((sum, row) => sum + Number(row.get('tax')?.value || 0), 0); }
-  get netTotal(): number { return this.totalAmount - this.discountAmount + this.taxAmount; }
-  get dueAmount(): number | null { return this.invoice ? Number(this.invoice.dueAmount || 0) : null; }
+  get grossAmount(): number { return this.items.controls.reduce((sum, row) => sum + Number(row.get('quantity')?.value || 0) * Number(row.get('unitPrice')?.value || 0), 0); }
+  get totalAmount(): number { return this.roundMoney(this.items.controls.reduce((sum, _, index) => sum + this.rowSubtotal(index), 0)); }
+  get discountAmount(): number {
+    const type = (this.form.get('discountType')?.value || 'PERCENTAGE') as DiscountType;
+    const value = Number(this.form.get('discountValue')?.value || 0);
+    const discount = type === 'PERCENTAGE' ? this.totalAmount * Math.min(value, 100) / 100 : value;
+    return this.roundMoney(Math.min(Math.max(discount, 0), this.totalAmount));
+  }
+  get taxAmount(): number {
+    const taxable = Math.max(this.totalAmount - this.discountAmount, 0);
+    const percentage = Math.max(Number(this.form.get('vatPercentage')?.value || 0), 0);
+    return this.roundMoney(taxable * percentage / 100);
+  }
+  get adjustmentAmount(): number { return this.roundMoney(Number(this.form.get('adjustmentAmount')?.value || 0)); }
+  get netTotal(): number { return this.roundMoney(Math.max(this.totalAmount - this.discountAmount + this.taxAmount + this.adjustmentAmount, 0)); }
+  get previewDueAmount(): number { return this.roundMoney(Math.max(this.netTotal - this.paymentInput.paidAmount, 0)); }
+  get dueAmount(): number | null { return this.invoice ? Number(this.invoice.dueAmount || 0) : this.previewDueAmount; }
   get paymentStatus(): PaymentStatus | null { return this.invoice?.paymentStatus ?? null; }
   get paymentStatusPreview(): PaymentStatus { return previewPaymentStatus(this.paymentInput, this.netTotal); }
   get filteredCustomers(): SalesCustomer[] {
@@ -108,10 +147,17 @@ export class InvoiceFormComponent implements OnInit {
       discount: [item?.discount ?? 0, [Validators.required, Validators.min(0)]],
       tax: [item?.tax ?? 0, [Validators.required, Validators.min(0)]]
     }));
+    const product = item?.productId ? this.products.find(current => current.id === Number(item.productId)) : null;
+    this.productSearchTerms.push(item?.productName || product?.productName || '');
+    this.productMenusOpen.push(false);
   }
 
   removeItem(index: number): void {
-    if (this.items.length > 1) this.items.removeAt(index);
+    if (this.items.length > 1) {
+      this.items.removeAt(index);
+      this.productSearchTerms.splice(index, 1);
+      this.productMenusOpen.splice(index, 1);
+    }
   }
 
   rowSubtotal(index: number): number {
@@ -130,10 +176,45 @@ export class InvoiceFormComponent implements OnInit {
     }
   }
 
+  onProductInput(index: number, value: string): void {
+    this.productSearchTerms[index] = value;
+    this.productMenusOpen[index] = true;
+    const selected = this.products.find(product => product.id === Number(this.items.at(index).get('productId')?.value));
+    if (!selected || selected.productName.toLowerCase() !== value.trim().toLowerCase()) {
+      this.items.at(index).patchValue({ productId: null, unitPrice: 0, discount: 0, tax: 0 });
+    }
+  }
+
+  selectProduct(index: number, product: Product): void {
+    if (!product.id || !this.isProductAvailable(product)) return;
+    const row = this.items.at(index);
+    row.patchValue({
+      productId: product.id,
+      unitPrice: Number(product.salePrice || 0),
+      discount: Number(row.get('discount')?.value || 0),
+      tax: Number(row.get('tax')?.value || 0)
+    });
+    this.productSearchTerms[index] = product.productName;
+    this.productMenusOpen[index] = false;
+    this.stockWarning = '';
+  }
+
+  filteredProducts(index: number): Product[] {
+    const keyword = (this.productSearchTerms[index] || '').trim().toLowerCase();
+    return this.availableProducts()
+      .filter(product => !keyword || product.productName.toLowerCase().includes(keyword))
+      .slice(0, 10);
+  }
+
+  closeProductMenu(index: number): void {
+    setTimeout(() => this.productMenusOpen[index] = false, 150);
+  }
+
   onCustomerInput(value: string): void {
     this.customerSearchTerm = value;
     this.customerMenuOpen = true;
     const term = value.trim().toLowerCase();
+    if (this.showInlineCustomerForm) return;
     if (!term) {
       const walkIn = this.customers.find(customer => /walk[\s-]*in/i.test(customer.name || ''));
       this.form.patchValue({ customerId: walkIn?.id || null });
@@ -148,11 +229,14 @@ export class InvoiceFormComponent implements OnInit {
     this.form.patchValue({ customerId: customer.id });
     this.customerSearchTerm = customer.name;
     this.customerMenuOpen = false;
+    this.showInlineCustomerForm = false;
+    this.form.get('newCustomer')?.reset({ name: '', phone: '', email: '', address: '' });
   }
 
   createCustomer(): void {
-    const url = this.router.serializeUrl(this.router.createUrlTree(['/customers/create']));
-    window.open(url, '_blank', 'noopener');
+    this.showInlineCustomerForm = true;
+    this.form.patchValue({ customerId: null });
+    this.form.get('newCustomer.name')?.setValue(this.customerSearchTerm.trim());
     this.customerMenuOpen = false;
   }
 
@@ -160,9 +244,12 @@ export class InvoiceFormComponent implements OnInit {
     const warehouseId = Number(this.form.get('warehouseId')?.value || 0);
     if (warehouseId) localStorage.setItem(this.warehouseStorageKey(), String(warehouseId));
     this.stockWarning = '';
-    this.items.controls.forEach(row => {
+    this.items.controls.forEach((row, index) => {
       const product = this.products.find(item => item.id === Number(row.get('productId')?.value));
-      if (product) this.warnForStock(product);
+      if (product && !this.isProductAvailable(product)) {
+        row.patchValue({ productId: null, unitPrice: 0, discount: 0, tax: 0 });
+        this.productSearchTerms[index] = '';
+      }
     });
   }
 
@@ -180,9 +267,55 @@ export class InvoiceFormComponent implements OnInit {
     if (!this.items.length) this.addItem();
   }
 
-  save(confirmInvoice = false): void {
+  scanBarcode(): void {
+    const code = this.barcodeScan.trim().toLowerCase();
     this.errorMessage = '';
-    if (this.form.invalid || !this.items.length || (this.mode === 'edit' && !this.canEdit())) {
+    if (!code) return;
+    const product = this.products.find(item => (item.barcode || '').toLowerCase() === code || (item.sku || '').toLowerCase() === code);
+    if (!product?.id) {
+      this.stockWarning = `No product found for barcode ${this.barcodeScan.trim()}.`;
+      return;
+    }
+    if (!this.isProductAvailable(product)) {
+      this.stockWarning = `${product.productName} is out of stock in the selected warehouse.`;
+      return;
+    }
+    const existingIndex = this.items.controls.findIndex(row => Number(row.get('productId')?.value) === product.id);
+    const targetIndex = existingIndex >= 0 ? existingIndex : this.findEmptyItemIndex();
+    if (targetIndex >= 0) {
+      const row = this.items.at(targetIndex);
+      row.patchValue({
+        productId: product.id,
+        quantity: existingIndex >= 0 ? Number(row.get('quantity')?.value || 0) + 1 : 1,
+        unitPrice: Number(product.salePrice || 0),
+        discount: 0,
+        tax: 0
+      });
+      this.productSearchTerms[targetIndex] = product.productName;
+    } else {
+      this.addItem({ productId: product.id, quantity: 1, unitPrice: Number(product.salePrice || 0), discount: 0, tax: 0, subtotal: Number(product.salePrice || 0) });
+    }
+    this.barcodeScan = '';
+    this.stockWarning = '';
+  }
+
+  async openScanner(): Promise<void> {
+    this.scannerMessage = '';
+    this.scannerOpen = true;
+    setTimeout(() => this.startScanner());
+  }
+
+  closeScanner(): void {
+    this.scannerOpen = false;
+    this.stopScanner();
+  }
+
+  save(): void {
+    this.errorMessage = '';
+    if (this.showInlineCustomerForm) {
+      this.form.get('newCustomer')?.markAllAsTouched();
+    }
+    if (this.form.invalid || !this.hasValidCustomer() || !this.items.length || (this.mode === 'edit' && !this.canEdit())) {
       this.form.markAllAsTouched();
       this.errorMessage = 'Complete all required fields and enter valid item quantities and prices.';
       return;
@@ -196,22 +329,16 @@ export class InvoiceFormComponent implements OnInit {
       this.errorMessage = 'Paid amount cannot exceed the invoice preview total. Final totals are confirmed by the backend.';
       return;
     }
+    if (this.items.controls.some(row => {
+      const product = this.products.find(item => item.id === Number(row.get('productId')?.value));
+      return product ? !this.isProductAvailable(product) : false;
+    })) {
+      this.errorMessage = 'Remove unavailable products or choose a warehouse with stock before saving the invoice.';
+      return;
+    }
     this.submitting = true;
     this.invoiceService.saveInvoice(this.buildPayload()).subscribe({
-      next: saved => {
-        if (confirmInvoice && saved.id && this.hasPermission('SALES_INVOICE_SUBMIT')) {
-          this.invoiceService.submitInvoice(saved.id).subscribe({
-            next: confirmed => this.navigateToSavedInvoice(confirmed, payment),
-            error: error => {
-              this.submitting = false;
-              this.errorMessage = extractApiErrorMessage(error, 'Draft was saved, but invoice confirmation failed.');
-              this.navigateToSavedInvoice(saved, payment);
-            }
-          });
-          return;
-        }
-        this.navigateToSavedInvoice(saved, payment);
-      },
+      next: () => this.navigateToSalesList(),
       error: error => {
         this.submitting = false;
         this.errorMessage = extractApiErrorMessage(error, 'Invoice could not be saved.');
@@ -316,7 +443,7 @@ export class InvoiceFormComponent implements OnInit {
   private applyInvoice(invoice: SalesInvoice): void {
     this.invoice = invoice;
     this.clearItems();
-    this.form.patchValue({ orderId: invoice.orderId ?? null, customerId: invoice.customerId, warehouseId: invoice.warehouseId, saleDate: (invoice.saleDate || '').slice(0, 10), notes: invoice.notes || '' });
+    this.form.patchValue({ orderId: invoice.orderId ?? null, customerId: invoice.customerId, warehouseId: invoice.warehouseId, saleDate: (invoice.saleDate || '').slice(0, 10), notes: invoice.notes || '', discountType: 'FIXED', discountValue: invoice.discountAmount || 0, vatPercentage: 0, adjustmentAmount: 0 });
     this.customerSearchTerm = invoice.customerName || this.customers.find(customer => customer.id === invoice.customerId)?.name || '';
     (invoice.items || []).forEach(item => this.addItem(item));
     if (!this.items.length) this.addItem();
@@ -331,19 +458,22 @@ export class InvoiceFormComponent implements OnInit {
     return {
       id: this.mode === 'edit' ? this.invoice?.id : undefined,
       orderId: value.orderId ? Number(value.orderId) : null,
-      customerId: Number(value.customerId), warehouseId: Number(value.warehouseId), saleDate: value.saleDate,
+      customerId: value.customerId ? Number(value.customerId) : null,
+      newCustomer: this.showInlineCustomerForm ? this.normalizeInlineCustomer(value.newCustomer) : null,
+      warehouseId: Number(value.warehouseId), saleDate: value.saleDate,
       notes: value.notes || '', totalAmount: this.totalAmount, discountAmount: this.discountAmount,
       taxAmount: this.taxAmount, netTotal: this.netTotal, paidAmount: Number(this.invoice?.paidAmount || 0),
       dueAmount: this.mode === 'edit' ? Number(this.invoice?.dueAmount || 0) : 0, paymentStatus: this.paymentStatus,
       status: this.mode === 'edit' ? this.invoice?.status : 'DRAFT',
-      items: value.items.map((item: any, index: number) => ({
-        productId: Number(item.productId), quantity: Number(item.quantity), unitPrice: Number(item.unitPrice),
-        discount: Number(item.discount), tax: Number(item.tax), subtotal: this.rowSubtotal(index)
-      }))
+      items: this.buildInvoiceItems(value.items)
     };
   }
 
-  private clearItems(): void { while (this.items.length) this.items.removeAt(0); }
+  private clearItems(): void {
+    while (this.items.length) this.items.removeAt(0);
+    this.productSearchTerms = [];
+    this.productMenusOpen = [];
+  }
   private today(): string { return new Date().toISOString().slice(0, 10); }
   private isCompleted(): boolean { return ['POSTED', 'CLOSED', 'PARTIAL_PAID', 'PAID', 'COMPLETED'].includes(this.invoice?.status || ''); }
 
@@ -367,21 +497,128 @@ export class InvoiceFormComponent implements OnInit {
     const warehouseId = Number(this.form.get('warehouseId')?.value || 0);
     if (!this.stockAvailable || !warehouseId || product.type === 'SERVICE') return;
     const quantity = Number(this.stocks.find(stock => stock.productId === product.id && stock.warehouseId === warehouseId)?.quantity || 0);
-    if (quantity <= 0) this.stockWarning = `${product.productName} has no available stock in the selected warehouse. You may continue or change the product/warehouse.`;
+    if (quantity <= 0) this.stockWarning = `${product.productName} is out of stock in the selected warehouse.`;
   }
 
-  private navigateToSavedInvoice(saved: SalesInvoice, payment: SalesPaymentInput): void {
+  private navigateToSalesList(): void {
     this.submitting = false;
-    this.router.navigate(['/sales', saved.id, 'view'], { queryParams: payment.paidAmount > 0 ? {
-      paymentAmount: payment.paidAmount,
-      paymentMethod: payment.paymentMethod,
-      paymentReference: payment.reference,
-      paymentNotes: payment.notes
-    } : undefined });
+    this.router.navigate(['/sales']);
   }
 
   private warehouseStorageKey(): string {
     const user = this.authService.getCurrentUser() as any;
     return `sales_last_warehouse_${user?.id || user?.username || 'current'}`;
+  }
+
+  isProductAvailable(product: Product): boolean {
+    if (product.type === 'SERVICE') return true;
+    if (!this.form.get('warehouseId')?.value) return false;
+    if (!this.stockAvailable) return true;
+    return this.productStock(product) > 0;
+  }
+
+  private productStock(product: Product): number {
+    const warehouseId = Number(this.form.get('warehouseId')?.value || 0);
+    return Number(this.stocks.find(stock => stock.productId === product.id && stock.warehouseId === warehouseId)?.quantity || 0);
+  }
+
+  hasValidCustomer(): boolean {
+    const name = String(this.form.get('newCustomer.name')?.value || '').trim();
+    return Boolean(this.form.get('customerId')?.value) || (this.showInlineCustomerForm && name.length > 0 && Boolean(this.form.get('newCustomer')?.valid));
+  }
+
+  private normalizeInlineCustomer(value: any): Partial<SalesCustomer> {
+    return {
+      name: (value?.name || '').trim(),
+      phone: (value?.phone || '').trim() || undefined,
+      email: (value?.email || '').trim() || undefined,
+      address: (value?.address || '').trim() || undefined
+    };
+  }
+
+  private buildInvoiceItems(rawItems: any[]): SalesInvoiceLineItem[] {
+    const positiveAdjustment = Math.max(this.adjustmentAmount, 0);
+    const negativeAdjustment = Math.abs(Math.min(this.adjustmentAmount, 0));
+    const totalDiscount = this.discountAmount + negativeAdjustment;
+    const totalTax = this.taxAmount + positiveAdjustment;
+    let allocatedDiscount = 0;
+    let allocatedTax = 0;
+    return rawItems.map((item: any, index: number) => {
+      const gross = Number(item.quantity) * Number(item.unitPrice);
+      const rowDiscount = Number(item.discount || 0);
+      const rowTax = Number(item.tax || 0);
+      const isLast = index === rawItems.length - 1;
+      const ratio = this.grossAmount > 0 ? gross / this.grossAmount : 0;
+      const invoiceDiscount = isLast ? this.roundMoney(totalDiscount - allocatedDiscount) : this.roundMoney(totalDiscount * ratio);
+      const invoiceTax = isLast ? this.roundMoney(totalTax - allocatedTax) : this.roundMoney(totalTax * ratio);
+      allocatedDiscount += invoiceDiscount;
+      allocatedTax += invoiceTax;
+      const discount = this.roundMoney(rowDiscount + invoiceDiscount);
+      const tax = this.roundMoney(rowTax + invoiceTax);
+      return {
+        productId: Number(item.productId),
+        quantity: Number(item.quantity),
+        unitPrice: Number(item.unitPrice),
+        discount,
+        tax,
+        subtotal: this.roundMoney(gross - discount + tax)
+      };
+    });
+  }
+
+  private findEmptyItemIndex(): number {
+    return this.items.controls.findIndex(row => !row.get('productId')?.value);
+  }
+
+  private roundMoney(value: number): number {
+    return Math.round((Number(value) || 0) * 100) / 100;
+  }
+
+  private availableProducts(): Product[] {
+    return this.products.filter(product => this.isProductAvailable(product));
+  }
+
+  private async startScanner(): Promise<void> {
+    const video = this.scannerVideo?.nativeElement;
+    if (!this.scannerOpen || !video) return;
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        this.scannerMessage = 'Camera scanning is not available in this browser.';
+        return;
+      }
+      this.stopScanner();
+      this.scannerReader = this.scannerReader || new BrowserMultiFormatReader();
+      this.scannerControls = await this.scannerReader.decodeFromVideoDevice(undefined, video, (result: Result | undefined) => {
+        const text = result?.getText()?.trim();
+        if (!text) return;
+        this.barcodeScan = text;
+        this.closeScanner();
+        this.scanBarcode();
+      });
+    } catch (error: any) {
+      this.scannerMessage = this.scannerErrorMessage(error);
+      debugApiError('InvoiceForm.startScanner', error);
+    }
+  }
+
+  private stopScanner(): void {
+    this.scannerControls?.stop();
+    this.scannerControls = undefined;
+    const video = this.scannerVideo?.nativeElement;
+    if (video) video.srcObject = null;
+  }
+
+  private scannerErrorMessage(error: any): string {
+    const name = error?.name || '';
+    if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+      return 'Camera permission was denied. Allow camera access and try again.';
+    }
+    if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+      return 'No camera was found on this device.';
+    }
+    if (name === 'NotReadableError' || name === 'TrackStartError') {
+      return 'The camera is already in use by another application.';
+    }
+    return 'Unable to start the camera scanner. Check camera permission and try again.';
   }
 }

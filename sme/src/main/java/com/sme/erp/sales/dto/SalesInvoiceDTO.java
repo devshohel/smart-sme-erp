@@ -2,6 +2,7 @@ package com.sme.erp.sales.dto;
 
 import com.sme.erp.sales.enums.SalesInvoiceStatus;
 import com.sme.erp.sales.enums.SalesPaymentStatus;
+import com.sme.erp.customer.dto.CustomerDTO;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -22,11 +23,13 @@ public class SalesInvoiceDTO {
 
     private String orderNo;
 
-    @NotNull(message = "Customer id is required")
     @Positive(message = "Customer id must be positive")
     private Long customerId;
 
     private String customerName;
+
+    @Valid
+    private CustomerDTO newCustomer;
 
     @NotNull(message = "Warehouse id is required")
     @Positive(message = "Warehouse id must be positive")
@@ -84,6 +87,9 @@ public class SalesInvoiceDTO {
 
     public String getCustomerName() { return customerName; }
     public void setCustomerName(String customerName) { this.customerName = customerName; }
+
+    public CustomerDTO getNewCustomer() { return newCustomer; }
+    public void setNewCustomer(CustomerDTO newCustomer) { this.newCustomer = newCustomer; }
 
     public Long getWarehouseId() { return warehouseId; }
     public void setWarehouseId(Long warehouseId) { this.warehouseId = warehouseId; }

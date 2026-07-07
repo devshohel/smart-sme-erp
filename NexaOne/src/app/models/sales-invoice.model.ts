@@ -8,6 +8,7 @@ export interface SalesInvoice {
   customerId: number | null;
   customerName?: string;
   customer?: SalesCustomer;
+  newCustomer?: Partial<SalesCustomer> | null;
   warehouseId: number | null;
   warehouseName?: string;
   saleDate: string;
