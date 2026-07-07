@@ -1,7 +1,7 @@
 .summary-panel {
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 0.75rem;
-  padding: 0.85rem 1rem;
+  padding: 0.75rem 0.85rem;
   background: #f8f9fa;
 }
 
@@ -11,7 +11,7 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: #6c757d;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.55rem;
 }
 
 .purchase-form-shell {
@@ -31,7 +31,7 @@
 
 .purchase-items-table th,
 .purchase-items-table td {
-  padding: 0.8rem 0.75rem;
+  padding: 0.58rem 0.68rem;
   vertical-align: middle;
 }
 

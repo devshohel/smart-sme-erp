@@ -5,7 +5,7 @@
   --nex-bg: #f2f7f4;
   --nex-white: #ffffff;
   --nex-sidebar-width: 260px;
-  --nex-navbar-height: 70px;
+  --nex-navbar-height: 64px;
 }
 
 html,
@@ -36,6 +36,59 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   padding: 14px;
   margin-bottom: 14px;
+}
+
+.page-content > *,
+.page-content > .container,
+.page-content > .container-fluid {
+  width: 100%;
+  max-width: none !important;
+}
+
+.page-content > .container,
+.page-content > .container-fluid,
+.page-content > [class$="-page"] {
+  padding: 0 !important;
+}
+
+.page-title-row,
+.reports-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.page-title-row > :first-child,
+.reports-header > :first-child,
+.page-header > :first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.toolbar-actions,
+.export-actions,
+.bulk-actions,
+.filter-actions,
+.header-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+}
+
+.toolbar-actions,
+.export-actions,
+.header-action {
+  flex-wrap: wrap;
+}
+
+.toolbar-actions .btn,
+.export-actions .btn,
+.header-action .btn {
+  white-space: nowrap;
 }
 
 app-page-header + app-card,
@@ -94,13 +147,35 @@ app-page-header + div {
   padding: 0.85rem !important;
 }
 
+.list-card,
+.report-card,
+.table-wrap,
+app-card {
+  max-width: 100%;
+}
+
 .table-responsive {
+  width: 100%;
+  max-width: 100%;
   margin-bottom: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table > :not(caption) > * > * {
   padding: 0.58rem 0.68rem;
   vertical-align: middle;
+}
+
+.table-responsive > .table,
+.table-responsive table {
+  min-width: 100%;
+}
+
+.table-responsive th,
+.table-responsive td {
+  white-space: nowrap;
 }
 
 .erp-data-table {
@@ -288,6 +363,19 @@ app-returns app-card:first-of-type table tbody td:last-child .btn::before {
 
 @media (max-width: 767px) {
   .sales-pagination { align-items: flex-start; flex-direction: column; }
+
+  .page-title-row,
+  .reports-header,
+  .page-header {
+    flex-direction: column;
+  }
+
+  .toolbar-actions,
+  .export-actions,
+  .header-action {
+    justify-content: flex-start;
+    width: 100%;
+  }
 }
 
 .btn-action:hover {

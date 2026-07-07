@@ -12,8 +12,8 @@
 }
 
 .filter-card {
-  padding: 1rem;
-  margin-bottom: 1rem;
+  padding: .85rem;
+  margin-bottom: .75rem;
 }
 
 .list-card {
@@ -26,13 +26,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: .75rem;
-  flex-wrap: wrap;
+  gap: .6rem;
+  flex-wrap: nowrap;
 }
 
 .list-toolbar,
 .pagination-row {
-  padding: .85rem 1rem;
+  padding: .68rem .85rem;
   border-bottom: 1px solid #e6ece8;
 }
 
@@ -66,6 +66,10 @@
 .table td {
   color: #25342c;
   vertical-align: middle;
+}
+
+.table-responsive table {
+  min-width: 1080px;
 }
 
 .loading-panel,
@@ -107,5 +111,6 @@
   .filter-buttons .btn,
   .page-size {
     width: 100%;
+    flex-wrap: wrap;
   }
 }

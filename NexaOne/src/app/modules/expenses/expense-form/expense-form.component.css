@@ -1,4 +1,4 @@
-.expense-form-page { max-width: 1100px; }
+.expense-form-page { max-width: none; width: 100%; }
 .expense-form { background: #fff; border: 1px solid #dfe8e1; border-radius: 8px; padding: 1rem; }
 .loading-panel { text-align: center; color: #64748b; padding: 2rem; }
 .receipt-panel { border: 1px solid #dfe8e1; border-radius: 6px; padding: .65rem .75rem; background: #f8fafc; }

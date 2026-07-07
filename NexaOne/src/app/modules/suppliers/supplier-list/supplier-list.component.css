@@ -1,18 +1,20 @@
 .supplier-list-page {
-  max-width: 1480px;
+  max-width: none;
+  width: 100%;
 }
 
 .page-title-row,
 .list-toolbar,
 .pagination-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
+  gap: .8rem;
+  flex-wrap: nowrap;
 }
 
 .page-title-row {
-  margin-bottom: 1rem;
+  margin-bottom: .65rem;
 }
 
 .toolbar-actions,
@@ -20,6 +22,11 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.toolbar-actions {
+  justify-content: flex-end;
 }
 
 .filter-card,
@@ -31,8 +38,8 @@
 }
 
 .filter-card {
-  padding: 1rem;
-  margin-bottom: 1rem;
+  padding: .85rem;
+  margin-bottom: .75rem;
 }
 
 .supplier-filter-form {
@@ -57,7 +64,7 @@
 
 .list-toolbar,
 .pagination-row {
-  padding: 0.85rem 1rem;
+  padding: .68rem .85rem;
   border-bottom: 1px solid #e7ece7;
 }
 
@@ -75,8 +82,8 @@
 }
 
 .supplier-table {
-  min-width: 1080px;
-  font-size: 0.9rem;
+  min-width: 1180px;
+  font-size: 0.86rem;
 }
 
 .supplier-table th {
@@ -103,6 +110,7 @@
 .balance-col { width: 12%; }
 .status-col { width: 8%; }
 .action-col { width: 120px; }
+.row-actions { justify-content: center; }
 
 .supplier-name {
   font-weight: 600;
@@ -184,9 +192,16 @@
 
 @media (max-width: 768px) {
   .page-title-row,
+  .list-toolbar,
   .pagination-row {
     align-items: flex-start;
     flex-direction: column;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-actions,
+  .row-actions {
+    flex-wrap: wrap;
   }
 
   .supplier-filter-form {

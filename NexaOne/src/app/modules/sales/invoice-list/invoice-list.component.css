@@ -1,6 +1,8 @@
-.summary-card { height: 100%; padding: 1rem 1.1rem; border: 1px solid rgba(0,0,0,.08); border-radius: .75rem; background: #fff; display: flex; flex-direction: column; gap: .35rem; }
+.sales-header { margin-bottom: .65rem; }
+.summary-cards { margin-bottom: .75rem !important; }
+.summary-card { height: 100%; padding: .78rem .9rem; border: 1px solid rgba(0,0,0,.08); border-radius: .65rem; background: #fff; display: flex; flex-direction: column; gap: .25rem; }
 .summary-card span { color: #6c757d; font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
-.summary-card strong { font-size: 1.35rem; }
+.summary-card strong { font-size: 1.16rem; }
 .summary-card.due { border-left: 4px solid #dc3545; }
 .date-filter { min-width: 145px; }
 .table-actions { display: inline-flex; align-items: center; flex-wrap: nowrap; gap: .3rem; white-space: nowrap; }
@@ -10,6 +12,7 @@
 .btn-cancel { color: #dc3545; }
 .skeleton-row td { padding: .85rem; }
 .skeleton-row span { display: block; height: 1rem; border-radius: .35rem; background: linear-gradient(90deg,#edf0f2 25%,#f8f9fa 50%,#edf0f2 75%); background-size: 200% 100%; animation: tableShimmer 1.2s infinite; }
+.sales-table { min-width: 980px; }
 @keyframes tableShimmer { to { background-position: -200% 0; } }
 @media (max-width: 767px) { .sales-list-page { padding: 1rem !important; } }
 @media print { .sales-list-page { display: none; } }

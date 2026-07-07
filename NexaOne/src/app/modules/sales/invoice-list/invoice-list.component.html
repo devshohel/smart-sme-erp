@@ -1,9 +1,10 @@
 <div class="container-fluid p-4 sales-list-page">
-  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-    <app-page-header title="All Sales" subtitle="Review invoices, payment status, and outstanding balances."></app-page-header>
-    <a *ngIf="hasPermission('SALES_INVOICE_CREATE')" class="btn btn-success" routerLink="/sales/add">
-      <i class="bi bi-plus-lg me-1"></i>Add Sale
-    </a>
+  <div class="sales-header">
+    <app-page-header title="All Sales" subtitle="Review invoices, payment status, and outstanding balances.">
+      <a *ngIf="hasPermission('SALES_INVOICE_CREATE')" class="btn btn-success btn-sm" routerLink="/sales/add">
+        <i class="bi bi-plus-lg me-1"></i>Add Sale
+      </a>
+    </app-page-header>
   </div>
 
   <div class="alert alert-success" *ngIf="successMessage">{{ successMessage }}</div>

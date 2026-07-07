@@ -8,10 +8,10 @@
 .list-toolbar,
 .pagination-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: .8rem;
+  flex-wrap: nowrap;
 }
 
 .toolbar-actions,
@@ -20,14 +20,19 @@
   display: flex;
   align-items: center;
   gap: .5rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+
+.toolbar-actions,
+.bulk-actions {
+  justify-content: flex-end;
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: .85rem;
-  margin: 1rem 0;
+  gap: .65rem;
+  margin: .65rem 0 .75rem;
 }
 
 .stat-card,
@@ -40,7 +45,7 @@
 }
 
 .stat-card {
-  padding: 1rem;
+  padding: .78rem .9rem;
   border-left: 4px solid #64748b;
 }
 
@@ -58,13 +63,13 @@
 .stat-card strong {
   display: block;
   color: #17221c;
-  font-size: 1.35rem;
-  margin-top: .2rem;
+  font-size: 1.16rem;
+  margin-top: .12rem;
 }
 
 .filter-card {
-  padding: 1rem;
-  margin-bottom: 1rem;
+  padding: .85rem;
+  margin-bottom: .75rem;
 }
 
 .list-card {
@@ -73,7 +78,7 @@
 
 .list-toolbar,
 .pagination-row {
-  padding: .85rem 1rem;
+  padding: .68rem .85rem;
   border-bottom: 1px solid #e6ece8;
 }
 
@@ -133,6 +138,10 @@
 .table td {
   color: #25342c;
   vertical-align: middle;
+}
+
+.table-responsive table {
+  min-width: 1120px;
 }
 
 .table tbody tr:hover {
@@ -215,6 +224,13 @@
   .bulk-actions,
   .filter-buttons {
     width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .page-title-row,
+  .list-toolbar,
+  .pagination-row {
+    flex-wrap: wrap;
   }
 
   .toolbar-actions .btn,

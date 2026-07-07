@@ -9,9 +9,9 @@
 .toolbar-actions,
 .filter-buttons {
   display: flex;
-  align-items: center;
-  gap: .75rem;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: .6rem;
+  flex-wrap: nowrap;
 }
 
 .page-title-row,
@@ -28,8 +28,8 @@
 }
 
 .filter-card {
-  margin: 1rem 0;
-  padding: 1rem;
+  margin: .75rem 0;
+  padding: .85rem;
 }
 
 .list-card {
@@ -39,7 +39,7 @@
 .list-toolbar,
 .pagination-row {
   border-bottom: 1px solid #e6ece8;
-  padding: .85rem 1rem;
+  padding: .68rem .85rem;
 }
 
 .pagination-row {
@@ -66,8 +66,12 @@
 .loading-panel,
 .empty-state {
   color: #647268;
-  padding: 2rem;
+  padding: 1.2rem;
   text-align: center;
+}
+
+.table-responsive table {
+  min-width: 980px;
 }
 
 .form-control:focus,

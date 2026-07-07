@@ -34,7 +34,7 @@
 .page-content {
   min-height: calc(100vh - var(--navbar-height));
   background: #f2f7f4;
-  padding: calc(var(--navbar-height) + 10px) 16px 16px;
+  padding: calc(var(--navbar-height) + 8px) 12px 14px;
   overflow-x: hidden;
   scroll-behavior: smooth;
   box-sizing: border-box;
@@ -64,6 +64,6 @@
   }
 
   .page-content {
-    padding: calc(var(--navbar-height) + 8px) 10px 14px;
+    padding: calc(var(--navbar-height) + 8px) 10px 12px;
   }
 }

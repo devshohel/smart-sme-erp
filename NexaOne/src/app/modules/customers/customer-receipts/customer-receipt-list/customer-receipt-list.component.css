@@ -7,10 +7,10 @@
 .list-toolbar,
 .pagination-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: .8rem;
+  flex-wrap: nowrap;
 }
 
 .toolbar-actions,
@@ -18,7 +18,7 @@
   display: flex;
   align-items: center;
   gap: .5rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .filter-card,
@@ -30,8 +30,8 @@
 }
 
 .filter-card {
-  padding: 1rem;
-  margin: 1rem 0;
+  padding: .85rem;
+  margin: .75rem 0;
 }
 
 .list-card {
@@ -40,7 +40,7 @@
 
 .list-toolbar,
 .pagination-row {
-  padding: .85rem 1rem;
+  padding: .68rem .85rem;
   border-bottom: 1px solid #e6ece8;
 }
 
@@ -104,9 +104,13 @@
 
 .loading-panel,
 .empty-state {
-  padding: 2rem;
+  padding: 1.2rem;
   text-align: center;
   color: #647268;
+}
+
+.table-responsive table {
+  min-width: 1080px;
 }
 
 .empty-state {
@@ -179,6 +183,13 @@
   .toolbar-actions,
   .filter-buttons {
     width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .page-title-row,
+  .list-toolbar,
+  .pagination-row {
+    flex-wrap: wrap;
   }
 
   .toolbar-actions .btn,

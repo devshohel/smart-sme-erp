@@ -9,9 +9,9 @@
 .filter-buttons,
 .action-group {
   display: flex;
-  align-items: center;
-  gap: .75rem;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: .6rem;
+  flex-wrap: nowrap;
 }
 
 .page-title-row,
@@ -29,8 +29,8 @@
 }
 
 .filter-card {
-  padding: 1rem;
-  margin-bottom: 1rem;
+  padding: .85rem;
+  margin-bottom: .75rem;
 }
 
 .list-card {
@@ -39,7 +39,7 @@
 
 .list-toolbar,
 .pagination-row {
-  padding: .85rem 1rem;
+  padding: .68rem .85rem;
   border-bottom: 1px solid #e6ece8;
 }
 
@@ -79,6 +79,10 @@
 .table td {
   color: #25342c;
   vertical-align: middle;
+}
+
+.table-responsive table {
+  min-width: 1080px;
 }
 
 .btn-action {
@@ -130,8 +134,10 @@
   }
 
   .filter-buttons,
+  .action-group,
   .page-size {
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .filter-buttons .btn {

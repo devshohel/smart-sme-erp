@@ -1,5 +1,6 @@
 .supplier-details-page {
-  max-width: 1480px;
+  max-width: none;
+  width: 100%;
 }
 
 .hero-panel,

@@ -1,12 +1,13 @@
-.expense-queue-page { max-width: 1400px; }
-.filter-form { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)) auto auto; gap: .6rem; margin-bottom: 1rem; }
+.expense-queue-page { max-width: none; width: 100%; }
+.filter-form { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)) auto auto; gap: .55rem; margin-bottom: .75rem; }
 .table-wrap { background: #fff; border: 1px solid #dfe8e1; border-radius: 8px; overflow: hidden; }
 th { background: #eef5f0; color: #435047; font-size: .75rem; text-transform: uppercase; white-space: nowrap; }
-td, th { padding: .75rem; }
+table { min-width: 1080px; }
+td, th { padding: .58rem .68rem; }
 tbody tr:hover { background: #f7fbf8; }
 .btn-action { width: 30px; height: 30px; border: 1px solid #d7e2da; border-radius: 6px; background: #fff; margin: 0 .12rem; }
 .btn-action:hover { background: #eef8f1; }
 .btn-approve { color: #198754; }
 .btn-reject { color: #dc3545; }
-.empty-state, .loading-panel { text-align: center; color: #64748b; padding: 2rem; }
+.empty-state, .loading-panel { text-align: center; color: #64748b; padding: 1.2rem; }
 @media (max-width: 1200px) { .filter-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

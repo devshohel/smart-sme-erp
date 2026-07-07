@@ -7,14 +7,14 @@
 .list-toolbar,
 .pagination-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: .8rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .page-title-row {
-  margin-bottom: .8rem;
+  margin-bottom: .65rem;
 }
 
 .toolbar-actions,
@@ -24,7 +24,11 @@
   display: flex;
   align-items: center;
   gap: .5rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+
+.toolbar-actions {
+  justify-content: flex-end;
 }
 
 .filter-card,
@@ -91,7 +95,7 @@
 
 .customer-table {
   width: 100%;
-  min-width: 960px;
+  min-width: 1080px;
   table-layout: fixed;
 }
 
@@ -262,19 +266,6 @@
   font-size: .78rem;
 }
 
-.pagination-row .btn:hover:not(:disabled) {
-  background: #f5faf7;
-  border-color: #b8c8bf;
-  color: #25342c;
-}
-
-.pagination-row .btn:disabled {
-  color: #9aa5a0;
-  background: #f8faf9;
-  border-color: #e1e8e4;
-  opacity: 1;
-}
-
 @media (max-width: 767px) {
   .customer-list-page {
     padding: 1rem !important;
@@ -289,6 +280,12 @@
   .bulk-actions,
   .btn-group {
     width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .page-title-row,
+  .list-toolbar,
+  .pagination-row {
     flex-wrap: wrap;
   }
 

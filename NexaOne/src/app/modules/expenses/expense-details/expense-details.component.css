@@ -1,4 +1,4 @@
-.expense-details-page { max-width: 1100px; }
+.expense-details-page { max-width: none; width: 100%; }
 .detail-panel { background: #fff; border: 1px solid #dfe8e1; border-radius: 8px; padding: 1rem; }
 .detail-head { display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #e6eee8; padding-bottom: 1rem; margin-bottom: 1rem; }
 .detail-head span, .info-grid span { color: #64748b; font-size: .82rem; }
