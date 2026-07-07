@@ -5,11 +5,16 @@
   --nex-bg: #f2f7f4;
   --nex-white: #ffffff;
   --nex-sidebar-width: 260px;
+  --nex-sidebar-collapsed-width: 76px;
   --nex-navbar-height: 64px;
+  --nex-page-padding-x: 10px;
+  --nex-page-padding-y: 10px;
+  --nex-content-gap: 1rem;
 }
 
 html,
 body {
+  height: 100%;
   min-height: 100%;
 }
 
@@ -45,19 +50,14 @@ body {
   max-width: none !important;
 }
 
-.page-content > .container,
-.page-content > .container-fluid,
-.page-content > [class$="-page"] {
-  padding: 0 !important;
-}
-
 .page-title-row,
 .reports-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 1rem;
   width: 100%;
+  flex-wrap: wrap;
 }
 
 .page-title-row > :first-child,
@@ -75,7 +75,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.4rem;
+  gap: 0.5rem;
   flex: 0 0 auto;
 }
 
@@ -101,6 +101,24 @@ app-page-header + div {
   margin-top: 0;
 }
 
+.container-fluid.py-4 > app-page-header .page-header,
+.container-fluid.py-4 > .sales-header app-page-header .page-header,
+.container-fluid.py-4 > .page-title-row,
+.container-fluid.py-4 > .reports-header {
+  margin-bottom: 1.5rem !important;
+}
+
+.container-fluid.py-4 > app-card,
+.container-fluid.py-4 > .card,
+.container-fluid.py-4 > .filter-card,
+.container-fluid.py-4 > .list-card,
+.container-fluid.py-4 > .report-card,
+.container-fluid.py-4 > .detail-panel,
+.container-fluid.py-4 > .product-form-card,
+.container-fluid.py-4 > .customer-form-panel {
+  width: 100%;
+}
+
 .page-title-row,
 .list-toolbar,
 .pagination-row,
@@ -114,7 +132,7 @@ app-page-header + div {
 .panel-grid,
 .row.mb-4,
 .mb-4 {
-  margin-bottom: 0.75rem !important;
+  margin-bottom: 1rem !important;
 }
 
 .filter-card,
@@ -130,7 +148,7 @@ app-page-header + div {
 .hero-card,
 .note-panel,
 .loading-panel {
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .filter-card,
@@ -144,7 +162,7 @@ app-page-header + div {
 .dashboard-panel,
 .note-panel,
 .loading-panel {
-  padding: 0.85rem !important;
+  padding: 1rem !important;
 }
 
 .list-card,
@@ -152,6 +170,24 @@ app-page-header + div {
 .table-wrap,
 app-card {
   max-width: 100%;
+}
+
+.filter-card,
+.list-card,
+.report-card,
+.table-wrap,
+.summary-card,
+.stat-card,
+.kpi-card,
+.dashboard-panel,
+.detail-panel,
+.expense-form,
+.product-form-card,
+.payment-card,
+.allocation-panel,
+.form-card,
+.card.shadow-sm {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
 }
 
 .table-responsive {
@@ -170,11 +206,23 @@ app-card {
 
 .table-responsive > .table,
 .table-responsive table {
-  min-width: 100%;
+  min-width: 100% !important;
+  table-layout: auto !important;
 }
 
-.table-responsive th,
+.table-responsive th {
+  white-space: nowrap;
+}
+
 .table-responsive td {
+  white-space: normal;
+}
+
+.table-responsive td.text-nowrap,
+.table-responsive td .table-actions,
+.table-responsive td.actions,
+.table-responsive td:last-child,
+.table-responsive td:last-child * {
   white-space: nowrap;
 }
 

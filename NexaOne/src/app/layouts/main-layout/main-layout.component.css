@@ -1,11 +1,12 @@
 .layout-wrapper {
-  --sidebar-width: 260px;
-  --sidebar-collapsed-width: 76px;
-  --navbar-height: 64px;
+  --sidebar-width: var(--nex-sidebar-width);
+  --sidebar-collapsed-width: var(--nex-sidebar-collapsed-width);
+  --navbar-height: var(--nex-navbar-height);
   display: flex;
+  height: 100vh;
   min-height: 100vh;
   background: #f2f7f4;
-  overflow-x: hidden;
+  overflow: hidden;
   position: relative;
 }
 
@@ -19,10 +20,12 @@
 .main-content {
   margin-left: var(--sidebar-width);
   width: calc(100% - var(--sidebar-width));
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   position: relative;
+  min-width: 0;
   transition: margin-left 0.3s ease, width 0.3s ease;
 }
 
@@ -32,12 +35,15 @@
 }
 
 .page-content {
-  min-height: calc(100vh - var(--navbar-height));
+  flex: 1 1 auto;
+  min-height: 0;
   background: #f2f7f4;
-  padding: calc(var(--navbar-height) + 8px) 12px 14px;
+  padding: calc(var(--navbar-height) + var(--nex-page-padding-y)) var(--nex-page-padding-x) var(--nex-page-padding-y);
   overflow-x: hidden;
+  overflow-y: auto;
   scroll-behavior: smooth;
   box-sizing: border-box;
+  scrollbar-gutter: stable;
 }
 
 .page-content::-webkit-scrollbar {
@@ -64,6 +70,6 @@
   }
 
   .page-content {
-    padding: calc(var(--navbar-height) + 8px) 10px 12px;
+    padding: calc(var(--navbar-height) + var(--nex-page-padding-y)) var(--nex-page-padding-x) var(--nex-page-padding-y);
   }
 }
