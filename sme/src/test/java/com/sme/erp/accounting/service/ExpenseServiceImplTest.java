@@ -18,6 +18,7 @@ import com.sme.erp.accounting.service.impl.ExpenseServiceImpl;
 import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.common.exception.BadRequestException;
+import com.sme.erp.customer.receipt.repository.CustomerReceiptRepository;
 import com.sme.erp.enums.Status;
 import com.sme.erp.file.dto.StoredFileDTO;
 import com.sme.erp.file.service.FileStorageService;
@@ -55,6 +56,7 @@ class ExpenseServiceImplTest {
     @Mock private AuditLogService auditLogService;
     @Mock private FileStorageService fileStorageService;
     @Mock private TaxSettingsRepository taxSettingsRepository;
+    @Mock private CustomerReceiptRepository customerReceiptRepository;
 
     private ExpenseServiceImpl service;
 
@@ -332,7 +334,7 @@ class ExpenseServiceImplTest {
     void post_otherPaymentMethodUsesExpenseClearingAccount() {
         JournalEntryRepository journalRepository = org.mockito.Mockito.mock(JournalEntryRepository.class);
         AccountRepository localAccountRepository = org.mockito.Mockito.mock(AccountRepository.class);
-        AccountingPostingServiceImpl realPostingService = new AccountingPostingServiceImpl(journalRepository, localAccountRepository, activityLogService, taxSettingsRepository);
+        AccountingPostingServiceImpl realPostingService = new AccountingPostingServiceImpl(journalRepository, localAccountRepository, activityLogService, taxSettingsRepository, customerReceiptRepository);
         ExpenseServiceImpl realPostingExpenseService = new ExpenseServiceImpl(expenseRepository, categoryRepository, new AccountingMapper(),
                 activityLogService, auditLogService, realPostingService, journalRepository, fileStorageService);
         Expense expense = expense(100L, ExpenseStatus.APPROVED, AccountingPaymentMethod.OTHER);
@@ -358,7 +360,7 @@ class ExpenseServiceImplTest {
     void posting_taxableExpenseCreatesTaxLine() {
         JournalEntryRepository journalRepository = org.mockito.Mockito.mock(JournalEntryRepository.class);
         AccountRepository localAccountRepository = org.mockito.Mockito.mock(AccountRepository.class);
-        AccountingPostingServiceImpl realPostingService = new AccountingPostingServiceImpl(journalRepository, localAccountRepository, activityLogService, taxSettingsRepository);
+        AccountingPostingServiceImpl realPostingService = new AccountingPostingServiceImpl(journalRepository, localAccountRepository, activityLogService, taxSettingsRepository, customerReceiptRepository);
         Expense expense = expense(100L, ExpenseStatus.APPROVED, AccountingPaymentMethod.CASH);
         expense.setNetAmount(new BigDecimal("100.00"));
         expense.setTaxAmount(new BigDecimal("15.00"));
@@ -391,7 +393,7 @@ class ExpenseServiceImplTest {
     void reversalJournalCreated() {
         JournalEntryRepository journalRepository = org.mockito.Mockito.mock(JournalEntryRepository.class);
         AccountRepository localAccountRepository = org.mockito.Mockito.mock(AccountRepository.class);
-        AccountingPostingServiceImpl realPostingService = new AccountingPostingServiceImpl(journalRepository, localAccountRepository, activityLogService, taxSettingsRepository);
+        AccountingPostingServiceImpl realPostingService = new AccountingPostingServiceImpl(journalRepository, localAccountRepository, activityLogService, taxSettingsRepository, customerReceiptRepository);
         Expense expense = expense(100L, ExpenseStatus.POSTED, AccountingPaymentMethod.CASH);
         Account cash = account(1L, "1000", "Cash", AccountType.ASSET);
         JournalEntry original = new JournalEntry();
@@ -417,7 +419,7 @@ class ExpenseServiceImplTest {
     void salesInvoicePostingIgnoresInvoicePaidAmount() {
         JournalEntryRepository journalRepository = org.mockito.Mockito.mock(JournalEntryRepository.class);
         AccountRepository localAccountRepository = org.mockito.Mockito.mock(AccountRepository.class);
-        AccountingPostingServiceImpl realPostingService = new AccountingPostingServiceImpl(journalRepository, localAccountRepository, activityLogService, taxSettingsRepository);
+        AccountingPostingServiceImpl realPostingService = new AccountingPostingServiceImpl(journalRepository, localAccountRepository, activityLogService, taxSettingsRepository, customerReceiptRepository);
         SalesInvoice invoice = new SalesInvoice();
         invoice.setId(200L);
         invoice.setInvoiceNo("INV-0200");

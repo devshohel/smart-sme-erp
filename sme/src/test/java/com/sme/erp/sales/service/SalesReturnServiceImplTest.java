@@ -6,6 +6,7 @@ import com.sme.erp.audit.service.AuditLogService;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.inventory.entity.Warehouse;
+import com.sme.erp.inventory.repository.StockMovementRepository;
 import com.sme.erp.inventory.service.StockService;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.repository.ProductRepository;
@@ -50,6 +51,7 @@ class SalesReturnServiceImplTest {
     @Mock private CustomerRepository customerRepository;
     @Mock private ProductRepository productRepository;
     @Mock private StockService stockService;
+    @Mock private StockMovementRepository stockMovementRepository;
     @Mock private ActivityLogService activityLogService;
     @Mock private AuditLogService auditLogService;
     @Mock private AccountingPostingService accountingPostingService;
@@ -65,6 +67,7 @@ class SalesReturnServiceImplTest {
                 productRepository,
                 new SalesReturnMapper(new SalesReturnItemMapper()),
                 stockService,
+                stockMovementRepository,
                 activityLogService,
                 auditLogService,
                 accountingPostingService);
@@ -93,7 +96,7 @@ class SalesReturnServiceImplTest {
     }
 
     @Test
-    void post_validReturnRestocksAndPostsAccounting() {
+    void approve_validReturnRestocksAndPostsAccounting() {
         Customer customer = customer();
         SalesInvoice invoice = invoice(customer);
         SalesReturn entity = returnEntity(invoice, customer, 4L, "2.00", "12.00");
@@ -103,16 +106,16 @@ class SalesReturnServiceImplTest {
         when(salesReturnRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(salesInvoiceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.post(15L);
+        service.approve(15L);
 
         verify(stockService).stockIn(4L, 3L, new BigDecimal("2.00"), new BigDecimal("6.00"), "SALES_RETURN", "SR-0001");
         verify(accountingPostingService).postSalesReturn(entity);
-        assertThat(entity.getStatus()).isEqualTo(SalesReturnStatus.POSTED);
+        assertThat(entity.getStatus()).isEqualTo(SalesReturnStatus.APPROVED);
         assertThat(invoice.getDueAmount()).isEqualByComparingTo("88.00");
     }
 
     @Test
-    void post_damagedReturnDoesNotRestoreSellableStock() {
+    void approve_damagedReturnDoesNotRestoreSellableStock() {
         Customer customer = customer();
         SalesInvoice invoice = invoice(customer);
         SalesReturn entity = returnEntity(invoice, customer, 4L, "1.00", "6.00");
@@ -124,7 +127,7 @@ class SalesReturnServiceImplTest {
         when(salesReturnRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(salesInvoiceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        service.post(15L);
+        service.approve(15L);
 
         verify(stockService, never()).stockIn(any(), any(), any(), any(), any(), any());
         verify(accountingPostingService).postSalesReturn(entity);
@@ -132,7 +135,7 @@ class SalesReturnServiceImplTest {
     }
 
     @Test
-    void post_productNotInInvoiceIsRejectedBeforePosting() {
+    void approve_productNotInInvoiceIsRejectedBeforePosting() {
         Customer customer = customer();
         SalesInvoice invoice = invoice(customer);
         SalesReturn entity = returnEntity(invoice, customer, 99L, "1.00", "6.00");
@@ -140,14 +143,14 @@ class SalesReturnServiceImplTest {
         when(salesReturnRepository.findById(15L)).thenReturn(Optional.of(entity));
         when(salesReturnRepository.findPostedByInvoiceIdExcluding(9L, 15L)).thenReturn(List.of());
 
-        assertThatThrownBy(() -> service.post(15L))
+        assertThatThrownBy(() -> service.approve(15L))
                 .hasMessage("Returned product does not belong to the invoice");
         verify(stockService, never()).stockIn(any(), any(), any(), any(), any(), any());
         verify(accountingPostingService, never()).postSalesReturn(any());
     }
 
     @Test
-    void post_overSoldQuantityIsRejectedBeforePosting() {
+    void approve_overSoldQuantityIsRejectedBeforePosting() {
         Customer customer = customer();
         SalesInvoice invoice = invoice(customer);
         SalesReturn entity = returnEntity(invoice, customer, 4L, "6.00", "36.00");
@@ -155,25 +158,25 @@ class SalesReturnServiceImplTest {
         when(salesReturnRepository.findById(15L)).thenReturn(Optional.of(entity));
         when(salesReturnRepository.findPostedByInvoiceIdExcluding(9L, 15L)).thenReturn(List.of());
 
-        assertThatThrownBy(() -> service.post(15L))
+        assertThatThrownBy(() -> service.approve(15L))
                 .hasMessage("Return quantity cannot exceed sold quantity");
         verify(stockService, never()).stockIn(any(), any(), any(), any(), any(), any());
         verify(accountingPostingService, never()).postSalesReturn(any());
     }
 
     @Test
-    void post_multipleReturnAttemptsCannotExceedRemainingQuantity() {
+    void approve_multipleReturnAttemptsCannotExceedRemainingQuantity() {
         Customer customer = customer();
         SalesInvoice invoice = invoice(customer);
         SalesReturn priorReturn = returnEntity(invoice, customer, 4L, "4.00", "24.00");
         priorReturn.setId(14L);
-        priorReturn.setStatus(SalesReturnStatus.POSTED);
+        priorReturn.setStatus(SalesReturnStatus.APPROVED);
         SalesReturn entity = returnEntity(invoice, customer, 4L, "2.00", "12.00");
 
         when(salesReturnRepository.findById(15L)).thenReturn(Optional.of(entity));
         when(salesReturnRepository.findPostedByInvoiceIdExcluding(9L, 15L)).thenReturn(List.of(priorReturn));
 
-        assertThatThrownBy(() -> service.post(15L))
+        assertThatThrownBy(() -> service.approve(15L))
                 .hasMessage("Return quantity cannot exceed remaining unreturned quantity");
         verify(stockService, never()).stockIn(any(), any(), any(), any(), any(), any());
         verify(accountingPostingService, never()).postSalesReturn(any());
@@ -189,7 +192,7 @@ class SalesReturnServiceImplTest {
         dto.setInvoiceId(9L);
         dto.setCustomerId(2L);
         dto.setReturnDate(LocalDateTime.of(2026, 6, 6, 0, 0));
-        dto.setStatus(SalesReturnStatus.DRAFT);
+        dto.setStatus(SalesReturnStatus.PENDING);
         dto.getItems().add(item);
         return dto;
     }
@@ -230,7 +233,7 @@ class SalesReturnServiceImplTest {
         entity.setInvoice(invoice);
         entity.setCustomer(customer);
         entity.setReturnDate(LocalDateTime.of(2026, 6, 6, 0, 0));
-        entity.setStatus(SalesReturnStatus.APPROVED);
+        entity.setStatus(SalesReturnStatus.PENDING);
         entity.setTotalAmount(new BigDecimal(total));
 
         SalesReturnItem item = new SalesReturnItem();

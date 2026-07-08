@@ -291,7 +291,7 @@ class DashboardServiceImplTest {
         invoice.setInvoiceNo("SI-PENDING");
         invoice.setSaleDate(LocalDate.now().atStartOfDay());
         invoice.setNetTotal(new BigDecimal("90.00"));
-        invoice.setStatus(SalesInvoiceStatus.SUBMITTED);
+        invoice.setStatus(SalesInvoiceStatus.DRAFT);
         return invoice;
     }
 

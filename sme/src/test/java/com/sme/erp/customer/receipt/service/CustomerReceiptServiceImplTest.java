@@ -187,7 +187,7 @@ class CustomerReceiptServiceImplTest {
         assertThat(invoice.getPaidAmount()).isEqualByComparingTo("40.00");
         assertThat(invoice.getDueAmount()).isEqualByComparingTo("60.00");
         assertThat(invoice.getPaymentStatus()).isEqualTo(SalesPaymentStatus.PARTIAL);
-        assertThat(invoice.getStatus()).isEqualTo(SalesInvoiceStatus.PARTIAL_PAID);
+        assertThat(invoice.getStatus()).isEqualTo(SalesInvoiceStatus.POSTED);
     }
 
     @Test
@@ -204,7 +204,7 @@ class CustomerReceiptServiceImplTest {
         assertThat(invoice.getPaidAmount()).isEqualByComparingTo("100.00");
         assertThat(invoice.getDueAmount()).isEqualByComparingTo("0.00");
         assertThat(invoice.getPaymentStatus()).isEqualTo(SalesPaymentStatus.PAID);
-        assertThat(invoice.getStatus()).isEqualTo(SalesInvoiceStatus.PAID);
+        assertThat(invoice.getStatus()).isEqualTo(SalesInvoiceStatus.POSTED);
     }
 
     @Test
@@ -221,7 +221,7 @@ class CustomerReceiptServiceImplTest {
         assertThat(invoice.getPaidAmount()).isEqualByComparingTo("40.00");
         assertThat(invoice.getDueAmount()).isEqualByComparingTo("30.00");
         assertThat(invoice.getPaymentStatus()).isEqualTo(SalesPaymentStatus.PARTIAL);
-        assertThat(invoice.getStatus()).isEqualTo(SalesInvoiceStatus.PARTIAL_PAID);
+        assertThat(invoice.getStatus()).isEqualTo(SalesInvoiceStatus.POSTED);
     }
 
     @Test
@@ -406,7 +406,7 @@ class CustomerReceiptServiceImplTest {
         invoice.setDueAmount(dueAmount);
         invoice.setPaymentStatus(dueAmount.compareTo(BigDecimal.ZERO) <= 0 ? SalesPaymentStatus.PAID
                 : paidAmount.compareTo(BigDecimal.ZERO) > 0 ? SalesPaymentStatus.PARTIAL : SalesPaymentStatus.DUE);
-        invoice.setStatus(SalesInvoiceStatus.CONFIRMED);
+        invoice.setStatus(SalesInvoiceStatus.POSTED);
         return invoice;
     }
 

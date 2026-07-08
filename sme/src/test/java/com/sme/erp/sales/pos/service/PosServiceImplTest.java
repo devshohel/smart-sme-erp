@@ -66,7 +66,7 @@ class PosServiceImplTest {
         stubMasterData();
         SalesInvoiceDTO created = invoice(7L, "209.00", "0.00", "209.00", SalesInvoiceStatus.DRAFT);
         SalesInvoiceDTO posted = invoice(7L, "209.00", "0.00", "209.00", SalesInvoiceStatus.POSTED);
-        SalesInvoiceDTO completed = invoice(7L, "209.00", "50.00", "159.00", SalesInvoiceStatus.PARTIAL_PAID);
+        SalesInvoiceDTO completed = invoice(7L, "209.00", "50.00", "159.00", SalesInvoiceStatus.POSTED);
         when(salesInvoiceService.create(any())).thenReturn(created);
         when(salesInvoiceService.post(7L)).thenReturn(posted);
         when(salesInvoiceService.getById(7L)).thenReturn(completed);
@@ -86,8 +86,6 @@ class PosServiceImplTest {
         assertThat(invoiceCaptor.getValue().getItems().get(0).getUnitPrice()).isEqualByComparingTo("100.00");
         assertThat(invoiceCaptor.getValue().getItems().get(0).getDiscount()).isEqualByComparingTo("10.00");
         assertThat(invoiceCaptor.getValue().getItems().get(0).getTax()).isEqualByComparingTo("19.00");
-        verify(salesInvoiceService).submit(7L);
-        verify(salesInvoiceService).approve(7L);
         verify(salesInvoiceService).post(7L);
 
         ArgumentCaptor<CustomerReceiptDTO> receiptCaptor = ArgumentCaptor.forClass(CustomerReceiptDTO.class);

@@ -162,7 +162,7 @@ class SalesInvoiceServiceImplTest {
         invoice.setItems(List.of());
 
         when(salesInvoiceRepository.findById(12L)).thenReturn(Optional.of(invoice));
-        when(salesReturnRepository.existsByInvoiceIdAndStatus(12L, com.sme.erp.sales.enums.SalesReturnStatus.POSTED)).thenReturn(false);
+        when(salesReturnRepository.existsByInvoiceIdAndStatus(12L, com.sme.erp.sales.enums.SalesReturnStatus.APPROVED)).thenReturn(false);
         when(salesInvoiceRepository.save(any(SalesInvoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         SalesInvoiceDTO result = service.reverse(12L, "Duplicate posting");
