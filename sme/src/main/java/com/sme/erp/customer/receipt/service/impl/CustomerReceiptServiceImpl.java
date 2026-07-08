@@ -27,7 +27,6 @@ import com.sme.erp.customer.receipt.repository.CustomerReceiptAllocationReposito
 import com.sme.erp.customer.receipt.repository.CustomerReceiptRepository;
 import com.sme.erp.customer.receipt.service.CustomerReceiptService;
 import com.sme.erp.sales.entity.SalesInvoice;
-import com.sme.erp.sales.enums.SalesInvoiceStatus;
 import com.sme.erp.sales.enums.SalesPaymentStatus;
 import com.sme.erp.sales.repository.SalesInvoiceRepository;
 import org.springframework.data.domain.Page;
@@ -385,19 +384,8 @@ public class CustomerReceiptServiceImpl implements CustomerReceiptService {
             invoice.setPaidAmount(newPaid);
             invoice.setDueAmount(newDue);
             invoice.setPaymentStatus(resolvePaymentStatus(newPaid, newDue));
-            invoice.setStatus(resolveInvoiceStatus(invoice.getPaymentStatus()));
             salesInvoiceRepository.save(invoice);
         }
-    }
-
-    private SalesInvoiceStatus resolveInvoiceStatus(SalesPaymentStatus paymentStatus) {
-        if (paymentStatus == SalesPaymentStatus.PAID) {
-            return SalesInvoiceStatus.PAID;
-        }
-        if (paymentStatus == SalesPaymentStatus.PARTIAL) {
-            return SalesInvoiceStatus.PARTIAL_PAID;
-        }
-        return SalesInvoiceStatus.POSTED;
     }
 
     private SalesPaymentStatus resolvePaymentStatus(BigDecimal paidAmount, BigDecimal dueAmount) {

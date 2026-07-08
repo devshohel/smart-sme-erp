@@ -154,31 +154,17 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         if (normalizeStatus(entity.getStatus()) != SalesInvoiceStatus.DRAFT) {
             throw new BadRequestException("Only draft sales invoices can be submitted");
         }
-        SalesInvoiceDTO oldData = salesInvoiceMapper.toDTO(entity);
-        entity.setStatus(SalesInvoiceStatus.SUBMITTED);
-        entity.setSubmittedAt(LocalDateTime.now());
-        entity.setSubmittedBy(currentUsername());
-        SalesInvoiceDTO saved = normalizeReversedPaymentState(salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity)));
-        activityLogService.log("SALES_INVOICE_SUBMIT", "SALES", "sales_invoices", saved.getId(), "Submitted sales invoice " + saved.getInvoiceNo());
-        auditLogService.log("sales_invoices", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "SUBMIT");
-        return saved;
+        return normalizeReversedPaymentState(salesInvoiceMapper.toDTO(entity));
     }
 
     @Override
     @Transactional
     public SalesInvoiceDTO approve(Long id) {
         SalesInvoice entity = findInvoiceById(id);
-        if (normalizeStatus(entity.getStatus()) != SalesInvoiceStatus.SUBMITTED) {
-            throw new BadRequestException("Only submitted sales invoices can be approved");
+        if (normalizeStatus(entity.getStatus()) != SalesInvoiceStatus.DRAFT) {
+            throw new BadRequestException("Only draft sales invoices can be approved");
         }
-        SalesInvoiceDTO oldData = salesInvoiceMapper.toDTO(entity);
-        entity.setStatus(SalesInvoiceStatus.APPROVED);
-        entity.setApprovedAt(LocalDateTime.now());
-        entity.setApprovedBy(currentUsername());
-        SalesInvoiceDTO saved = normalizeReversedPaymentState(salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity)));
-        activityLogService.log("SALES_INVOICE_APPROVE", "SALES", "sales_invoices", saved.getId(), "Approved sales invoice " + saved.getInvoiceNo());
-        auditLogService.log("sales_invoices", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "APPROVE");
-        return saved;
+        return normalizeReversedPaymentState(salesInvoiceMapper.toDTO(entity));
     }
 
     @Override
@@ -186,17 +172,17 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     public SalesInvoiceDTO post(Long id) {
         SalesInvoice entity = findInvoiceById(id);
         SalesInvoiceStatus normalizedStatus = normalizeStatus(entity.getStatus());
-        if (normalizedStatus == SalesInvoiceStatus.POSTED || normalizedStatus == SalesInvoiceStatus.PARTIAL_PAID || normalizedStatus == SalesInvoiceStatus.PAID) {
+        if (normalizedStatus == SalesInvoiceStatus.POSTED || normalizedStatus == SalesInvoiceStatus.RETURNED) {
             throw new BadRequestException("Sales invoice is already posted");
         }
-        if (normalizedStatus != SalesInvoiceStatus.APPROVED) {
-            throw new BadRequestException("Only approved sales invoices can be posted");
+        if (normalizedStatus != SalesInvoiceStatus.DRAFT) {
+            throw new BadRequestException("Only draft sales invoices can be posted");
         }
         ensureCustomerCreditLimit(entity);
         deductStock(entity);
         accountingPostingService.postSalesInvoice(entity);
         SalesInvoiceDTO oldData = salesInvoiceMapper.toDTO(entity);
-        entity.setStatus(resolvePostedStatus(entity));
+        entity.setStatus(SalesInvoiceStatus.POSTED);
         entity.setPostedAt(LocalDateTime.now());
         entity.setPostedBy(currentUsername());
         SalesInvoiceDTO saved = normalizeReversedPaymentState(salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity)));
@@ -218,7 +204,7 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     public SalesInvoiceDTO cancel(Long id) {
         SalesInvoice entity = findInvoiceById(id);
         SalesInvoiceStatus normalizedStatus = normalizeStatus(entity.getStatus());
-        if (normalizedStatus == SalesInvoiceStatus.POSTED || normalizedStatus == SalesInvoiceStatus.PARTIAL_PAID || normalizedStatus == SalesInvoiceStatus.PAID) {
+        if (normalizedStatus == SalesInvoiceStatus.POSTED || normalizedStatus == SalesInvoiceStatus.RETURNED) {
             throw new BadRequestException("Posted sales invoice cannot be cancelled. Use reversal instead.");
         }
         if (normalizedStatus == SalesInvoiceStatus.CANCELLED || normalizedStatus == SalesInvoiceStatus.REVERSED) {
@@ -239,11 +225,8 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
     public SalesInvoiceDTO reverse(Long id, String reversalReason) {
         SalesInvoice entity = findInvoiceById(id);
         SalesInvoiceStatus normalizedStatus = normalizeStatus(entity.getStatus());
-        if (normalizedStatus != SalesInvoiceStatus.POSTED && normalizedStatus != SalesInvoiceStatus.PARTIAL_PAID && normalizedStatus != SalesInvoiceStatus.PAID) {
+        if (normalizedStatus != SalesInvoiceStatus.POSTED) {
             throw new BadRequestException("Only posted sales invoices can be reversed");
-        }
-        if (normalizedStatus == SalesInvoiceStatus.REVERSED) {
-            throw new BadRequestException("Sales invoice is already reversed");
         }
         if (safe(entity.getPaidAmount()).signum() > 0) {
             throw new BadRequestException("Invoice reversal is blocked when customer receipts are already allocated");
@@ -268,6 +251,19 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         return saved;
     }
 
+    @Override
+    @Transactional
+    public void deleteDraft(Long id) {
+        SalesInvoice entity = findInvoiceById(id);
+        if (normalizeStatus(entity.getStatus()) != SalesInvoiceStatus.DRAFT) {
+            throw new BadRequestException("Only draft sales invoices can be deleted");
+        }
+        SalesInvoiceDTO oldData = salesInvoiceMapper.toDTO(entity);
+        salesInvoiceRepository.delete(entity);
+        activityLogService.log("SALES_INVOICE_DELETE", "SALES", "sales_invoices", id, "Deleted draft sales invoice " + entity.getInvoiceNo());
+        auditLogService.log("sales_invoices", id, auditLogService.toJson(oldData), null, "DELETE");
+    }
+
     private SalesInvoiceDTO save(SalesInvoiceDTO dto, SalesInvoice entity, boolean creating) {
         validateItems(dto.getItems());
 
@@ -289,9 +285,14 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         entity.setDiscountAmount(calculation.discountAmount());
         entity.setTaxAmount(calculation.taxAmount());
         entity.setNetTotal(calculation.netTotal());
-        entity.setPaidAmount(BigDecimal.ZERO);
-        entity.setDueAmount(calculation.netTotal());
-        entity.setPaymentStatus(SalesPaymentStatus.DUE);
+        BigDecimal paidAmount = nonNegative(dto.getPaidAmount(), "Paid amount cannot be negative");
+        if (paidAmount.compareTo(calculation.netTotal()) > 0) {
+            throw new BadRequestException("Paid amount cannot exceed invoice total");
+        }
+        BigDecimal dueAmount = calculation.netTotal().subtract(paidAmount).max(BigDecimal.ZERO);
+        entity.setPaidAmount(paidAmount);
+        entity.setDueAmount(dueAmount);
+        entity.setPaymentStatus(resolvePaymentStatus(paidAmount, dueAmount));
         return normalizeReversedPaymentState(salesInvoiceMapper.toDTO(salesInvoiceRepository.save(entity)));
     }
 
@@ -405,22 +406,30 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
             return SalesInvoiceStatus.DRAFT;
         }
         if (status == SalesInvoiceStatus.PENDING) {
-            return SalesInvoiceStatus.SUBMITTED;
+            return SalesInvoiceStatus.DRAFT;
         }
-        if (status == SalesInvoiceStatus.CONFIRMED || status == SalesInvoiceStatus.COMPLETED) {
+        if (status == SalesInvoiceStatus.SUBMITTED
+                || status == SalesInvoiceStatus.APPROVED
+                || status == SalesInvoiceStatus.CONFIRMED
+                || status == SalesInvoiceStatus.COMPLETED
+                || status == SalesInvoiceStatus.PARTIAL_PAID
+                || status == SalesInvoiceStatus.PAID) {
             return SalesInvoiceStatus.POSTED;
+        }
+        if (status == SalesInvoiceStatus.REVERSED) {
+            return SalesInvoiceStatus.CANCELLED;
         }
         return status;
     }
 
-    private SalesInvoiceStatus resolvePostedStatus(SalesInvoice invoice) {
-        if (invoice.getPaymentStatus() == SalesPaymentStatus.PAID) {
-            return SalesInvoiceStatus.PAID;
+    private SalesPaymentStatus resolvePaymentStatus(BigDecimal paidAmount, BigDecimal dueAmount) {
+        if (safe(dueAmount).signum() <= 0) {
+            return SalesPaymentStatus.PAID;
         }
-        if (invoice.getPaymentStatus() == SalesPaymentStatus.PARTIAL) {
-            return SalesInvoiceStatus.PARTIAL_PAID;
+        if (safe(paidAmount).signum() > 0) {
+            return SalesPaymentStatus.PARTIAL;
         }
-        return SalesInvoiceStatus.POSTED;
+        return SalesPaymentStatus.DUE;
     }
 
     private String resolveInvoiceNo(Long currentId, String requestedInvoiceNo) {

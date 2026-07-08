@@ -164,13 +164,11 @@
       <div class="d-flex flex-wrap justify-content-end gap-2 mt-4 no-print">
         <ng-container *ngIf="mode === 'details'">
           <a *ngIf="canEdit()" class="btn btn-outline-primary" [routerLink]="['/sales', invoice?.id, 'edit']">Edit</a>
-          <button *ngIf="hasPermission('SALES_INVOICE_PRINT')" type="button" class="btn btn-outline-primary" (click)="print()">Print</button>
-          <button *ngIf="canSubmit()" type="button" class="btn btn-outline-success" [disabled]="submitting" (click)="workflow('submit')">Submit</button>
-          <button *ngIf="canApprove()" type="button" class="btn btn-outline-success" [disabled]="submitting" (click)="workflow('approve')">Approve</button>
-          <button *ngIf="canPost()" type="button" class="btn btn-success" [disabled]="submitting" (click)="workflow('post')">Post</button>
-          <button *ngIf="canReceivePayment()" type="button" class="btn btn-success" (click)="receivePayment()">Receive Payment</button>
+          <button *ngIf="canPrint()" type="button" class="btn btn-outline-primary" (click)="print()">Print</button>
+          <button *ngIf="canPost()" type="button" class="btn btn-success" [disabled]="submitting" (click)="workflow('post')">Post Invoice</button>
+          <button *ngIf="canReceivePayment()" type="button" class="btn btn-success" (click)="receivePayment()">Add Payment</button>
           <button *ngIf="canReturn()" type="button" class="btn btn-outline-warning" (click)="createReturn()">Return</button>
-          <button *ngIf="canCancel()" type="button" class="btn btn-outline-danger" [disabled]="submitting" (click)="cancelInvoice()">Cancel</button>
+          <button *ngIf="canDelete()" type="button" class="btn btn-outline-danger" [disabled]="submitting" (click)="deleteDraft()">Delete</button>
         </ng-container>
         <ng-container *ngIf="mode !== 'details'">
           <a class="btn btn-outline-secondary" routerLink="/sales">Cancel</a>

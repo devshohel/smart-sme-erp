@@ -2,12 +2,15 @@ package com.sme.erp.sales.enums;
 
 public enum SalesInvoiceStatus {
     DRAFT,
+    POSTED,
+    CANCELLED,
+    RETURNED,
+
+    // Legacy values kept so existing databases can still be read before V14 is applied.
     SUBMITTED,
     APPROVED,
-    POSTED,
     PARTIAL_PAID,
     PAID,
-    CANCELLED,
     REVERSED,
     PENDING,
     CONFIRMED,

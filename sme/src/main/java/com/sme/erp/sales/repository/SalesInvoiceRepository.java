@@ -42,13 +42,7 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
               and (:endDate is null or i.saleDate < :endDate)
               and (:customerId is null or c.id = :customerId)
               and (:productId is null or item.product.id = :productId)
-            and i.status in (
-                com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PARTIAL_PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED
-            )
+            and i.status = com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED
             group by i.id, i.invoiceNo, c.name, w.name, i.status, i.saleDate, i.netTotal, i.paidAmount, i.dueAmount
             order by i.saleDate desc, i.id desc
             """)
@@ -82,13 +76,7 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
               and (:keyword is null or lower(i.invoiceNo) like lower(concat('%', :keyword, '%'))
                    or lower(c.name) like lower(concat('%', :keyword, '%'))
                    or lower(w.name) like lower(concat('%', :keyword, '%')))
-              and i.status in (
-                com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PARTIAL_PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED
-              )
+              and i.status = com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED
             group by i.id, i.invoiceNo, c.name, w.name, i.status, i.saleDate, i.netTotal, i.paidAmount, i.dueAmount
             order by i.saleDate desc, i.id desc
             """)
@@ -159,13 +147,7 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
               and (:brandId is null or b.id = :brandId)
               and (:keyword is null or lower(p.productName) like lower(concat('%', :keyword, '%'))
                    or lower(p.sku) like lower(concat('%', :keyword, '%')))
-              and i.status in (
-                com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PARTIAL_PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED
-              )
+              and i.status = com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED
             group by p.id, p.productName, p.sku
             order by coalesce(sum(item.quantity), 0) desc, coalesce(sum(item.subTotal), 0) desc
             """)
@@ -194,13 +176,7 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
               and (:customerId is null or c.id = :customerId)
               and (:keyword is null or lower(c.name) like lower(concat('%', :keyword, '%'))
                    or lower(i.invoiceNo) like lower(concat('%', :keyword, '%')))
-              and i.status in (
-                com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PARTIAL_PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED
-              )
+              and i.status = com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED
             group by c.id, c.name
             order by coalesce(sum(i.netTotal), 0) desc, c.name asc
             """)
@@ -218,13 +194,7 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
             )
             from SalesInvoice i
             join i.customer c
-            where i.status in (
-                com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PARTIAL_PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED
-            )
+            where i.status = com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED
             group by c.id, c.name
             having coalesce(sum(i.dueAmount), 0) > 0
             order by coalesce(sum(i.dueAmount), 0) desc
@@ -237,13 +207,7 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
             select coalesce(sum(i.dueAmount), 0)
             from SalesInvoice i
             where i.customer.id = :customerId
-              and i.status in (
-                com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PARTIAL_PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED
-              )
+              and i.status = com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED
             """)
     java.math.BigDecimal sumDueByCustomerId(@Param("customerId") Long customerId);
 
@@ -251,13 +215,7 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
             select i.customer.id, coalesce(sum(i.dueAmount), 0)
             from SalesInvoice i
             where i.customer.id in :customerIds
-              and i.status in (
-                com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PARTIAL_PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED
-              )
+              and i.status = com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED
             group by i.customer.id
             """)
     List<Object[]> sumDueByCustomerIds(@Param("customerIds") List<Long> customerIds);
@@ -266,13 +224,7 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
             select i
             from SalesInvoice i
             where i.customer.id = :customerId
-              and i.status in (
-                com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PARTIAL_PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED
-              )
+              and i.status = com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED
               and i.dueAmount > 0
             order by i.saleDate asc, i.id asc
             """)
@@ -312,13 +264,7 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
             from SalesInvoice i
             join fetch i.customer c
             where c.id = :customerId
-              and i.status in (
-                com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PARTIAL_PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED
-              )
+              and i.status = com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED
               and (:fromDate is null or i.saleDate >= :fromDate)
               and (:toDate is null or i.saleDate < :toDate)
             order by i.saleDate asc, i.id asc
@@ -332,13 +278,7 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, Long
             from SalesInvoice i
             join fetch i.customer c
             where (:customerId is null or c.id = :customerId)
-              and i.status in (
-                com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PARTIAL_PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.PAID,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.CONFIRMED,
-                com.sme.erp.sales.enums.SalesInvoiceStatus.COMPLETED
-              )
+              and i.status = com.sme.erp.sales.enums.SalesInvoiceStatus.POSTED
               and i.dueAmount > 0
               and (:fromDate is null or i.saleDate >= :fromDate)
               and (:toDate is null or i.saleDate < :toDate)

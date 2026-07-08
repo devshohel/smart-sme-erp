@@ -25,7 +25,7 @@ export class InvoiceListComponent implements OnInit {
   currentPage = 1;
   readonly pageSize = 10;
 
-  readonly statuses: string[] = ['DRAFT', 'CONFIRMED', 'POSTED', 'PAID', 'CANCELLED'];
+  readonly statuses: string[] = ['DRAFT', 'POSTED', 'CANCELLED', 'RETURNED'];
   readonly paymentStatuses: PaymentStatus[] = ['PAID', 'PARTIAL', 'DUE'];
 
   constructor(
@@ -128,22 +128,42 @@ export class InvoiceListComponent implements OnInit {
     if (this.canPrint(invoice)) this.router.navigate(['/sales', invoice.id, 'view'], { queryParams: { print: true } });
   }
 
-  cancel(invoice: SalesInvoice): void {
-    if (!this.canCancel(invoice) || !invoice.id) return;
+  post(invoice: SalesInvoice): void {
+    if (!this.canPost(invoice) || !invoice.id) return;
     const label = invoice.invoiceNo || `#${invoice.id}`;
-    if (!window.confirm(`Cancel invoice ${label}? This action cannot be undone.`)) return;
+    if (!window.confirm(`Post invoice ${label}? Stock and accounting entries will be created.`)) return;
 
     this.actionInvoiceId = invoice.id;
-    this.invoiceService.cancelInvoice(invoice.id).subscribe({
+    this.invoiceService.postInvoice(invoice.id).subscribe({
       next: saved => {
         this.actionInvoiceId = null;
-        this.successMessage = `Invoice ${saved.invoiceNo || label} was cancelled.`;
+        this.successMessage = `Invoice ${saved.invoiceNo || label} was posted.`;
         this.loadInvoices();
       },
       error: error => {
         this.actionInvoiceId = null;
-        this.errorMessage = extractApiErrorMessage(error, 'Invoice cancellation failed.');
-        debugApiError('InvoiceListComponent.cancel', error);
+        this.errorMessage = extractApiErrorMessage(error, 'Invoice posting failed.');
+        debugApiError('InvoiceListComponent.post', error);
+      }
+    });
+  }
+
+  deleteDraft(invoice: SalesInvoice): void {
+    if (!this.canDelete(invoice) || !invoice.id) return;
+    const label = invoice.invoiceNo || `#${invoice.id}`;
+    if (!window.confirm(`Delete draft invoice ${label}?`)) return;
+
+    this.actionInvoiceId = invoice.id;
+    this.invoiceService.deleteDraftInvoice(invoice.id).subscribe({
+      next: () => {
+        this.actionInvoiceId = null;
+        this.successMessage = `Draft invoice ${label} was deleted.`;
+        this.loadInvoices();
+      },
+      error: error => {
+        this.actionInvoiceId = null;
+        this.errorMessage = extractApiErrorMessage(error, 'Draft invoice delete failed.');
+        debugApiError('InvoiceListComponent.deleteDraft', error);
       }
     });
   }
@@ -171,21 +191,24 @@ export class InvoiceListComponent implements OnInit {
   }
 
   canPrint(invoice: SalesInvoice): boolean {
-    return !!invoice.id && this.hasPermission('SALES_INVOICE_PRINT');
+    return !!invoice.id && invoice.status !== 'DRAFT' && this.hasPermission('SALES_INVOICE_PRINT');
   }
 
-  canCancel(invoice: SalesInvoice): boolean {
-    return ['DRAFT', 'SUBMITTED', 'APPROVED'].includes(invoice.status || '')
-      && this.hasPermission('SALES_INVOICE_CANCEL');
+  canPost(invoice: SalesInvoice): boolean {
+    return invoice.status === 'DRAFT' && this.hasPermission('SALES_INVOICE_POST');
+  }
+
+  canDelete(invoice: SalesInvoice): boolean {
+    return invoice.status === 'DRAFT' && this.hasPermission('SALES_INVOICE_CANCEL');
   }
 
   canReceivePayment(invoice: SalesInvoice): boolean {
-    return Number(invoice.dueAmount || 0) > 0 && this.isCompleted(invoice)
+    return invoice.status === 'POSTED' && Number(invoice.dueAmount || 0) > 0
       && this.hasPermission('CUSTOMER_RECEIPT_CREATE');
   }
 
   canReturn(invoice: SalesInvoice): boolean {
-    return this.isCompleted(invoice) && this.hasPermission('SALES_RETURN_CREATE');
+    return invoice.status === 'POSTED' && this.hasPermission('SALES_RETURN_CREATE');
   }
 
   hasPermission(permission: string): boolean {
@@ -193,18 +216,14 @@ export class InvoiceListComponent implements OnInit {
   }
 
   displayStatus(invoice: SalesInvoice): string {
-    if (invoice.status === 'CANCELLED' || invoice.status === 'REVERSED') return 'CANCELLED';
-    if (invoice.paymentStatus === 'PAID' && ['POSTED', 'CLOSED'].includes(invoice.status || '')) return 'PAID';
-    if (['SUBMITTED', 'APPROVED', 'PENDING', 'CONFIRMED'].includes(invoice.status || '')) return 'CONFIRMED';
-    if (['POSTED', 'CLOSED'].includes(invoice.status || '')) return 'POSTED';
-    return 'DRAFT';
+    return invoice.status || 'DRAFT';
   }
 
   private get activeInvoices(): SalesInvoice[] {
-    return this.invoices.filter(invoice => !['CANCELLED', 'REVERSED'].includes(invoice.status || ''));
+    return this.invoices.filter(invoice => !['CANCELLED'].includes(invoice.status || ''));
   }
 
   private isCompleted(invoice: SalesInvoice): boolean {
-    return ['POSTED', 'CLOSED'].includes(invoice.status || '');
+    return invoice.status === 'POSTED';
   }
 }

@@ -47,6 +47,8 @@ export class SalesStatusBadgeComponent {
         return 'bg-primary-subtle text-primary';
       case 'CANCELLED':
         return 'bg-danger-subtle text-danger';
+      case 'RETURNED':
+        return 'bg-dark-subtle text-dark';
       default:
         return 'bg-warning-subtle text-warning';
     }

@@ -15,4 +15,5 @@ public interface SalesInvoiceService {
     SalesInvoiceDTO post(Long id);
     SalesInvoiceDTO cancel(Long id);
     SalesInvoiceDTO reverse(Long id, String reversalReason);
+    void deleteDraft(Long id);
 }

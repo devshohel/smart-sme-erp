@@ -32,7 +32,7 @@ export class SaleItemsComponent implements OnInit {
   dateTo = '';
   currentPage = 1;
   readonly pageSize = 15;
-  readonly statuses: string[] = ['DRAFT', 'CONFIRMED', 'POSTED', 'PAID', 'CANCELLED'];
+  readonly statuses: string[] = ['DRAFT', 'POSTED', 'CANCELLED', 'RETURNED'];
 
   constructor(private invoiceService: SalesInvoiceService) {}
 
@@ -85,9 +85,9 @@ export class SaleItemsComponent implements OnInit {
   goToPage(page: number): void { this.currentPage = Math.min(Math.max(page, 1), this.totalPages); }
   statusLabel(row: SaleItemRow): string {
     if (row.status === 'CANCELLED' || row.status === 'REVERSED') return 'CANCELLED';
-    if (row.status === 'PAID' || row.status === 'CLOSED' || row.status === 'COMPLETED') return 'PAID';
-    if (['SUBMITTED', 'APPROVED', 'PENDING', 'CONFIRMED'].includes(row.status || '')) return 'CONFIRMED';
-    if (row.status === 'POSTED' || row.status === 'PARTIAL_PAID') return 'POSTED';
+    if (row.status === 'RETURNED') return 'RETURNED';
+    if (['SUBMITTED', 'APPROVED', 'PENDING', 'CONFIRMED', 'COMPLETED', 'PAID', 'PARTIAL_PAID'].includes(row.status || '')) return 'POSTED';
+    if (row.status === 'POSTED') return 'POSTED';
     return 'DRAFT';
   }
 }

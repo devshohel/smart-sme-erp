@@ -59,8 +59,11 @@
               <div class="table-actions">
                 <button type="button" class="btn-action btn-view" title="View invoice" aria-label="View invoice" (click)="view(invoice)"><i class="bi bi-eye"></i></button>
                 <button *ngIf="canEdit(invoice)" type="button" class="btn-action btn-edit" title="Edit draft" aria-label="Edit invoice" (click)="edit(invoice)"><i class="bi bi-pencil-square"></i></button>
+                <button *ngIf="canPost(invoice)" type="button" class="btn-action btn-post" title="Post invoice" aria-label="Post invoice" [disabled]="actionInvoiceId === invoice.id" (click)="post(invoice)"><i class="bi bi-check2-circle"></i></button>
                 <button *ngIf="canPrint(invoice)" type="button" class="btn-action btn-print" title="Print invoice" aria-label="Print invoice" (click)="print(invoice)"><i class="bi bi-printer"></i></button>
-                <button *ngIf="canCancel(invoice)" type="button" class="btn-action btn-cancel" title="Cancel invoice" aria-label="Cancel invoice" [disabled]="actionInvoiceId === invoice.id" (click)="cancel(invoice)"><i class="bi bi-x-lg"></i></button>
+                <button *ngIf="canReceivePayment(invoice)" type="button" class="btn-action btn-payment" title="Add payment" aria-label="Add payment" (click)="receivePayment(invoice)"><i class="bi bi-cash-coin"></i></button>
+                <button *ngIf="canReturn(invoice)" type="button" class="btn-action btn-return" title="Create return" aria-label="Create return" (click)="createReturn(invoice)"><i class="bi bi-arrow-counterclockwise"></i></button>
+                <button *ngIf="canDelete(invoice)" type="button" class="btn-action btn-cancel" title="Delete draft" aria-label="Delete draft" [disabled]="actionInvoiceId === invoice.id" (click)="deleteDraft(invoice)"><i class="bi bi-trash"></i></button>
               </div>
             </td>
           </tr>

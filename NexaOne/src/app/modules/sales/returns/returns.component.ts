@@ -94,7 +94,7 @@ export class ReturnsComponent implements OnInit {
 
   loadInvoices(): void {
     this.invoiceService.getAllInvoices().subscribe({
-      next: invoices => this.invoices = invoices.filter(i => ['POSTED', 'CLOSED', 'PARTIAL_PAID', 'PAID', 'CONFIRMED', 'COMPLETED'].includes(i.status || '')),
+      next: invoices => this.invoices = invoices.filter(i => i.status === 'POSTED'),
       error: error => debugApiError('ReturnsComponent.loadInvoices', error)
     });
   }

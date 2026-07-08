@@ -246,7 +246,7 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         SalesReturnDTO oldData = salesReturnMapper.toDTO(entity);
         restockReturnedItems(entity);
         accountingPostingService.postSalesReturn(entity);
-        applyReturnToInvoice(invoice, entity.getTotalAmount());
+        applyReturnToInvoice(invoice, entity);
         entity.setStatus(SalesReturnStatus.POSTED);
         entity.setPostedAt(LocalDateTime.now());
         entity.setPostedBy(currentUsername());
@@ -362,11 +362,11 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         }
     }
 
-    private void applyReturnToInvoice(SalesInvoice invoice, BigDecimal returnAmount) {
-        BigDecimal newDue = safe(invoice.getDueAmount()).subtract(safe(returnAmount)).max(BigDecimal.ZERO);
+    private void applyReturnToInvoice(SalesInvoice invoice, SalesReturn salesReturn) {
+        BigDecimal newDue = safe(invoice.getDueAmount()).subtract(safe(salesReturn.getTotalAmount())).max(BigDecimal.ZERO);
         invoice.setDueAmount(newDue);
         invoice.setPaymentStatus(resolvePaymentStatus(invoice.getPaidAmount(), newDue));
-        invoice.setStatus(resolveInvoiceStatus(invoice));
+        invoice.setStatus(isFullReturn(invoice, salesReturn) ? SalesInvoiceStatus.RETURNED : SalesInvoiceStatus.POSTED);
         salesInvoiceRepository.save(invoice);
     }
 
@@ -374,7 +374,7 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         BigDecimal newDue = safe(invoice.getDueAmount()).add(safe(returnAmount));
         invoice.setDueAmount(newDue);
         invoice.setPaymentStatus(resolvePaymentStatus(invoice.getPaidAmount(), newDue));
-        invoice.setStatus(resolveInvoiceStatus(invoice));
+        invoice.setStatus(SalesInvoiceStatus.POSTED);
         salesInvoiceRepository.save(invoice);
     }
 
@@ -600,14 +600,33 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         return SalesPaymentStatus.DUE;
     }
 
-    private SalesInvoiceStatus resolveInvoiceStatus(SalesInvoice invoice) {
-        if (safe(invoice.getDueAmount()).signum() <= 0) {
-            return SalesInvoiceStatus.PAID;
+    private boolean isFullReturn(SalesInvoice invoice, SalesReturn currentReturn) {
+        ReturnQuantitySnapshot returned = returnedQuantities(invoice.getId(), currentReturn.getId());
+        Map<Long, BigDecimal> byInvoiceItem = new HashMap<>(returned.byInvoiceItem());
+        Map<Long, BigDecimal> legacyByProduct = new HashMap<>(returned.legacyByProduct());
+        for (SalesReturnItem item : currentReturn.getItems()) {
+            if (item.getInvoiceItemId() != null) {
+                byInvoiceItem.merge(item.getInvoiceItemId(), safe(item.getQuantity()), BigDecimal::add);
+            } else if (item.getProduct() != null && item.getProduct().getId() != null) {
+                legacyByProduct.merge(item.getProduct().getId(), safe(item.getQuantity()), BigDecimal::add);
+            }
         }
-        if (safe(invoice.getPaidAmount()).signum() > 0) {
-            return SalesInvoiceStatus.PARTIAL_PAID;
+        ReturnQuantitySnapshot combined = new ReturnQuantitySnapshot(byInvoiceItem, legacyByProduct);
+        Map<Long, BigDecimal> legacyRemainingByProduct = new HashMap<>(combined.legacyByProduct());
+        for (SalesItem line : invoice.getItems()) {
+            if (line.getProduct() == null || line.getProduct().getId() == null) {
+                continue;
+            }
+            BigDecimal sold = safe(line.getQuantity());
+            BigDecimal lineReturned = combined.byInvoiceItem().getOrDefault(line.getId(), BigDecimal.ZERO);
+            BigDecimal legacyAvailable = legacyRemainingByProduct.getOrDefault(line.getProduct().getId(), BigDecimal.ZERO);
+            BigDecimal legacyApplied = legacyAvailable.min(sold.subtract(lineReturned).max(BigDecimal.ZERO));
+            legacyRemainingByProduct.put(line.getProduct().getId(), legacyAvailable.subtract(legacyApplied));
+            if (lineReturned.add(legacyApplied).compareTo(sold) < 0) {
+                return false;
+            }
         }
-        return SalesInvoiceStatus.POSTED;
+        return true;
     }
 
     private SalesReturn findReturnById(Long id) {

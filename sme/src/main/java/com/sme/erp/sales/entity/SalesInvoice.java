@@ -73,7 +73,7 @@ public class SalesInvoice {
     private SalesPaymentStatus paymentStatus = SalesPaymentStatus.DUE;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "ENUM('DRAFT','SUBMITTED','APPROVED','POSTED','PARTIAL_PAID','PAID','CANCELLED','REVERSED','PENDING','CONFIRMED','COMPLETED')")
+    @Column(nullable = false, columnDefinition = "ENUM('DRAFT','POSTED','CANCELLED','RETURNED')")
     private SalesInvoiceStatus status = SalesInvoiceStatus.DRAFT;
 
     @Column(name = "created_by")

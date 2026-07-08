@@ -369,6 +369,16 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     });
   }
 
+  deleteDraft(): void {
+    if (!this.canDelete() || !this.invoice?.id) return;
+    if (!window.confirm(`Delete draft invoice ${this.invoice.invoiceNo || '#' + this.invoice.id}?`)) return;
+    this.submitting = true;
+    this.invoiceService.deleteDraftInvoice(this.invoice.id).subscribe({
+      next: () => { this.submitting = false; this.router.navigate(['/sales']); },
+      error: error => { this.submitting = false; this.errorMessage = extractApiErrorMessage(error, 'Draft invoice delete failed.'); }
+    });
+  }
+
   receivePayment(): void {
     if (this.canReceivePayment() && this.invoice?.customerId) {
       const payment = normalizeSalesPayment(this.paymentInput);
@@ -395,9 +405,11 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
   canEdit(): boolean { return this.invoice?.status === 'DRAFT' && this.hasPermission('SALES_INVOICE_EDIT'); }
   canSubmit(): boolean { return this.invoice?.status === 'DRAFT' && this.hasPermission('SALES_INVOICE_SUBMIT'); }
   canApprove(): boolean { return ['SUBMITTED', 'PENDING'].includes(this.invoice?.status || '') && this.hasPermission('SALES_INVOICE_APPROVE'); }
-  canPost(): boolean { return this.invoice?.status === 'APPROVED' && this.hasPermission('SALES_INVOICE_POST'); }
+  canPost(): boolean { return this.invoice?.status === 'DRAFT' && this.hasPermission('SALES_INVOICE_POST'); }
   canCancel(): boolean { return ['DRAFT', 'SUBMITTED', 'APPROVED'].includes(this.invoice?.status || '') && this.hasPermission('SALES_INVOICE_CANCEL'); }
-  canReceivePayment(): boolean { return this.isCompleted() && Number(this.invoice?.dueAmount || 0) > 0 && this.hasPermission('CUSTOMER_RECEIPT_CREATE'); }
+  canDelete(): boolean { return this.invoice?.status === 'DRAFT' && this.hasPermission('SALES_INVOICE_CANCEL'); }
+  canPrint(): boolean { return !!this.invoice?.id && this.invoice.status !== 'DRAFT' && this.hasPermission('SALES_INVOICE_PRINT'); }
+  canReceivePayment(): boolean { return this.invoice?.status === 'POSTED' && Number(this.invoice?.dueAmount || 0) > 0 && this.hasPermission('CUSTOMER_RECEIPT_CREATE'); }
   canReturn(): boolean { return this.isCompleted() && this.hasPermission('SALES_RETURN_CREATE'); }
   hasPermission(permission: string): boolean { return this.authService.hasPermission(permission); }
 
@@ -462,7 +474,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
       newCustomer: this.showInlineCustomerForm ? this.normalizeInlineCustomer(value.newCustomer) : null,
       warehouseId: Number(value.warehouseId), saleDate: value.saleDate,
       notes: value.notes || '', totalAmount: this.totalAmount, discountAmount: this.discountAmount,
-      taxAmount: this.taxAmount, netTotal: this.netTotal, paidAmount: Number(this.invoice?.paidAmount || 0),
+      taxAmount: this.taxAmount, netTotal: this.netTotal, paidAmount: this.mode === 'create' ? this.paymentInput.paidAmount : Number(this.invoice?.paidAmount || 0),
       dueAmount: this.mode === 'edit' ? Number(this.invoice?.dueAmount || 0) : 0, paymentStatus: this.paymentStatus,
       status: this.mode === 'edit' ? this.invoice?.status : 'DRAFT',
       items: this.buildInvoiceItems(value.items)
@@ -475,7 +487,7 @@ export class InvoiceFormComponent implements OnInit, OnDestroy {
     this.productMenusOpen = [];
   }
   private today(): string { return new Date().toISOString().slice(0, 10); }
-  private isCompleted(): boolean { return ['POSTED', 'CLOSED', 'PARTIAL_PAID', 'PAID', 'COMPLETED'].includes(this.invoice?.status || ''); }
+  private isCompleted(): boolean { return this.invoice?.status === 'POSTED'; }
 
   onPaymentMethodChange(): void {
     if (this.form.get('payment.paymentMethod')?.value === 'CREDIT') {

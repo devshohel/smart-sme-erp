@@ -77,8 +77,6 @@ public class PosServiceImpl implements PosService {
             throw new BadRequestException("Due payment method requires a zero paid amount");
         }
 
-        salesInvoiceService.submit(created.getId());
-        salesInvoiceService.approve(created.getId());
         SalesInvoiceDTO posted = salesInvoiceService.post(created.getId());
 
         CustomerReceiptDTO receipt = null;

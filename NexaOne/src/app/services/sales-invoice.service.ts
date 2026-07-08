@@ -57,6 +57,10 @@ export class SalesInvoiceService {
       .pipe(map(response => this.normalizeResponse(unwrapApiResponse(response))));
   }
 
+  deleteDraftInvoice(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
   private normalizeRequest(invoice: SalesInvoice): SalesInvoice {
     return {
       ...invoice,
@@ -91,15 +95,23 @@ export class SalesInvoiceService {
     const legacyStatus = normalized.status;
     return {
       ...normalized,
-      // Compatibility adapter: lifecycle and payment state are separate in the UI.
-      status: legacyStatus === 'PARTIAL_PAID' || legacyStatus === 'CONFIRMED'
-        ? 'POSTED'
-        : legacyStatus === 'PAID' || legacyStatus === 'COMPLETED' ? 'CLOSED' : legacyStatus,
+      status: this.normalizeInvoiceStatus(legacyStatus),
       paymentStatus: invoice.paymentStatus ?? null,
       paidAmount: Number(invoice.paidAmount || 0),
       dueAmount: Number(invoice.dueAmount || 0),
       netTotal: Number(invoice.netTotal || 0)
     };
+  }
+
+  private normalizeInvoiceStatus(status: SalesInvoice['status']): SalesInvoice['status'] {
+    if (status === 'SUBMITTED' || status === 'APPROVED' || status === 'PARTIAL_PAID'
+      || status === 'PAID' || status === 'CONFIRMED' || status === 'COMPLETED') {
+      return 'POSTED';
+    }
+    if (status === 'REVERSED') {
+      return 'CANCELLED';
+    }
+    return status || 'DRAFT';
   }
 
   private toApiDateTime(value: string): string {
