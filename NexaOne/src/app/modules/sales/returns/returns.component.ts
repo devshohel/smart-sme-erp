@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SalesReturnCondition, SalesReturnLineItem, SalesReturnStatus } from '../../../models/sales-common.model';
 import { SalesInvoice } from '../../../models/sales-invoice.model';
@@ -26,7 +26,7 @@ export class ReturnsComponent implements OnInit {
   statusFilter = '';
   dateFilter = '';
   invoiceSearchTerm = '';
-  readonly statuses: SalesReturnStatus[] = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'POSTED', 'CANCELLED', 'REVERSED'];
+  readonly statuses: SalesReturnStatus[] = ['PENDING', 'APPROVED', 'REJECTED'];
   readonly conditions: SalesReturnCondition[] = ['RESELLABLE', 'DAMAGED', 'EXPIRED'];
 
   constructor(private fb: FormBuilder, private returnService: SalesReturnService,
@@ -143,6 +143,18 @@ export class ReturnsComponent implements OnInit {
     group.get('total')?.setValue(Math.max(0, gross - discount + tax), { emitEvent: false });
   }
 
+  proratedDiscount(group: AbstractControl): number {
+    const quantity = Number(group.get('quantity')?.value || 0);
+    const sold = Number(group.get('soldQuantity')?.value || 0);
+    return sold > 0 ? Number(group.get('discount')?.value || 0) * quantity / sold : 0;
+  }
+
+  proratedTax(group: AbstractControl): number {
+    const quantity = Number(group.get('quantity')?.value || 0);
+    const sold = Number(group.get('soldQuantity')?.value || 0);
+    return sold > 0 ? Number(group.get('tax')?.value || 0) * quantity / sold : 0;
+  }
+
   saveReturn(): void {
     this.successMessage = ''; this.errorMessage = '';
     const selected = this.items.controls.filter(c => Number(c.get('quantity')?.value || 0) > 0);
@@ -154,15 +166,8 @@ export class ReturnsComponent implements OnInit {
     this.submitting = true;
     this.returnService.saveReturn(this.buildReturnPayload()).subscribe({
       next: saved => {
-        if (saved.id && this.hasPermission('SALES_RETURN_SUBMIT')) {
-          this.returnService.submitReturn(saved.id).subscribe({
-            next: submitted => { this.submitting = false; this.router.navigate(['/sales/returns', submitted.id, 'view']); },
-            error: error => { this.submitting = false; this.errorMessage = extractApiErrorMessage(error, 'Return was saved as draft but could not be submitted.'); }
-          });
-          return;
-        }
         this.submitting = false;
-        this.router.navigate(['/sales/returns', saved.id, 'view']);
+        this.router.navigate(['/sales/returns']);
       },
       error: error => { this.submitting = false; this.errorMessage = extractApiErrorMessage(error, 'Sales return could not be saved.'); }
     });
@@ -176,21 +181,13 @@ export class ReturnsComponent implements OnInit {
     this.selectedReturn = value;
     this.submitting = true;
     this.returnService.approveReturn(value.id).subscribe({
-      next: approved => this.returnService.postReturn(value.id!).subscribe({
-        next: posted => {
-          this.submitting = false;
-          this.selectedReturn = posted;
-          this.successMessage = 'Sales return approved and posted successfully.';
-          this.loadInvoices();
-          this.loadReturns(posted.id);
-        },
-        error: error => {
-          this.submitting = false;
-          this.selectedReturn = approved;
-          this.errorMessage = extractApiErrorMessage(error, 'Return was approved, but backend posting could not be completed.');
-          this.loadReturns(approved.id);
-        }
-      }),
+      next: approved => {
+        this.submitting = false;
+        this.selectedReturn = approved;
+        this.successMessage = 'Sales return approved successfully.';
+        this.loadInvoices();
+        this.loadReturns(approved.id);
+      },
       error: error => { this.submitting = false; this.errorMessage = extractApiErrorMessage(error, 'Return approval failed.'); }
     });
   }
@@ -203,18 +200,20 @@ export class ReturnsComponent implements OnInit {
     }
   }
   printReturn(value: SalesReturn): void {
-    if (value.id && this.hasPermission('SALES_RETURN_PRINT')) {
+    if (this.canPrint(value) && value.id) {
       this.router.navigate(['/sales/returns', value.id, 'view'], { queryParams: { print: true } });
     }
   }
   hasPermission(permission: string): boolean { return this.authService.hasPermission(permission); }
-  returnStatusLabel(value: SalesReturn): string { return value.status === 'SUBMITTED' ? 'PENDING' : (value.status || 'DRAFT'); }
-  canEdit(v: SalesReturn | null): boolean { return !!v?.id && ['DRAFT', 'REJECTED'].includes(v.status || '') && this.hasPermission('SALES_RETURN_EDIT'); }
-  canSubmit(v: SalesReturn | null): boolean { return !!v?.id && ['DRAFT', 'REJECTED'].includes(v.status || '') && this.hasPermission('SALES_RETURN_SUBMIT'); }
-  canApprove(v: SalesReturn | null): boolean { return !!v?.id && v.status === 'SUBMITTED' && this.hasPermission('SALES_RETURN_APPROVE'); }
-  canReject(v: SalesReturn | null): boolean { return !!v?.id && v.status === 'SUBMITTED' && this.hasPermission('SALES_RETURN_REJECT'); }
-  canPost(v: SalesReturn | null): boolean { return !!v?.id && v.status === 'APPROVED' && this.hasPermission('SALES_RETURN_POST'); }
-  canCancel(v: SalesReturn | null): boolean { return !!v?.id && !['POSTED', 'CANCELLED'].includes(v.status || '') && this.hasPermission('SALES_RETURN_CANCEL'); }
+  returnStatusLabel(value: SalesReturn): string { return this.normalizedStatus(value); }
+  canEdit(v: SalesReturn | null): boolean { return !!v?.id && this.normalizedStatus(v) === 'PENDING' && this.hasPermission('SALES_RETURN_EDIT'); }
+  canDelete(v: SalesReturn | null): boolean { return !!v?.id && this.normalizedStatus(v) === 'PENDING' && this.hasPermission('SALES_RETURN_DELETE'); }
+  canSubmit(v: SalesReturn | null): boolean { return false; }
+  canApprove(v: SalesReturn | null): boolean { return !!v?.id && this.normalizedStatus(v) === 'PENDING' && this.hasPermission('SALES_RETURN_APPROVE'); }
+  canReject(v: SalesReturn | null): boolean { return !!v?.id && this.normalizedStatus(v) === 'PENDING' && this.hasPermission('SALES_RETURN_REJECT'); }
+  canPost(v: SalesReturn | null): boolean { return false; }
+  canCancel(v: SalesReturn | null): boolean { return false; }
+  canPrint(v: SalesReturn | null): boolean { return !!v?.id && this.normalizedStatus(v) === 'APPROVED' && this.hasPermission('SALES_RETURN_PRINT'); }
   submitSelected(): void { this.runAction('submit', 'Sales return submitted successfully.'); }
   approveSelected(): void { this.runAction('approve', 'Sales return approved successfully.'); }
   postSelected(): void { this.runAction('post', 'Sales return posted successfully.'); }
@@ -222,6 +221,19 @@ export class ReturnsComponent implements OnInit {
   cancelSelected(): void { const reason = window.prompt('Enter cancellation reason'); if (reason?.trim() && this.selectedReturn?.id) this.runRequest(this.returnService.cancelReturn(this.selectedReturn.id, reason.trim()), 'Sales return cancelled successfully.'); }
   printSelected(): void { window.print(); }
   backToList(): void { this.router.navigate(['/sales/returns']); }
+  deleteReturn(value: SalesReturn): void {
+    if (!this.canDelete(value) || !value.id) return;
+    if (!window.confirm('Delete this pending sales return?')) return;
+    this.submitting = true;
+    this.returnService.deleteReturn(value.id).subscribe({
+      next: () => {
+        this.submitting = false;
+        this.successMessage = 'Pending sales return deleted successfully.';
+        this.loadReturns();
+      },
+      error: error => { this.submitting = false; this.errorMessage = extractApiErrorMessage(error, 'Sales return could not be deleted.'); }
+    });
+  }
 
   private runAction(action: 'submit' | 'approve' | 'post', message: string): void {
     if (!this.selectedReturn?.id) return;
@@ -246,8 +258,15 @@ export class ReturnsComponent implements OnInit {
     return { id: this.editingReturnId || undefined, invoiceId: this.returnContext!.invoiceId, invoiceNo: this.returnContext!.invoiceNo,
       customerId: this.returnContext!.customerId, customerName: this.returnContext!.customerName,
       warehouseId: this.returnContext!.warehouseId, warehouseName: this.returnContext!.warehouseName,
-      returnDate: value.returnDate, refundMethod: 'ADJUST_DUE', notes: value.notes || '', status: 'DRAFT', items,
+      returnDate: value.returnDate, refundMethod: 'ADJUST_DUE', notes: value.notes || '', status: 'PENDING', items,
       totalAmount: items.reduce((sum, item) => sum + item.total, 0) };
+  }
+  private normalizedStatus(value: SalesReturn | null): 'PENDING' | 'APPROVED' | 'REJECTED' {
+    const status = value?.status;
+    if (!status || status === 'DRAFT' || status === 'SUBMITTED') return 'PENDING';
+    if (status === 'POSTED') return 'APPROVED';
+    if (status === 'CANCELLED' || status === 'REVERSED') return 'REJECTED';
+    return status as 'PENDING' | 'APPROVED' | 'REJECTED';
   }
   private clearItems(): void { while (this.items.length) this.items.removeAt(0); }
   private today(): string { return new Date().toISOString().slice(0, 10); }

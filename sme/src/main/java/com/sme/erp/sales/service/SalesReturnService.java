@@ -17,4 +17,5 @@ public interface SalesReturnService {
     SalesReturnDTO post(Long id);
     SalesReturnDTO reverse(Long id, String reversalReason);
     SalesReturnDTO cancel(Long id, String reason);
+    void delete(Long id);
 }

@@ -17,6 +17,8 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
 
     StockMovement findTopByOrderByIdDesc();
 
+    boolean existsByReferenceTypeAndReferenceNo(String referenceType, String referenceNo);
+
     @Query("""
             select new com.sme.erp.reports.dto.StockMovementReportRowDTO(
                 m.createdAt,

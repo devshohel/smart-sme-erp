@@ -231,8 +231,8 @@ public class SalesInvoiceServiceImpl implements SalesInvoiceService {
         if (safe(entity.getPaidAmount()).signum() > 0) {
             throw new BadRequestException("Invoice reversal is blocked when customer receipts are already allocated");
         }
-        if (salesReturnRepository.existsByInvoiceIdAndStatus(entity.getId(), SalesReturnStatus.POSTED)) {
-            throw new BadRequestException("Invoice reversal is blocked when posted sales returns already exist");
+        if (salesReturnRepository.existsByInvoiceIdAndStatus(entity.getId(), SalesReturnStatus.APPROVED)) {
+            throw new BadRequestException("Invoice reversal is blocked when approved sales returns already exist");
         }
         String normalizedReason = RequestValueUtils.normalizeRequired(reversalReason, "Reversal reason");
         accountingPostingService.reverseSalesInvoice(entity, normalizedReason);

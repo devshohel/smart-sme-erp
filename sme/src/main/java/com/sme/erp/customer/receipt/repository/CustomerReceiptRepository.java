@@ -33,6 +33,16 @@ public interface CustomerReceiptRepository extends JpaRepository<CustomerReceipt
     List<Object[]> findLastPostedDatesByCustomerIds(@Param("customerIds") List<Long> customerIds);
 
     @Query("""
+            select distinct r
+            from CustomerReceipt r
+            join r.allocations a
+            where a.salesInvoice.id = :invoiceId
+              and r.status = com.sme.erp.customer.receipt.enums.CustomerReceiptStatus.POSTED
+            order by r.receiptDate asc, r.id asc
+            """)
+    List<CustomerReceipt> findPostedBySalesInvoiceId(@Param("invoiceId") Long invoiceId);
+
+    @Query("""
             select r
             from CustomerReceipt r
             where r.customer.id = :customerId

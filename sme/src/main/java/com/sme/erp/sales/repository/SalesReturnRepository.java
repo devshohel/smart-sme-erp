@@ -25,7 +25,7 @@ public interface SalesReturnRepository extends JpaRepository<SalesReturn, Long> 
             join fetch r.items item
             left join fetch item.product
             where r.invoice.id = :invoiceId
-              and r.status = com.sme.erp.sales.enums.SalesReturnStatus.POSTED
+              and r.status = com.sme.erp.sales.enums.SalesReturnStatus.APPROVED
               and (:excludeId is null or r.id <> :excludeId)
             """)
     List<SalesReturn> findPostedByInvoiceIdExcluding(@Param("invoiceId") Long invoiceId,
@@ -37,6 +37,7 @@ public interface SalesReturnRepository extends JpaRepository<SalesReturn, Long> 
             where r.customer.id = :customerId
               and (:fromDate is null or r.returnDate >= :fromDate)
               and (:toDate is null or r.returnDate < :toDate)
+              and r.status = com.sme.erp.sales.enums.SalesReturnStatus.APPROVED
             order by r.returnDate asc, r.id asc
             """)
     List<SalesReturn> findByCustomerForLedger(@Param("customerId") Long customerId,
@@ -49,6 +50,7 @@ public interface SalesReturnRepository extends JpaRepository<SalesReturn, Long> 
             where (:startDate is null or r.returnDate >= :startDate)
               and (:endDate is null or r.returnDate < :endDate)
               and (:customerId is null or r.customer.id = :customerId)
+              and r.status = com.sme.erp.sales.enums.SalesReturnStatus.APPROVED
             """)
     java.math.BigDecimal sumReturnAmount(@Param("startDate") LocalDateTime startDate,
                                          @Param("endDate") LocalDateTime endDate,

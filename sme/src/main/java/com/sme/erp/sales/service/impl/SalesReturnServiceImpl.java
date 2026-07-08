@@ -10,6 +10,7 @@ import com.sme.erp.common.util.RequestValueUtils;
 import com.sme.erp.customer.entity.Customer;
 import com.sme.erp.customer.repository.CustomerRepository;
 import com.sme.erp.enums.ProductType;
+import com.sme.erp.inventory.repository.StockMovementRepository;
 import com.sme.erp.inventory.service.StockService;
 import com.sme.erp.product.entity.Product;
 import com.sme.erp.product.repository.ProductRepository;
@@ -55,6 +56,7 @@ public class SalesReturnServiceImpl implements SalesReturnService {
     private final ProductRepository productRepository;
     private final SalesReturnMapper salesReturnMapper;
     private final StockService stockService;
+    private final StockMovementRepository stockMovementRepository;
     private final ActivityLogService activityLogService;
     private final AuditLogService auditLogService;
     private final AccountingPostingService accountingPostingService;
@@ -66,6 +68,7 @@ public class SalesReturnServiceImpl implements SalesReturnService {
             ProductRepository productRepository,
             SalesReturnMapper salesReturnMapper,
             StockService stockService,
+            StockMovementRepository stockMovementRepository,
             ActivityLogService activityLogService,
             AuditLogService auditLogService,
             AccountingPostingService accountingPostingService) {
@@ -75,6 +78,7 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         this.productRepository = productRepository;
         this.salesReturnMapper = salesReturnMapper;
         this.stockService = stockService;
+        this.stockMovementRepository = stockMovementRepository;
         this.activityLogService = activityLogService;
         this.auditLogService = auditLogService;
         this.accountingPostingService = accountingPostingService;
@@ -142,10 +146,7 @@ public class SalesReturnServiceImpl implements SalesReturnService {
         context.setStatus(invoice.getStatus());
         context.setPaidAmount(safe(invoice.getPaidAmount()));
         context.setDueAmount(safe(invoice.getDueAmount()));
-        context.setPaidRefundSupported(safe(invoice.getDueAmount()).signum() > 0);
-        if (!context.isPaidRefundSupported()) {
-            context.setLimitationMessage("This invoice is fully paid. Cash/bank refunds and credit notes are not implemented, so posting this return is blocked.");
-        }
+        context.setPaidRefundSupported(true);
         context.setItems(contextItems);
         return context;
     }
@@ -177,11 +178,11 @@ public class SalesReturnServiceImpl implements SalesReturnService {
     public SalesReturnDTO submit(Long id) {
         SalesReturn entity = findReturnById(id);
         SalesReturnStatus normalizedStatus = normalizeStatus(entity.getStatus());
-        if (normalizedStatus != SalesReturnStatus.DRAFT && normalizedStatus != SalesReturnStatus.REJECTED) {
-            throw new BadRequestException("Only draft or rejected sales returns can be submitted");
+        if (normalizedStatus != SalesReturnStatus.PENDING) {
+            throw new BadRequestException("Only pending sales returns can be submitted");
         }
         SalesReturnDTO oldData = salesReturnMapper.toDTO(entity);
-        entity.setStatus(SalesReturnStatus.SUBMITTED);
+        entity.setStatus(SalesReturnStatus.PENDING);
         entity.setSubmittedAt(LocalDateTime.now());
         entity.setSubmittedBy(currentUsername());
         SalesReturnDTO saved = salesReturnMapper.toDTO(salesReturnRepository.save(entity));
@@ -194,10 +195,18 @@ public class SalesReturnServiceImpl implements SalesReturnService {
     @Transactional
     public SalesReturnDTO approve(Long id) {
         SalesReturn entity = findReturnById(id);
-        if (normalizeStatus(entity.getStatus()) != SalesReturnStatus.SUBMITTED) {
-            throw new BadRequestException("Only submitted sales returns can be approved");
+        if (normalizeStatus(entity.getStatus()) != SalesReturnStatus.PENDING) {
+            throw new BadRequestException("Only pending sales returns can be approved");
+        }
+        SalesInvoice invoice = entity.getInvoice();
+        if (invoice == null || !isPostedInvoice(invoice.getStatus())) {
+            throw new BadRequestException("Sales return can only be approved against a posted sales invoice");
         }
         SalesReturnDTO oldData = salesReturnMapper.toDTO(entity);
+        validateReturnQuantities(entity);
+        restockReturnedItems(entity);
+        accountingPostingService.postSalesReturn(entity);
+        applyReturnToInvoice(invoice, entity);
         entity.setStatus(SalesReturnStatus.APPROVED);
         entity.setApprovedAt(LocalDateTime.now());
         entity.setApprovedBy(currentUsername());
@@ -211,8 +220,8 @@ public class SalesReturnServiceImpl implements SalesReturnService {
     @Transactional
     public SalesReturnDTO reject(Long id, String reason) {
         SalesReturn entity = findReturnById(id);
-        if (normalizeStatus(entity.getStatus()) != SalesReturnStatus.SUBMITTED) {
-            throw new BadRequestException("Only submitted sales returns can be rejected");
+        if (normalizeStatus(entity.getStatus()) != SalesReturnStatus.PENDING) {
+            throw new BadRequestException("Only pending sales returns can be rejected");
         }
         SalesReturnDTO oldData = salesReturnMapper.toDTO(entity);
         entity.setStatus(SalesReturnStatus.REJECTED);
@@ -229,31 +238,27 @@ public class SalesReturnServiceImpl implements SalesReturnService {
     @Transactional
     public SalesReturnDTO post(Long id) {
         SalesReturn entity = findReturnById(id);
-        if (normalizeStatus(entity.getStatus()) != SalesReturnStatus.APPROVED) {
-            throw new BadRequestException("Only approved sales returns can be posted");
+        SalesReturnStatus normalizedStatus = normalizeStatus(entity.getStatus());
+        if (normalizedStatus == SalesReturnStatus.PENDING) {
+            return approve(id);
         }
-        SalesInvoice invoice = entity.getInvoice();
-        if (invoice == null || !isPostedInvoice(invoice.getStatus())) {
-            throw new BadRequestException("Sales return can only be posted against a posted sales invoice");
+        if (normalizedStatus != SalesReturnStatus.APPROVED) {
+            throw new BadRequestException("Only pending sales returns can be approved");
         }
-        if (normalizeRefundMethod(entity.getRefundMethod()) != SalesReturnRefundMethod.ADJUST_DUE) {
-            throw new BadRequestException("Only Adjust Due is supported until the refund/credit note flow is implemented");
-        }
-        validateReturnQuantities(entity);
-        if (safe(entity.getTotalAmount()).compareTo(safe(invoice.getDueAmount())) > 0) {
-            throw new BadRequestException("Posted return amount cannot exceed current invoice due until credit memo support is added");
+        return salesReturnMapper.toDTO(entity);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        SalesReturn entity = findReturnById(id);
+        if (normalizeStatus(entity.getStatus()) != SalesReturnStatus.PENDING) {
+            throw new BadRequestException("Only pending sales returns can be deleted");
         }
         SalesReturnDTO oldData = salesReturnMapper.toDTO(entity);
-        restockReturnedItems(entity);
-        accountingPostingService.postSalesReturn(entity);
-        applyReturnToInvoice(invoice, entity);
-        entity.setStatus(SalesReturnStatus.POSTED);
-        entity.setPostedAt(LocalDateTime.now());
-        entity.setPostedBy(currentUsername());
-        SalesReturnDTO saved = salesReturnMapper.toDTO(salesReturnRepository.save(entity));
-        activityLogService.log("SALES_RETURN_POST", "SALES", "sales_returns", saved.getId(), "Posted sales return " + saved.getReturnCode());
-        auditLogService.log("sales_returns", saved.getId(), auditLogService.toJson(oldData), auditLogService.toJson(saved), "POST");
-        return saved;
+        salesReturnRepository.delete(entity);
+        activityLogService.log("SALES_RETURN_DELETE", "SALES", "sales_returns", id, "Deleted pending sales return " + entity.getReturnCode());
+        auditLogService.log("sales_returns", id, auditLogService.toJson(oldData), null, "DELETE");
     }
 
     @Override
@@ -333,6 +338,9 @@ public class SalesReturnServiceImpl implements SalesReturnService {
     }
 
     private void restockReturnedItems(SalesReturn salesReturn) {
+        if (stockMovementRepository.existsByReferenceTypeAndReferenceNo("SALES_RETURN", salesReturn.getReturnCode())) {
+            return;
+        }
         Long warehouseId = salesReturn.getInvoice().getWarehouse().getId();
         for (SalesReturnItem item : salesReturn.getItems()) {
             Product product = requireProduct(item, "Sales return contains a deleted product. Edit the return and select an active product before posting.");
@@ -363,9 +371,14 @@ public class SalesReturnServiceImpl implements SalesReturnService {
     }
 
     private void applyReturnToInvoice(SalesInvoice invoice, SalesReturn salesReturn) {
-        BigDecimal newDue = safe(invoice.getDueAmount()).subtract(safe(salesReturn.getTotalAmount())).max(BigDecimal.ZERO);
+        BigDecimal returnAmount = safe(salesReturn.getTotalAmount());
+        BigDecimal currentDue = safe(invoice.getDueAmount());
+        BigDecimal newDue = currentDue.subtract(returnAmount).max(BigDecimal.ZERO);
+        BigDecimal creditAmount = returnAmount.subtract(currentDue).max(BigDecimal.ZERO);
+        BigDecimal newPaid = safe(invoice.getPaidAmount()).subtract(creditAmount).max(BigDecimal.ZERO);
+        invoice.setPaidAmount(newPaid);
         invoice.setDueAmount(newDue);
-        invoice.setPaymentStatus(resolvePaymentStatus(invoice.getPaidAmount(), newDue));
+        invoice.setPaymentStatus(resolvePaymentStatus(newPaid, newDue));
         invoice.setStatus(isFullReturn(invoice, salesReturn) ? SalesInvoiceStatus.RETURNED : SalesInvoiceStatus.POSTED);
         salesInvoiceRepository.save(invoice);
     }
@@ -558,24 +571,33 @@ public class SalesReturnServiceImpl implements SalesReturnService {
 
     private void ensureEditable(SalesReturn salesReturn) {
         SalesReturnStatus normalizedStatus = normalizeStatus(salesReturn.getStatus());
-        if (normalizedStatus != SalesReturnStatus.DRAFT && normalizedStatus != SalesReturnStatus.REJECTED) {
-            throw new BadRequestException("Only draft or rejected sales returns can be edited");
+        if (normalizedStatus != SalesReturnStatus.PENDING) {
+            throw new BadRequestException("Only pending sales returns can be edited");
         }
     }
 
     private SalesReturnStatus resolveDraftStatus(SalesReturnStatus requested, SalesReturnStatus existing, boolean creating) {
         SalesReturnStatus normalizedRequested = normalizeStatus(requested);
         if (normalizedRequested == null) {
-            return creating ? SalesReturnStatus.DRAFT : normalizeStatus(existing);
+            return creating ? SalesReturnStatus.PENDING : normalizeStatus(existing);
         }
-        if (normalizedRequested != SalesReturnStatus.DRAFT && normalizedRequested != SalesReturnStatus.REJECTED) {
-            throw new BadRequestException("Sales return save supports draft status only");
+        if (normalizedRequested != SalesReturnStatus.PENDING) {
+            throw new BadRequestException("Sales return save supports pending status only");
         }
-        return SalesReturnStatus.DRAFT;
+        return SalesReturnStatus.PENDING;
     }
 
     private SalesReturnStatus normalizeStatus(SalesReturnStatus status) {
-        return status == null ? SalesReturnStatus.DRAFT : status;
+        if (status == null || status == SalesReturnStatus.DRAFT || status == SalesReturnStatus.SUBMITTED) {
+            return SalesReturnStatus.PENDING;
+        }
+        if (status == SalesReturnStatus.POSTED) {
+            return SalesReturnStatus.APPROVED;
+        }
+        if (status == SalesReturnStatus.CANCELLED || status == SalesReturnStatus.REVERSED) {
+            return SalesReturnStatus.REJECTED;
+        }
+        return status;
     }
 
     private SalesReturnRefundMethod normalizeRefundMethod(SalesReturnRefundMethod method) {
@@ -583,11 +605,7 @@ public class SalesReturnServiceImpl implements SalesReturnService {
     }
 
     private boolean isPostedInvoice(SalesInvoiceStatus status) {
-        SalesInvoiceStatus normalized = status == SalesInvoiceStatus.CONFIRMED || status == SalesInvoiceStatus.COMPLETED
-                ? SalesInvoiceStatus.POSTED : status;
-        return normalized == SalesInvoiceStatus.POSTED
-                || normalized == SalesInvoiceStatus.PARTIAL_PAID
-                || normalized == SalesInvoiceStatus.PAID;
+        return status == SalesInvoiceStatus.POSTED;
     }
 
     private SalesPaymentStatus resolvePaymentStatus(BigDecimal paidAmount, BigDecimal dueAmount) {

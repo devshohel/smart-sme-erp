@@ -65,7 +65,7 @@ public class SalesReturn {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private SalesReturnStatus status = SalesReturnStatus.DRAFT;
+    private SalesReturnStatus status = SalesReturnStatus.PENDING;
 
     @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
@@ -121,7 +121,7 @@ public class SalesReturn {
         this.createdAt = now;
         this.updatedAt = now;
         if (this.status == null) {
-            this.status = SalesReturnStatus.DRAFT;
+            this.status = SalesReturnStatus.PENDING;
         }
     }
 

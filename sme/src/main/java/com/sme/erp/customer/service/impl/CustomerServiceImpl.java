@@ -488,6 +488,9 @@ public class CustomerServiceImpl implements CustomerService {
         }
 
         for (SalesReturn salesReturn : salesReturnRepository.findByCustomerForLedger(customerId, fromDateTime, toDateTime)) {
+            if (isWalkInCustomer(salesReturn)) {
+                continue;
+            }
             entries.add(new LedgerEntry(
                     salesReturn.getReturnDate().toLocalDate(),
                     3,
@@ -504,6 +507,13 @@ public class CustomerServiceImpl implements CustomerService {
                 .thenComparing(LedgerEntry::sortOrder)
                 .thenComparing(LedgerEntry::id));
         return entries;
+    }
+
+    private boolean isWalkInCustomer(SalesReturn salesReturn) {
+        return salesReturn != null
+                && salesReturn.getCustomer() != null
+                && salesReturn.getCustomer().getName() != null
+                && salesReturn.getCustomer().getName().toLowerCase().matches(".*walk[\\s-]*in.*");
     }
 
     private BigDecimal applyEntries(BigDecimal balance, List<LedgerEntry> entries) {

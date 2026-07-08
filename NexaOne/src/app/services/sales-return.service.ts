@@ -61,6 +61,10 @@ export class SalesReturnService {
       .pipe(map(response => this.normalizeReturn(unwrapApiResponse(response))));
   }
 
+  deleteReturn(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
   private normalizeReturn(salesReturn: SalesReturn): SalesReturn {
     return {
       ...salesReturn,
@@ -69,7 +73,7 @@ export class SalesReturnService {
       invoiceId: salesReturn.invoiceId ?? null,
       customerId: salesReturn.customerId ?? null,
       returnDate: this.toApiDateTime(salesReturn.returnDate),
-      status: salesReturn.status || 'DRAFT',
+      status: this.normalizeStatus(salesReturn.status),
       totalAmount: Number(salesReturn.totalAmount || 0),
       items: (salesReturn.items || []).map(item => ({
         ...item,
@@ -84,6 +88,13 @@ export class SalesReturnService {
         total: Number(item.total || 0)
       }))
     };
+  }
+
+  private normalizeStatus(status?: string): SalesReturn['status'] {
+    if (!status || status === 'DRAFT' || status === 'SUBMITTED') return 'PENDING';
+    if (status === 'POSTED') return 'APPROVED';
+    if (status === 'CANCELLED' || status === 'REVERSED') return 'REJECTED';
+    return status as SalesReturn['status'];
   }
 
   private toApiDateTime(value: string): string {

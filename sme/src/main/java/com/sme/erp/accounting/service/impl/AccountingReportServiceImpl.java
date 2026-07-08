@@ -19,6 +19,7 @@ import com.sme.erp.purchase.repository.PurchaseReturnRepository;
 import com.sme.erp.sales.entity.SalesInvoice;
 import com.sme.erp.sales.entity.SalesReturn;
 import com.sme.erp.sales.enums.SalesInvoiceStatus;
+import com.sme.erp.sales.enums.SalesReturnStatus;
 import com.sme.erp.sales.repository.SalesInvoiceRepository;
 import com.sme.erp.sales.repository.SalesReturnRepository;
 import org.springframework.stereotype.Service;
@@ -72,7 +73,10 @@ public class AccountingReportServiceImpl implements AccountingReportService {
             }
         }
         for (SalesReturn salesReturn : salesReturnRepository.findAll()) {
-            if (!matchesCustomer(salesReturn, customerId) || !within(salesReturn.getReturnDate().toLocalDate(), fromDate, toDate)) {
+            if (salesReturn.getStatus() != SalesReturnStatus.APPROVED
+                    || isWalkInCustomer(salesReturn)
+                    || !matchesCustomer(salesReturn, customerId)
+                    || !within(salesReturn.getReturnDate().toLocalDate(), fromDate, toDate)) {
                 continue;
             }
             rows.add(new RawLedgerEntry(salesReturn.getReturnDate().toLocalDate(), "Accounts Receivable", salesReturn.getReturnCode(), customerName(salesReturn) + " sales return", BigDecimal.ZERO, safe(salesReturn.getTotalAmount())));
@@ -399,6 +403,13 @@ public class AccountingReportServiceImpl implements AccountingReportService {
 
     private String customerName(SalesReturn salesReturn) {
         return salesReturn.getCustomer() == null ? "Customer" : salesReturn.getCustomer().getName();
+    }
+
+    private boolean isWalkInCustomer(SalesReturn salesReturn) {
+        return salesReturn != null
+                && salesReturn.getCustomer() != null
+                && salesReturn.getCustomer().getName() != null
+                && salesReturn.getCustomer().getName().toLowerCase().matches(".*walk[\\s-]*in.*");
     }
 
     private String supplierName(PurchaseOrder order) {

@@ -28,6 +28,12 @@ WHERE status IN (
   'PARTIAL_PAID'
 );
 
+-- PENDING was a legacy unfinalized state and is migrated to the only
+-- unfinalized lifecycle status in the corrected workflow.
+UPDATE sales_invoices
+SET status = 'DRAFT'
+WHERE status = 'PENDING';
+
 UPDATE sales_invoices
 SET status = 'CANCELLED'
 WHERE status = 'REVERSED';

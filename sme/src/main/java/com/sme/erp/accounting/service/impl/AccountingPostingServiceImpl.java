@@ -13,6 +13,9 @@ import com.sme.erp.accounting.service.AccountingPostingService;
 import com.sme.erp.audit.service.ActivityLogService;
 import com.sme.erp.common.exception.BadRequestException;
 import com.sme.erp.common.exception.ResourceNotFoundException;
+import com.sme.erp.customer.receipt.entity.CustomerReceipt;
+import com.sme.erp.customer.receipt.enums.CustomerReceiptPaymentMethod;
+import com.sme.erp.customer.receipt.repository.CustomerReceiptRepository;
 import com.sme.erp.settings.entity.TaxSettings;
 import com.sme.erp.settings.repository.TaxSettingsRepository;
 import com.sme.erp.purchase.entity.PurchaseOrder;
@@ -31,12 +34,18 @@ public class AccountingPostingServiceImpl implements AccountingPostingService {
     private final AccountRepository accountRepository;
     private final ActivityLogService activityLogService;
     private final TaxSettingsRepository taxSettingsRepository;
+    private final CustomerReceiptRepository customerReceiptRepository;
 
-    public AccountingPostingServiceImpl(JournalEntryRepository journalEntryRepository, AccountRepository accountRepository, ActivityLogService activityLogService, TaxSettingsRepository taxSettingsRepository) {
+    public AccountingPostingServiceImpl(JournalEntryRepository journalEntryRepository,
+                                        AccountRepository accountRepository,
+                                        ActivityLogService activityLogService,
+                                        TaxSettingsRepository taxSettingsRepository,
+                                        CustomerReceiptRepository customerReceiptRepository) {
         this.journalEntryRepository = journalEntryRepository;
         this.accountRepository = accountRepository;
         this.activityLogService = activityLogService;
         this.taxSettingsRepository = taxSettingsRepository;
+        this.customerReceiptRepository = customerReceiptRepository;
     }
 
     @Override
@@ -157,10 +166,22 @@ public class AccountingPostingServiceImpl implements AccountingPostingService {
             return;
         }
         JournalEntry entry = baseEntry("SALES_RETURN", salesReturn.getId(), salesReturn.getReturnCode(), salesReturn.getReturnDate().toLocalDate(), "Sales return posting " + salesReturn.getReturnCode());
-        addLine(entry, account("Sales Income"), amount, BigDecimal.ZERO, "Sales return adjustment");
-        addLine(entry, account("Accounts Receivable"), BigDecimal.ZERO, amount, "Receivable reduction");
+        addLine(entry, account("Sales Returns and Allowances"), amount, BigDecimal.ZERO, "Sales return adjustment");
+        if (isWalkInReturn(salesReturn)) {
+            addLine(entry, walkInRefundAccount(salesReturn), BigDecimal.ZERO, amount, "Walk-in sales refund");
+        } else {
+            BigDecimal dueAmount = salesReturn.getInvoice() == null ? BigDecimal.ZERO : safe(salesReturn.getInvoice().getDueAmount());
+            BigDecimal receivableReduction = amount.min(dueAmount);
+            BigDecimal customerCredit = amount.subtract(receivableReduction);
+            if (receivableReduction.signum() > 0) {
+                addLine(entry, account("Accounts Receivable"), BigDecimal.ZERO, receivableReduction, "Receivable reduction");
+            }
+            if (customerCredit.signum() > 0) {
+                addLine(entry, account("Customer Credit"), BigDecimal.ZERO, customerCredit, "Customer credit/refund liability");
+            }
+        }
         saveIfBalanced(entry);
-        activityLogService.log("ACCOUNTING_POST_SALES_INVOICE", "ACCOUNTING", "accounting_journal_entries", entry.getId(), "Posted sales return " + salesReturn.getReturnCode());
+        activityLogService.log("ACCOUNTING_POST_SALES_RETURN", "ACCOUNTING", "accounting_journal_entries", entry.getId(), "Posted sales return " + salesReturn.getReturnCode());
     }
 
     @Override
@@ -283,6 +304,25 @@ public class AccountingPostingServiceImpl implements AccountingPostingService {
             throw new BadRequestException("Tax receivable account must be configured before posting taxable expenses");
         }
         return settings.getTaxReceivableAccount();
+    }
+
+    private Account walkInRefundAccount(SalesReturn salesReturn) {
+        CustomerReceiptPaymentMethod method = customerReceiptRepository.findPostedBySalesInvoiceId(salesReturn.getInvoice().getId()).stream()
+                .findFirst()
+                .map(CustomerReceipt::getPaymentMethod)
+                .orElse(CustomerReceiptPaymentMethod.CASH);
+        return switch (method) {
+            case CASH -> account("Cash");
+            case BANK, MOBILE_BANKING, CHEQUE -> account("Bank");
+            case OTHER -> account("Expense Clearing");
+        };
+    }
+
+    private boolean isWalkInReturn(SalesReturn salesReturn) {
+        return salesReturn != null
+                && salesReturn.getCustomer() != null
+                && salesReturn.getCustomer().getName() != null
+                && salesReturn.getCustomer().getName().toLowerCase().matches(".*walk[\\s-]*in.*");
     }
 
     private BigDecimal expenseNetAmount(Expense expense) {
