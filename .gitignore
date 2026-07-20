@@ -1,0 +1,31 @@
+# Angular
+NexaOne/node_modules/
+NexaOne/dist/
+NexaOne/.angular/
+
+# Spring Boot
+sme/target/
+
+# Temporary folders
+tmp-*/
+
+# AI / local configuration
+.agents/
+.codex/
+
+# IDE
+.idea/
+*.iml
+
+# Logs
+*.log
+
+# Environment and secrets
+.env
+.env.*
+application-local.properties
+application-prod.properties
+
+# OS files
+.DS_Store
+Thumbs.db
